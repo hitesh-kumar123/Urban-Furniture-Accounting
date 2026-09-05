@@ -1,0 +1,23 @@
+{
+  "name": "peoplepay360",
+  "version": "1.0.0",
+  "description": "PeoplePay360 — Integrated Human Resource and Payroll Operations Platform",
+  "main": "server/src/server.js",
+  "scripts": {
+    "server": "node server/src/server.js",
+    "seed": "node server/src/seed/seed.js",
+    "test": "cd server && node ./node_modules/jest/bin/jest.js",
+    "client": "cd client && node ./node_modules/vite/bin/vite.js",
+    "build:client": "cd client && node ./node_modules/vite/bin/vite.js build"
+  },
+  "keywords": [
+    "hr",
+    "payroll",
+    "mern",
+    "react",
+    "tailwind",
+    "salary-engine"
+  ],
+  "author": "PeoplePay360 Team",
+  "license": "MIT"
+}
