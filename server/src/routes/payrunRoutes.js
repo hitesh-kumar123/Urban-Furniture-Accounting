@@ -10,19 +10,19 @@ router.use(authenticateUser);
 
 router.get(
   '/eligible-employees',
-  authorizeRoles('HR Payroll User', 'HR Payroll Manager', 'Admin'),
+  authorizeRoles('HR Manager', 'HR Payroll User', 'HR Payroll Manager', 'Admin'),
   payrunController.getPayrunEligibleEmployees
 );
 
 router.get(
   '/',
-  authorizeRoles('HR Payroll User', 'HR Payroll Manager', 'Admin'),
+  authorizeRoles('HR Manager', 'HR Payroll User', 'HR Payroll Manager', 'Admin'),
   payrunController.getPayruns
 );
 
 router.get(
   '/:id',
-  authorizeRoles('HR Payroll User', 'HR Payroll Manager', 'Admin'),
+  authorizeRoles('HR Manager', 'HR Payroll User', 'HR Payroll Manager', 'Admin'),
   payrunController.getPayrunById
 );
 

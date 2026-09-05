@@ -10,13 +10,13 @@ router.use(authenticateUser);
 
 router.get(
   '/',
-  authorizeRoles('HR Payroll User', 'HR Payroll Manager', 'Admin'),
+  authorizeRoles('HR Manager', 'HR Payroll User', 'HR Payroll Manager', 'Admin'),
   salaryRuleController.getSalaryRules
 );
 
 router.get(
   '/:id',
-  authorizeRoles('HR Payroll User', 'HR Payroll Manager', 'Admin'),
+  authorizeRoles('HR Manager', 'HR Payroll User', 'HR Payroll Manager', 'Admin'),
   salaryRuleController.getSalaryRuleById
 );
 

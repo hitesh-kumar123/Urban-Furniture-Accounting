@@ -2,6 +2,7 @@ const Contract = require('../models/Contract');
 const { getApplicableContract, validateNoOverlappingContract } = require('../services/contractService');
 const { successResponse } = require('../utils/apiResponse');
 const { AppError } = require('../middleware/errorMiddleware');
+const { ensureEmployeeForUser } = require('../services/employeeHelper');
 
 /**
  * Get all contracts with filtering
@@ -12,9 +13,14 @@ const getContracts = async (req, res, next) => {
     const { employee, status, department } = req.query;
 
     const query = {};
-    if (employee) query.employee = employee;
+    if (req.user.role === 'Employee') {
+      const emp = await ensureEmployeeForUser(req.user);
+      query.employee = emp ? emp._id : req.user.employee;
+    } else {
+      if (employee) query.employee = employee;
+      if (department) query.department = department;
+    }
     if (status) query.status = status;
-    if (department) query.department = department;
 
     const contracts = await Contract.find(query)
       .populate('employee', 'firstName lastName email employeeId department jobPosition')

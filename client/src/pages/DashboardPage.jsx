@@ -55,7 +55,7 @@ export const DashboardPage = () => {
     try {
       if (isEmployee) {
         const empId = user?.employee?._id || user?.employee;
-        const [typesRes, attRes, balRes, leavesRes, payslipsRes, contractsRes] = await Promise.all([
+        const [typesRes, attRes, balRes, leavesRes, payslipsRes, contractsRes] = await Promise.allSettled([
           timeOffApi.getTypes(),
           empId ? attendanceApi.getAll({ employee: empId }) : Promise.resolve({ data: [] }),
           empId ? timeOffApi.getBalance({ employeeId: empId }) : Promise.resolve({ data: [] }),
@@ -64,24 +64,28 @@ export const DashboardPage = () => {
           empId ? contractApi.getAll({ employee: empId, status: 'Running' }) : Promise.resolve({ data: [] })
         ]);
 
-        if (typesRes.success) {
-          setLeaveTypes(typesRes.data || []);
-          if (typesRes.data?.length > 0 && !quickLeaveForm.timeOffType) {
-            setQuickLeaveForm((prev) => ({ ...prev, timeOffType: typesRes.data[0]._id }));
-          }
+        const typesData = typesRes.status === 'fulfilled' && typesRes.value?.success ? (typesRes.value.data || []) : [];
+        const attData = attRes.status === 'fulfilled' && attRes.value?.success ? (attRes.value.data || []) : [];
+        const balData = balRes.status === 'fulfilled' && balRes.value?.success ? (Array.isArray(balRes.value.data) ? balRes.value.data : []) : [];
+        const leavesData = leavesRes.status === 'fulfilled' && leavesRes.value?.success ? (leavesRes.value.data || []) : [];
+        const payslipsData = payslipsRes.status === 'fulfilled' && payslipsRes.value?.success ? (payslipsRes.value.data || []) : [];
+        const contractsData = contractsRes.status === 'fulfilled' && contractsRes.value?.success ? (contractsRes.value.data || []) : [];
+
+        setLeaveTypes(typesData);
+        if (typesData.length > 0 && !quickLeaveForm.timeOffType) {
+          setQuickLeaveForm((prev) => ({ ...prev, timeOffType: typesData[0]._id }));
         }
 
         const todayStr = new Date().toISOString().split('T')[0];
-        const attList = attRes.data || [];
-        const todayPunch = attList.find((a) => a.date?.startsWith(todayStr)) || null;
+        const todayPunch = attData.find((a) => a.date?.startsWith(todayStr)) || null;
 
         setEmployeeData({
           attendanceToday: todayPunch,
-          recentAttendance: attList.slice(0, 5),
-          leaveBalances: Array.isArray(balRes.data) ? balRes.data : [],
-          recentLeaves: (leavesRes.data || []).slice(0, 5),
-          recentPayslips: (payslipsRes.data || []).slice(0, 5),
-          activeContract: (contractsRes.data || [])[0] || null
+          recentAttendance: attData.slice(0, 5),
+          leaveBalances: balData,
+          recentLeaves: leavesData.slice(0, 5),
+          recentPayslips: payslipsData.slice(0, 5),
+          activeContract: contractsData[0] || null
         });
       } else {
         const res = await dashboardApi.getPayrollMetrics({

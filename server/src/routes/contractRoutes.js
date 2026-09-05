@@ -10,19 +10,19 @@ router.use(authenticateUser);
 
 router.get(
   '/applicable',
-  authorizeRoles('HR Manager', 'HR Payroll User', 'HR Payroll Manager', 'Admin'),
+  authorizeRoles('Employee', 'HR Manager', 'HR Payroll User', 'HR Payroll Manager', 'Admin'),
   contractController.getApplicableContractForPeriod
 );
 
 router.get(
   '/',
-  authorizeRoles('HR Manager', 'HR Payroll User', 'HR Payroll Manager', 'Admin'),
+  authorizeRoles('Employee', 'HR Manager', 'HR Payroll User', 'HR Payroll Manager', 'Admin'),
   contractController.getContracts
 );
 
 router.get(
   '/:id',
-  authorizeRoles('HR Manager', 'HR Payroll User', 'HR Payroll Manager', 'Admin'),
+  authorizeRoles('Employee', 'HR Manager', 'HR Payroll User', 'HR Payroll Manager', 'Admin'),
   contractController.getContractById
 );
 

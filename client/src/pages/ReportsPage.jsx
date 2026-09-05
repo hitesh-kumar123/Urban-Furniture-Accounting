@@ -16,12 +16,19 @@ export const ReportsPage = () => {
   const fetchReports = async () => {
     setLoading(true);
     try {
-      const [dashRes, pRes] = await Promise.all([
+      const [dashRes, pRes] = await Promise.allSettled([
         dashboardApi.getPayrollMetrics({ department: departmentFilter || undefined }),
         payrunApi.getAll()
       ]);
-      if (dashRes.success) setData(dashRes.data);
-      if (pRes.success) setPayruns(pRes.data);
+      
+      if (dashRes.status === 'fulfilled' && dashRes.value?.success) {
+        setData(dashRes.value.data);
+      }
+      if (pRes.status === 'fulfilled' && pRes.value?.success && Array.isArray(pRes.value.data)) {
+        setPayruns(pRes.value.data);
+      } else if (pRes.status === 'fulfilled' && Array.isArray(pRes.value)) {
+        setPayruns(pRes.value);
+      }
     } catch (err) {
       showToast('Failed to load payroll reporting intelligence', 'error');
     } finally {
@@ -40,25 +47,31 @@ export const ReportsPage = () => {
     }
 
     const headers = ['Payrun Name', 'Period Start', 'Period End', 'Status', 'Employees', 'Gross (INR)', 'Deductions (INR)', 'Net Paid (INR)'];
-    const rows = payruns.map((p) => [
-      `"${p.name}"`,
-      p.periodStart?.split('T')[0],
-      p.periodEnd?.split('T')[0],
-      p.status,
-      p.totals?.employeeCount || p.selectedEmployees?.length || 0,
-      p.totals?.totalGross || 0,
-      p.totals?.totalDeductions || 0,
-      p.totals?.totalNet || 0
-    ]);
+    const rows = payruns.map((p) => {
+      const cleanName = (p.name || '').replace(/[\u2010-\u2015\u2212]/g, '-');
+      return [
+        `"${cleanName.replace(/"/g, '""')}"`,
+        p.periodStart?.split('T')[0] || '',
+        p.periodEnd?.split('T')[0] || '',
+        p.status || '',
+        p.totals?.employeeCount || p.selectedEmployees?.length || 0,
+        p.totals?.totalGross || 0,
+        p.totals?.totalDeductions || 0,
+        p.totals?.totalNet || 0
+      ];
+    });
 
-    const csvContent = 'data:text/csv;charset=utf-8,' + [headers.join(','), ...rows.map((e) => e.join(','))].join('\n');
-    const encodedUri = encodeURI(csvContent);
+    // \uFEFF is UTF-8 Byte Order Mark (BOM) to force Excel to render UTF-8 encoding without garbled symbols
+    const csvContent = '\uFEFF' + [headers.join(','), ...rows.map((e) => e.join(','))].join('\r\n');
+    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
     const link = document.createElement('a');
-    link.setAttribute('href', encodedUri);
+    link.setAttribute('href', url);
     link.setAttribute('download', `PeoplePay360_Payroll_Ledger_${new Date().toISOString().split('T')[0]}.csv`);
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);
+    URL.revokeObjectURL(url);
     showToast('Payroll ledger CSV exported successfully', 'success');
   };
 
