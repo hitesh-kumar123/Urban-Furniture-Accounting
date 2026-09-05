@@ -21,7 +21,7 @@ const DEFAULT_DAYS = DAYS_OF_WEEK.map((day) => ({
   day,
   isWorkingDay: ['Saturday', 'Sunday'].includes(day) ? false : true,
   startTime: '09:00',
-  endTime: '17:00',
+  endTime: '18:00',
   breakMinutes: 60
 }));
 

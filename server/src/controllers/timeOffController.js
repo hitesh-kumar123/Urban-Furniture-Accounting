@@ -2,6 +2,7 @@ const TimeOffType = require('../models/TimeOffType');
 const LeaveAllocation = require('../models/LeaveAllocation');
 const TimeOffRequest = require('../models/TimeOffRequest');
 const { approveLeaveRequest, refuseLeaveRequest, getLeaveBalance } = require('../services/leaveService');
+const { ensureEmployeeForUser } = require('../services/employeeHelper');
 const { successResponse } = require('../utils/apiResponse');
 const { AppError } = require('../middleware/errorMiddleware');
 
@@ -78,10 +79,8 @@ const getLeaveAllocations = async (req, res, next) => {
     const query = {};
 
     if (req.user.role === 'Employee') {
-      if (!req.user.employee) {
-        return successResponse(res, { data: [], message: 'No linked employee profile' });
-      }
-      query.employee = req.user.employee;
+      const emp = await ensureEmployeeForUser(req.user);
+      query.employee = emp ? emp._id : req.user.employee;
     } else if (employee) {
       query.employee = employee;
     }
@@ -161,10 +160,8 @@ const getTimeOffRequests = async (req, res, next) => {
     const query = {};
 
     if (req.user.role === 'Employee') {
-      if (!req.user.employee) {
-        return successResponse(res, { data: [], message: 'No linked employee profile' });
-      }
-      query.employee = req.user.employee;
+      const emp = await ensureEmployeeForUser(req.user);
+      query.employee = emp ? emp._id : req.user.employee;
     } else if (employee) {
       query.employee = employee;
     }
@@ -200,8 +197,11 @@ const getTimeOffRequestById = async (req, res, next) => {
       return next(new AppError('Time off request not found', 404));
     }
 
-    if (req.user.role === 'Employee' && request.employee._id.toString() !== req.user.employee?.toString()) {
-      return next(new AppError('Forbidden: You can only view your own leave requests', 403));
+    if (req.user.role === 'Employee') {
+      const userEmpId = req.user.employee?._id?.toString() || req.user.employee?.toString();
+      if (request.employee._id.toString() !== userEmpId) {
+        return next(new AppError('Forbidden: You can only view your own leave requests', 403));
+      }
     }
 
     return successResponse(res, { data: request });
@@ -215,10 +215,11 @@ const createTimeOffRequest = async (req, res, next) => {
     let targetEmployee = req.body.employee;
 
     if (req.user.role === 'Employee') {
-      if (!req.user.employee) {
+      const emp = await ensureEmployeeForUser(req.user);
+      targetEmployee = emp ? emp._id : req.user.employee;
+      if (!targetEmployee) {
         return next(new AppError('No linked employee profile found', 400));
       }
-      targetEmployee = req.user.employee;
     }
 
     // Auto-compute duration if missing
@@ -322,16 +323,25 @@ const refuseRequest = async (req, res, next) => {
 
 const getEmployeeLeaveBalance = async (req, res, next) => {
   try {
-    const employeeId = req.query.employeeId || req.user.employee;
-    const { timeOffTypeId } = req.query;
+    let employeeId = req.query.employeeId || req.user.employee?._id || req.user.employee;
+
+    if (req.user.role === 'Employee') {
+      const emp = await ensureEmployeeForUser(req.user);
+      employeeId = emp ? emp._id : employeeId;
+    }
 
     if (!employeeId) {
       return next(new AppError('Employee ID required', 400));
     }
 
-    if (req.user.role === 'Employee' && req.user.employee?.toString() !== employeeId.toString()) {
-      return next(new AppError('Forbidden: Access denied to other employee balances', 403));
+    if (req.user.role === 'Employee') {
+      const userEmpId = req.user.employee?._id?.toString() || req.user.employee?.toString();
+      if (userEmpId && userEmpId !== employeeId.toString()) {
+        return next(new AppError('Forbidden: Access denied to other employee balances', 403));
+      }
     }
+
+    const { timeOffTypeId } = req.query;
 
     if (timeOffTypeId) {
       const balance = await getLeaveBalance(employeeId, timeOffTypeId);

@@ -107,7 +107,7 @@ export const ReportsPage = () => {
             Annual Net Payroll Liability
           </span>
           <div className="text-2xl font-bold text-[#F5F2EA]">
-            ${(data?.metrics?.totalNetPayroll || 0).toLocaleString()}
+            ₹{(data?.metrics?.totalNetPayroll || 0).toLocaleString('en-IN')}
           </div>
           <span className="text-[11px] text-[#39D98A]">Aggregated across all settle cycles</span>
         </div>
@@ -117,7 +117,7 @@ export const ReportsPage = () => {
             Total Active Headcount
           </span>
           <div className="text-2xl font-bold text-[#F5F2EA]">
-            {data?.metrics?.totalEmployees || 4} Staff
+            {data?.metrics?.totalEmployees || 0} Staff
           </div>
           <span className="text-[11px] text-[#A6A3A0]">Active contractual roster</span>
         </div>
@@ -142,23 +142,33 @@ export const ReportsPage = () => {
             <span className="font-mono text-xs text-[#6F6C69]">Trailing Months</span>
           </div>
 
-          <div className="h-44 flex items-end justify-between gap-3 pt-4 px-2">
-            {monthlyTrends.map((m, idx) => {
-              const heightPercent = Math.min(100, Math.max(16, Math.round(((m.netSalary || 0) / maxNet) * 100)));
-              return (
-                <div key={idx} className="flex-1 flex flex-col items-center gap-2 font-mono">
-                  <span className="text-[9px] text-[#A6A3A0]">${Math.round((m.netSalary || 0) / 1000)}k</span>
-                  <div className="w-full bg-[#0B0B0D] rounded h-28 flex items-end p-0.5 border border-white/5">
-                    <div
-                      className="w-full rounded-xs bg-[#FF6B3D] transition-all duration-300"
-                      style={{ height: `${heightPercent}%` }}
-                    />
+          {monthlyTrends.length === 0 ? (
+            <div className="h-44 flex flex-col items-center justify-center text-center p-4 bg-[#111114] border border-dashed border-white/10 rounded">
+              <span className="material-symbols-outlined text-2xl text-[#6F6C69] mb-1">query_stats</span>
+              <p className="text-xs font-semibold text-[#F5F2EA]">No Historical Records</p>
+              <p className="text-[11px] text-[#6F6C69] mt-0.5">
+                Trajectory will appear after your first settled payroll cycle.
+              </p>
+            </div>
+          ) : (
+            <div className="h-44 flex items-end justify-between gap-3 pt-4 px-2">
+              {monthlyTrends.map((m, idx) => {
+                const heightPercent = Math.min(100, Math.max(16, Math.round(((m.netSalary || 0) / maxNet) * 100)));
+                return (
+                  <div key={idx} className="flex-1 flex flex-col items-center gap-2 font-mono">
+                    <span className="text-[9px] text-[#A6A3A0]">₹{Math.round((m.netSalary || 0) / 1000)}k</span>
+                    <div className="w-full bg-[#0B0B0D] rounded h-28 flex items-end p-0.5 border border-white/5">
+                      <div
+                        className="w-full rounded-xs bg-[#FF6B3D] transition-all duration-300"
+                        style={{ height: `${heightPercent}%` }}
+                      />
+                    </div>
+                    <span className="text-[10px] text-[#6F6C69]">{m.month}</span>
                   </div>
-                  <span className="text-[10px] text-[#6F6C69]">{m.month}</span>
-                </div>
-              );
-            })}
-          </div>
+                );
+              })}
+            </div>
+          )}
         </div>
 
         {/* Department Costs */}
@@ -172,7 +182,7 @@ export const ReportsPage = () => {
               <div key={d.department} className="space-y-1">
                 <div className="flex justify-between items-center text-xs">
                   <span className="font-sans text-[#F5F2EA]">{d.department}</span>
-                  <span className="text-[#A6A3A0] font-bold">${Number(d.totalCost || 0).toLocaleString()}</span>
+                  <span className="text-[#A6A3A0] font-bold">₹{Number(d.totalCost || 0).toLocaleString('en-IN')}</span>
                 </div>
                 <div className="w-full h-1.5 bg-[#0B0B0D] rounded-full overflow-hidden border border-white/5">
                   <div

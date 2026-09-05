@@ -68,7 +68,7 @@ const generatePayslipPDF = async (payslipId) => {
       doc.text('RULE / COMPONENT', 50, tableTop + 5);
       doc.text('CATEGORY', 250, tableTop + 5);
       doc.text('CALCULATION TYPE', 360, tableTop + 5);
-      doc.text('AMOUNT ($)', 480, tableTop + 5, { align: 'right', width: 65 });
+      doc.text('AMOUNT (INR)', 470, tableTop + 5, { align: 'right', width: 75 });
 
       let currentY = tableTop + 24;
       doc.font('Helvetica').fontSize(9).fillColor('#334155');
@@ -78,7 +78,7 @@ const generatePayslipPDF = async (payslipId) => {
         doc.text(rule.name || rule.code, 50, currentY);
         doc.text(rule.category, 250, currentY);
         doc.text(rule.calculationType, 360, currentY);
-        doc.text(rule.amount.toFixed(2), 480, currentY, { align: 'right', width: 65 });
+        doc.text(`Rs. ${rule.amount.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`, 450, currentY, { align: 'right', width: 95 });
         currentY += 18;
       });
 
@@ -88,26 +88,26 @@ const generatePayslipPDF = async (payslipId) => {
 
       // Financial Totals Summary
       const summaryY = doc.y;
-      doc.rect(300, summaryY, 255, 100).fill('#F8FAFC');
-      doc.rect(300, summaryY, 255, 100).strokeColor('#CBD5E1').lineWidth(1).stroke();
+      doc.rect(290, summaryY, 265, 100).fill('#F8FAFC');
+      doc.rect(290, summaryY, 265, 100).strokeColor('#CBD5E1').lineWidth(1).stroke();
 
       doc.fillColor('#334155').fontSize(9).font('Helvetica');
-      doc.text('Basic Pay:', 315, summaryY + 10);
-      doc.text(`$${payslip.basic.toFixed(2)}`, 450, summaryY + 10, { align: 'right', width: 90 });
+      doc.text('Basic Pay:', 305, summaryY + 10);
+      doc.text(`Rs. ${payslip.basic.toLocaleString('en-IN', { minimumFractionDigits: 2 })}`, 440, summaryY + 10, { align: 'right', width: 105 });
 
-      doc.text('Total Allowances:', 315, summaryY + 26);
-      doc.text(`$${payslip.allowances.toFixed(2)}`, 450, summaryY + 26, { align: 'right', width: 90 });
+      doc.text('Total Allowances:', 305, summaryY + 26);
+      doc.text(`Rs. ${payslip.allowances.toLocaleString('en-IN', { minimumFractionDigits: 2 })}`, 440, summaryY + 26, { align: 'right', width: 105 });
 
-      doc.text('Gross Earnings:', 315, summaryY + 42);
-      doc.text(`$${payslip.gross.toFixed(2)}`, 450, summaryY + 42, { align: 'right', width: 90 });
+      doc.text('Gross Earnings:', 305, summaryY + 42);
+      doc.text(`Rs. ${payslip.gross.toLocaleString('en-IN', { minimumFractionDigits: 2 })}`, 440, summaryY + 42, { align: 'right', width: 105 });
 
-      doc.text('Total Deductions:', 315, summaryY + 58);
-      doc.text(`-$${payslip.deductions.toFixed(2)}`, 450, summaryY + 58, { align: 'right', width: 90 });
+      doc.text('Total Deductions:', 305, summaryY + 58);
+      doc.text(`-Rs. ${payslip.deductions.toLocaleString('en-IN', { minimumFractionDigits: 2 })}`, 440, summaryY + 58, { align: 'right', width: 105 });
 
-      doc.rect(300, summaryY + 74, 255, 26).fill('#0284C7');
+      doc.rect(290, summaryY + 74, 265, 26).fill('#0284C7');
       doc.fillColor('#FFFFFF').fontSize(11).font('Helvetica-Bold');
-      doc.text('NET PAYABLE:', 315, summaryY + 82);
-      doc.text(`$${payslip.net.toFixed(2)}`, 450, summaryY + 82, { align: 'right', width: 90 });
+      doc.text('NET PAYABLE:', 305, summaryY + 82);
+      doc.text(`Rs. ${payslip.net.toLocaleString('en-IN', { minimumFractionDigits: 2 })}`, 440, summaryY + 82, { align: 'right', width: 105 });
 
       // Footer
       doc.fontSize(8).font('Helvetica').fillColor('#94A3B8').text(

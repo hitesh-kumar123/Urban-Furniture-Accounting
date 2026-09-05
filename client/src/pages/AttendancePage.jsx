@@ -325,7 +325,7 @@ export const AttendancePage = () => {
                     <td>
                       <div className="font-semibold text-[#F5F2EA]">{empName}</div>
                       <div className="text-[10px] font-mono text-[#6F6C69]">
-                        {att.employee?.employeeCode || '—'}
+                        {att.employee?.employeeId || att.employee?.jobPosition || 'Staff'}
                       </div>
                     </td>
 
@@ -376,7 +376,7 @@ export const AttendancePage = () => {
               >
                 {employees.map((emp) => (
                   <option key={emp._id} value={emp._id}>
-                    {emp.firstName} {emp.lastName} ({emp.employeeCode})
+                    {emp.firstName} {emp.lastName} ({emp.employeeId || emp.jobPosition || 'Staff'})
                   </option>
                 ))}
               </select>

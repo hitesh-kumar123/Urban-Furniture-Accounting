@@ -2,6 +2,7 @@ const Attendance = require('../models/Attendance');
 const Employee = require('../models/Employee');
 const { successResponse } = require('../utils/apiResponse');
 const { AppError } = require('../middleware/errorMiddleware');
+const { ensureEmployeeForUser } = require('../services/employeeHelper');
 
 /**
  * Get attendance records with filtering
@@ -15,10 +16,8 @@ const getAttendance = async (req, res, next) => {
 
     // RBAC: Employee role can only view own attendance
     if (req.user.role === 'Employee') {
-      if (!req.user.employee) {
-        return successResponse(res, { data: [], message: 'No linked employee profile' });
-      }
-      query.employee = req.user.employee;
+      const emp = await ensureEmployeeForUser(req.user);
+      query.employee = emp ? emp._id : req.user.employee;
     } else if (employee) {
       query.employee = employee;
     }
@@ -104,10 +103,11 @@ const createAttendance = async (req, res, next) => {
 
     // If logged in as employee, force self employee id
     if (req.user.role === 'Employee') {
-      if (!req.user.employee) {
+      const emp = await ensureEmployeeForUser(req.user);
+      targetEmployee = emp ? emp._id : req.user.employee;
+      if (!targetEmployee) {
         return next(new AppError('No employee profile linked to this user account', 400));
       }
-      targetEmployee = req.user.employee;
     }
 
     if (!targetEmployee) {

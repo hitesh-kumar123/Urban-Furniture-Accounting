@@ -744,7 +744,7 @@ export const EmployeesPage = () => {
                     <div key={c._id} className="p-3 bg-[#111114] rounded border border-white/5 space-y-1">
                       <div className="flex justify-between font-bold text-[#F5F2EA]">
                         <span>{c.name}</span>
-                        <span className="text-[#39D98A]">${Number(c.wage || 0).toLocaleString()}/mo</span>
+                        <span className="text-[#39D98A]">₹{Number(c.wage || 0).toLocaleString('en-IN')}/mo</span>
                       </div>
                       <div className="text-[10px] text-[#6F6C69]">
                         Structure: {c.salaryStructure?.name || 'Standard'} • Status: {c.state}
@@ -796,9 +796,9 @@ export const EmployeesPage = () => {
                     <div key={ps._id} className="p-2.5 bg-[#111114] rounded border border-white/5 flex justify-between items-center">
                       <div>
                         <span className="text-[#F5F2EA] block">{ps.payrun?.name || 'Payrun'}</span>
-                        <span className="text-[10px] text-[#6F6C69]">Gross: ${ps.grossSalary}</span>
+                        <span className="text-[10px] text-[#6F6C69]">Gross: ₹{Number(ps.grossSalary || ps.gross || 0).toLocaleString('en-IN')}</span>
                       </div>
-                      <span className="text-xs font-bold text-[#39D98A]">${ps.netSalary?.toLocaleString()}</span>
+                      <span className="text-xs font-bold text-[#39D98A]">₹{Number(ps.netSalary || ps.net || 0).toLocaleString('en-IN')}</span>
                     </div>
                   ))
                 )}

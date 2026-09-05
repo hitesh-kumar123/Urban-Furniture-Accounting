@@ -211,7 +211,7 @@ export const PayrunsPage = () => {
         </div>
         <div className="midnight-card p-3.5">
           <span className="text-[10px] text-[#6F6C69] uppercase block">Net Disbursed</span>
-          <div className="text-xl font-bold text-[#39D98A] mt-1">${totalDisbursed.toLocaleString()}</div>
+          <div className="text-xl font-bold text-[#39D98A] mt-1">₹{totalDisbursed.toLocaleString('en-IN')}</div>
         </div>
         <div className="midnight-card p-3.5">
           <span className="text-[10px] text-[#6F6C69] uppercase block">Pending Validation</span>
@@ -284,7 +284,7 @@ export const PayrunsPage = () => {
                     </td>
 
                     <td className="text-right font-mono font-bold text-[#F5F2EA]">
-                      ${(p.totals?.totalNet || 0).toLocaleString()}
+                      ₹{(p.totals?.totalNet || 0).toLocaleString('en-IN')}
                     </td>
 
                     <td>{getStatusBadge(p.status)}</td>
@@ -421,7 +421,7 @@ export const PayrunsPage = () => {
                             {emp.firstName} {emp.lastName}
                           </span>
                           <span className="text-[10px] font-mono text-[#6F6C69]">
-                            {emp.employeeId || emp.employeeCode || 'EMP'} • {emp.department || 'General'} • {emp.jobPosition || 'Staff'} {contract ? `• $${contract.wage}/mo` : ''}
+                            {emp.employeeId || 'EMP'} • {emp.department || 'General'} • {emp.jobPosition || 'Staff'} {contract ? `• ₹${Number(contract.wage).toLocaleString('en-IN')}/mo` : ''}
                           </span>
                         </div>
                       </div>

@@ -70,7 +70,7 @@ export const ContractsPage = () => {
       setFormData({
         name: contract.name,
         employee: contract.employee?._id || contract.employee || '',
-        wage: contract.wage || 6500,
+        wage: contract.wage || '',
         salaryStructure: contract.salaryStructure?._id || contract.salaryStructure || (structures[0]?._id || ''),
         workingSchedule: contract.workingSchedule?._id || contract.workingSchedule || (schedules[0]?._id || ''),
         startDate: contract.startDate ? contract.startDate.split('T')[0] : '',
@@ -79,18 +79,29 @@ export const ContractsPage = () => {
       });
     } else {
       setEditingContract(null);
+      const firstEmp = employees[0];
       setFormData({
-        name: `Contract — ${employees[0]?.firstName || 'Staff'}`,
-        employee: employees[0]?._id || '',
-        wage: 6500,
+        name: firstEmp ? `Contract — ${firstEmp.firstName} ${firstEmp.lastName || ''}`.trim() : '',
+        employee: firstEmp?._id || '',
+        wage: '',
         salaryStructure: structures[0]?._id || '',
         workingSchedule: schedules[0]?._id || '',
-        startDate: new Date().toISOString().split('T')[0],
+        startDate: firstEmp?.joiningDate ? firstEmp.joiningDate.split('T')[0] : '',
         endDate: '',
         status: 'Active'
       });
     }
     setShowModal(true);
+  };
+
+  const handleEmployeeChange = (empId) => {
+    const selected = employees.find((e) => e._id === empId);
+    setFormData((prev) => ({
+      ...prev,
+      employee: empId,
+      name: selected ? `Contract — ${selected.firstName} ${selected.lastName || ''}`.trim() : prev.name,
+      startDate: selected?.joiningDate ? selected.joiningDate.split('T')[0] : prev.startDate
+    }));
   };
 
   const handleSubmit = async (e) => {
@@ -252,7 +263,7 @@ export const ContractsPage = () => {
                     </td>
 
                     <td className="text-right font-mono font-bold text-xs text-[#39D98A]">
-                      ${Number(c.wage || 0).toLocaleString()}
+                      ₹{Number(c.wage || 0).toLocaleString('en-IN')}
                     </td>
 
                     <td className="text-xs font-mono text-[#A6A3A0]">
@@ -321,24 +332,26 @@ export const ContractsPage = () => {
               <label className="staffora-label">Employee *</label>
               <select
                 value={formData.employee}
-                onChange={(e) => setFormData({ ...formData, employee: e.target.value })}
+                onChange={(e) => handleEmployeeChange(e.target.value)}
                 className="staffora-input"
                 required
               >
                 {employees.map((e) => (
                   <option key={e._id} value={e._id}>
-                    {e.firstName} {e.lastName} ({e.employeeCode})
+                    {e.firstName} {e.lastName} ({e.employeeId || e.jobPosition || 'Staff'})
                   </option>
                 ))}
               </select>
             </div>
             <div>
-              <label className="staffora-label">Monthly Base Wage ($) *</label>
+              <label className="staffora-label">Monthly Base Wage (₹) *</label>
               <input
                 type="number"
                 required
+                min="0"
+                placeholder="e.g. 50000"
                 value={formData.wage}
-                onChange={(e) => setFormData({ ...formData, wage: Number(e.target.value) })}
+                onChange={(e) => setFormData({ ...formData, wage: e.target.value ? Number(e.target.value) : '' })}
                 className="staffora-input font-mono font-bold text-[#39D98A]"
               />
             </div>
@@ -441,7 +454,7 @@ export const ContractsPage = () => {
             >
               {employees.map((e) => (
                 <option key={e._id} value={e._id}>
-                  {e.firstName} {e.lastName} ({e.employeeCode})
+                  {e.firstName} {e.lastName} ({e.employeeId || e.jobPosition || 'Staff'})
                 </option>
               ))}
             </select>
@@ -478,7 +491,7 @@ export const ContractsPage = () => {
             <div className="p-3 bg-[#111114] rounded border border-white/10 space-y-1">
               <span className="text-[10px] text-[#39D98A] uppercase font-bold block">✓ Applicable Contract Resolved</span>
               <div className="font-bold text-[#F5F2EA]">{lookupResult.name}</div>
-              <div className="text-[#A6A3A0]">Wage: ${lookupResult.wage}/mo</div>
+              <div className="text-[#A6A3A0]">Wage: ₹{Number(lookupResult.wage).toLocaleString('en-IN')}/mo</div>
               <div className="text-[#6F6C69]">Structure: {lookupResult.salaryStructure?.name || 'Standard'}</div>
             </div>
           )}

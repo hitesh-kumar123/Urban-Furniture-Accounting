@@ -97,7 +97,7 @@ export const PayslipsPage = () => {
               <option value="">All Employees</option>
               {employees.map((e) => (
                 <option key={e._id} value={e._id}>
-                  {e.firstName} {e.lastName} ({e.employeeCode})
+                  {e.firstName} {e.lastName} ({e.employeeId || e.jobPosition || 'Staff'})
                 </option>
               ))}
             </select>
@@ -141,7 +141,7 @@ export const PayslipsPage = () => {
                     <td>
                       <div className="font-semibold text-[#F5F2EA]">{empName}</div>
                       <div className="text-[10px] font-mono text-[#6F6C69]">
-                        {ps.employee?.employeeCode || '—'} • {ps.payrun?.name || 'Payrun'}
+                        {ps.employee?.employeeId || ps.employee?.jobPosition || 'Staff'} • {ps.payrun?.name || 'Payrun'}
                       </div>
                     </td>
 
@@ -150,15 +150,15 @@ export const PayslipsPage = () => {
                     </td>
 
                     <td className="text-right font-mono text-xs text-[#F5F2EA]">
-                      ${Number(ps.grossSalary || 0).toLocaleString()}
+                      ₹{Number(ps.grossSalary || ps.gross || 0).toLocaleString('en-IN')}
                     </td>
 
                     <td className="text-right font-mono text-xs text-[#FF5C5C]">
-                      -${Number(ps.totalDeductions || 0).toLocaleString()}
+                      -₹{Number(ps.totalDeductions || ps.deductions || 0).toLocaleString('en-IN')}
                     </td>
 
                     <td className="text-right font-mono font-bold text-xs text-[#39D98A]">
-                      ${Number(ps.netSalary || 0).toLocaleString()}
+                      ₹{Number(ps.netSalary || ps.net || 0).toLocaleString('en-IN')}
                     </td>
 
                     <td className="text-center font-mono">

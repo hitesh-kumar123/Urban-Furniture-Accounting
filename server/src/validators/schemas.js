@@ -3,19 +3,36 @@ const Joi = require('joi');
 const objectIdRegex = /^[0-9a-fA-F]{24}$/;
 const customObjectId = Joi.string().pattern(objectIdRegex).message('Invalid ObjectId format');
 
+const passwordRegex = /^(?=.*[a-z])(?=.*[A-Z])(?=.*[0-9])(?=.*[!@#$%^&*()_+\-=[\]{};':"\\|,.<>/?])/;
+
 const schemas = {
   // Auth
   register: Joi.object({
     name: Joi.string().trim().min(2).max(100).required(),
-    email: Joi.string().trim().email().required(),
-    password: Joi.string().min(6).max(128).required(),
+    email: Joi.string().trim().lowercase().email().required().messages({
+      'string.email': 'Please provide a valid corporate email address',
+      'string.empty': 'Email address cannot be empty'
+    }),
+    password: Joi.string()
+      .min(8)
+      .max(128)
+      .pattern(passwordRegex)
+      .required()
+      .messages({
+        'string.min': 'Password must be at least 8 characters long',
+        'string.pattern.base': 'Password must contain at least one uppercase letter, one lowercase letter, one number, and one special character (!@#$%^&*)'
+      }),
     role: Joi.string().valid('Employee', 'HR Manager', 'HR Payroll User', 'HR Payroll Manager', 'Admin').default('Employee'),
     employee: customObjectId.optional().allow(null)
   }),
 
   login: Joi.object({
-    email: Joi.string().trim().email().required(),
-    password: Joi.string().required()
+    email: Joi.string().trim().lowercase().email().required().messages({
+      'string.email': 'Please enter a valid email address format'
+    }),
+    password: Joi.string().required().messages({
+      'string.empty': 'Password is required'
+    })
   }),
 
   // Employee

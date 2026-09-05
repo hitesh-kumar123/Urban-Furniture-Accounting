@@ -1,17 +1,9 @@
-import React, { useState } from 'react';
-import { NavLink, useNavigate, Link } from 'react-router-dom';
-import { useAuth, DEMO_USERS } from '../../context/AuthContext';
+import React from 'react';
+import { NavLink, Link } from 'react-router-dom';
+import { useAuth } from '../../context/AuthContext';
 
 export const Sidebar = ({ collapsed, setCollapsed }) => {
-  const { user, login } = useAuth();
-  const [showRoleMenu, setShowRoleMenu] = useState(false);
-  const navigate = useNavigate();
-
-  const handleSwitchRole = async (demoUser) => {
-    setShowRoleMenu(false);
-    await login(demoUser.email, demoUser.password);
-    navigate('/');
-  };
+  const { user } = useAuth();
 
   const navGroups = [
     {
@@ -77,57 +69,21 @@ export const Sidebar = ({ collapsed, setCollapsed }) => {
           )}
         </Link>
 
-        {/* Persona Switcher Pill */}
-        <div className="relative">
-          <button
-            onClick={() => setShowRoleMenu(!showRoleMenu)}
-            className="w-full flex items-center justify-between bg-[#111114] hover:bg-[#17171B] border border-white/10 px-2.5 py-1.5 rounded transition-colors text-left"
-            title="Switch demo persona role"
-          >
-            <div className="flex items-center gap-2 truncate">
-              <span className="w-1.5 h-1.5 rounded-full bg-[#FF6B3D] shrink-0"></span>
-              {!collapsed && (
-                <div className="flex flex-col truncate">
-                  <span className="text-[9px] font-mono uppercase tracking-wider text-[#6F6C69]">
-                    Role
-                  </span>
-                  <span className="text-xs font-semibold text-[#F5F2EA] truncate leading-tight">
-                    {user?.role || 'Guest'}
-                  </span>
-                </div>
-              )}
-            </div>
+        {/* Authenticated User Status */}
+        <div className="bg-[#111114] border border-white/10 px-2.5 py-1.5 rounded text-left">
+          <div className="flex items-center gap-2 truncate">
+            <span className="w-1.5 h-1.5 rounded-full bg-[#39D98A] shrink-0"></span>
             {!collapsed && (
-              <span className="material-symbols-outlined text-[#6F6C69] text-xs">
-                unfold_more
-              </span>
-            )}
-          </button>
-
-          {/* Quick Role Switcher Dropdown */}
-          {showRoleMenu && (
-            <div className="absolute top-full left-0 mt-1 w-56 bg-[#17171B] border border-white/10 rounded shadow-2xl p-1.5 z-50 flex flex-col gap-0.5">
-              <div className="px-2 py-1 text-[9px] font-mono text-[#6F6C69] uppercase tracking-wider">
-                Switch Role Persona
+              <div className="flex flex-col truncate">
+                <span className="text-[9px] font-mono uppercase tracking-wider text-[#6F6C69]">
+                  Authenticated Role
+                </span>
+                <span className="text-xs font-semibold text-[#F5F2EA] truncate leading-tight">
+                  {user?.role || 'Guest'}
+                </span>
               </div>
-              {DEMO_USERS.map((demo) => (
-                <button
-                  key={demo.role}
-                  onClick={() => handleSwitchRole(demo)}
-                  className={`w-full text-left px-2.5 py-1.5 rounded text-xs flex items-center justify-between transition-colors ${
-                    user?.role === demo.role
-                      ? 'bg-[#1E1E24] text-[#FF8A65] font-semibold'
-                      : 'hover:bg-[#1E1E24] text-[#A6A3A0]'
-                  }`}
-                >
-                  <span className="truncate">{demo.label}</span>
-                  {user?.role === demo.role && (
-                    <span className="material-symbols-outlined text-xs text-[#FF6B3D]">check</span>
-                  )}
-                </button>
-              ))}
-            </div>
-          )}
+            )}
+          </div>
         </div>
 
         {/* Navigation Sections */}

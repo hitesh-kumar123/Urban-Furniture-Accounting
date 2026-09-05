@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
-import { useAuth, DEMO_USERS } from '../context/AuthContext';
+import { useAuth } from '../context/AuthContext';
 import { Button } from '../components/common/Button';
 import { Badge } from '../components/common/Badge';
 
@@ -14,11 +14,6 @@ export const LandingPage = () => {
   const [simStage, setSimStage] = useState(7);
   const [isClockedIn, setIsClockedIn] = useState(false);
   const [punchTime, setPunchTime] = useState('09:00 AM');
-
-  const handleLaunchRole = async (demo) => {
-    await login(demo.email, demo.password);
-    navigate('/');
-  };
 
   const handleTriggerSimulate = () => {
     setSimulatingPayroll(true);
@@ -128,24 +123,23 @@ export const LandingPage = () => {
           Built strictly according to the enterprise HR problem statement. Replaces manual calculation errors with an automated 7-stage computation engine, contractual schedules, dynamic AST salary formulas, and certified vector PDF payslips.
         </p>
 
-        {/* 1-Click Fast Persona Demo Launchpad */}
-        <div className="w-full max-w-xl bg-[#111114] border border-white/10 rounded-lg p-3.5 flex flex-col gap-2 mt-2 shadow-2xl">
-          <div className="flex items-center justify-between text-[11px] font-mono">
-            <span className="text-[#6F6C69] uppercase font-semibold">1-Click Fast Persona Evaluator:</span>
-            <span className="text-[#FF8A65]">Instant Fullstack Login</span>
-          </div>
-          <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
-            {DEMO_USERS.map((demo) => (
-              <button
-                key={demo.role}
-                onClick={() => handleLaunchRole(demo)}
-                className="px-2.5 py-2 bg-[#17171B] hover:bg-[#1E1E24] text-[#F5F2EA] hover:text-[#FF8A65] border border-white/5 hover:border-white/15 rounded text-left transition-colors flex flex-col group cursor-pointer"
-              >
-                <span className="text-[10px] font-mono text-[#6F6C69] group-hover:text-[#A6A3A0]">Role</span>
-                <span className="text-xs font-semibold truncate mt-0.5">{demo.role}</span>
-              </button>
-            ))}
-          </div>
+        {/* Primary Call to Action */}
+        <div className="flex flex-col sm:flex-row items-center gap-3 mt-2">
+          <Button
+            variant="primary"
+            size="lg"
+            onClick={() => navigate('/login')}
+            iconRight="arrow_forward"
+            className="px-6 py-2.5 font-bold text-sm shadow-xl"
+          >
+            Access Platform
+          </Button>
+          <button
+            onClick={() => navigate('/login')}
+            className="px-5 py-2.5 rounded bg-[#17171B] hover:bg-[#1E1E24] text-[#A6A3A0] hover:text-[#F5F2EA] border border-white/10 text-xs font-mono font-semibold transition-colors"
+          >
+            Register Organization Account
+          </button>
         </div>
       </section>
 
@@ -319,15 +313,15 @@ export const LandingPage = () => {
               <div className="grid grid-cols-3 gap-3 text-center pt-2">
                 <div className="p-3 bg-[#111114] rounded border border-white/5">
                   <span className="text-[9px] text-[#6F6C69] uppercase block">Gross Liability</span>
-                  <span className="text-base font-bold text-[#F5F2EA]">$27,500.00</span>
+                  <span className="text-base font-bold text-[#F5F2EA]">₹2,75,000.00</span>
                 </div>
                 <div className="p-3 bg-[#111114] rounded border border-white/5">
                   <span className="text-[9px] text-[#6F6C69] uppercase block">Statutory Deductions</span>
-                  <span className="text-base font-bold text-[#FF5C5C]">-$4,728.80</span>
+                  <span className="text-base font-bold text-[#FF5C5C]">-₹47,288.00</span>
                 </div>
                 <div className="p-3 bg-[#111114] rounded border border-white/5">
                   <span className="text-[9px] text-[#6F6C69] uppercase block">Net Disbursed</span>
-                  <span className="text-base font-bold text-[#39D98A]">$22,771.20</span>
+                  <span className="text-base font-bold text-[#39D98A]">₹2,27,712.00</span>
                 </div>
               </div>
             </div>
@@ -377,9 +371,9 @@ export const LandingPage = () => {
                 <pre className="text-xs text-[#F5F2EA] overflow-x-auto leading-relaxed">
 {`RULE: PROVIDENT_FUND_DEDUCTION
 CATEGORY: Deduction
-INPUTS: [BASIC = $6,500.00, HRA = $2,600.00]
+INPUTS: [BASIC = ₹65,000.00, HRA = ₹26,000.00]
 FORMULA: (BASIC + HRA) * 0.12
-OUTPUT: -$1,092.00`}
+OUTPUT: -₹10,920.00`}
                 </pre>
               </div>
               <div className="flex justify-between items-center text-[11px] text-[#6F6C69]">
@@ -400,7 +394,7 @@ OUTPUT: -$1,092.00`}
                 </div>
                 <div className="text-right">
                   <span className="text-[9px] text-[#6F6C69] uppercase block">NET DISBURSED</span>
-                  <div className="text-xl font-bold text-[#39D98A] font-mono-val">$7,320.00</div>
+                  <div className="text-xl font-bold text-[#39D98A] font-mono-val">₹73,200.00</div>
                 </div>
               </div>
             </div>

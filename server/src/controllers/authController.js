@@ -4,6 +4,7 @@ const Employee = require('../models/Employee');
 const config = require('../config/env');
 const { successResponse } = require('../utils/apiResponse');
 const { AppError } = require('../middleware/errorMiddleware');
+const { ensureEmployeeForUser } = require('../services/employeeHelper');
 
 const signToken = (id) => {
   return jwt.sign({ id }, config.jwtSecret, {
@@ -38,10 +39,17 @@ const register = async (req, res, next) => {
       await Employee.findByIdAndUpdate(employee, { user: user._id });
     }
 
+    // Auto-link or generate employee profile with statutory leave quota
+    const linkedEmp = await ensureEmployeeForUser(user);
+    if (linkedEmp && (!user.employee || user.employee.toString() !== linkedEmp._id.toString())) {
+      user.employee = linkedEmp._id;
+    }
+
     const token = signToken(user._id);
 
     const userObj = user.toObject();
     delete userObj.passwordHash;
+    userObj.employee = linkedEmp || userObj.employee;
 
     return successResponse(res, {
       status: 201,
@@ -76,10 +84,17 @@ const login = async (req, res, next) => {
       return next(new AppError('Your account has been deactivated. Please contact HR.', 403));
     }
 
+    // Ensure employee profile and statutory leave quota are ready
+    const linkedEmp = await ensureEmployeeForUser(user);
+    if (linkedEmp && (!user.employee || user.employee._id?.toString() !== linkedEmp._id.toString())) {
+      user.employee = linkedEmp;
+    }
+
     const token = signToken(user._id);
 
     const userObj = user.toObject();
     delete userObj.passwordHash;
+    userObj.employee = linkedEmp || userObj.employee;
 
     return successResponse(res, {
       message: 'Login successful',
@@ -99,7 +114,16 @@ const login = async (req, res, next) => {
  */
 const getMe = async (req, res, next) => {
   try {
-    const user = await User.findById(req.user._id).populate('employee');
+    let user = await User.findById(req.user._id).populate('employee');
+    if (!user) {
+      return next(new AppError('User not found', 404));
+    }
+
+    const linkedEmp = await ensureEmployeeForUser(user);
+    if (linkedEmp && (!user.employee || user.employee._id?.toString() !== linkedEmp._id.toString())) {
+      user.employee = linkedEmp;
+    }
+
     return successResponse(res, {
       data: user,
       message: 'Current user profile'
@@ -109,8 +133,54 @@ const getMe = async (req, res, next) => {
   }
 };
 
+/**
+ * Get all system users (Admin / HR)
+ * GET /api/auth/users
+ */
+const getUsers = async (req, res, next) => {
+  try {
+    const users = await User.find().populate('employee').sort({ createdAt: -1 });
+    return successResponse(res, {
+      data: users,
+      message: 'System users list'
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
+/**
+ * Update user role (Admin only)
+ * PATCH /api/auth/users/:id/role
+ */
+const updateUserRole = async (req, res, next) => {
+  try {
+    const { id } = req.params;
+    const { role } = req.body;
+
+    const validRoles = ['Admin', 'HR Manager', 'HR Payroll User', 'HR Payroll Manager', 'Employee'];
+    if (!validRoles.includes(role)) {
+      return next(new AppError('Invalid role specified', 400));
+    }
+
+    const user = await User.findByIdAndUpdate(id, { role }, { new: true });
+    if (!user) {
+      return next(new AppError('User not found', 404));
+    }
+
+    return successResponse(res, {
+      data: user,
+      message: `User role updated to ${role}`
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
 module.exports = {
   register,
   login,
-  getMe
+  getMe,
+  getUsers,
+  updateUserRole
 };

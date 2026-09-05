@@ -4,14 +4,6 @@ import { useToast } from './ToastContext';
 
 const AuthContext = createContext(null);
 
-export const DEMO_USERS = [
-  { role: 'Admin', email: 'admin@peoplepay360.com', password: 'Password@123', label: 'Admin (Full Access)' },
-  { role: 'HR Manager', email: 'hrmanager@peoplepay360.com', password: 'Password@123', label: 'HR Manager (Ops & Employees)' },
-  { role: 'HR Payroll User', email: 'payrolluser@peoplepay360.com', password: 'Password@123', label: 'HR Payroll User (Compute Payruns)' },
-  { role: 'HR Payroll Manager', email: 'payrollmgr@peoplepay360.com', password: 'Password@123', label: 'Payroll Manager (Lock & Pay)' },
-  { role: 'Employee', email: 'alex.turner@peoplepay360.com', password: 'Password@123', label: 'Alex Turner (Employee Hub)' }
-];
-
 export const AuthProvider = ({ children }) => {
   const [user, setUser] = useState(null);
   const [token, setToken] = useState(localStorage.getItem('peoplepay360_token') || null);

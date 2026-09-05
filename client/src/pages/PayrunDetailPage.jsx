@@ -416,28 +416,28 @@ export const PayrunDetailPage = () => {
         <div className="midnight-card p-3.5">
           <span className="text-[10px] text-[#6F6C69] uppercase block">Basic Salary</span>
           <div className="text-xl font-bold text-[#F5F2EA] mt-1">
-            ${(payrun.totals?.totalBasic || 0).toLocaleString()}
+            ₹{(payrun.totals?.totalBasic || 0).toLocaleString('en-IN')}
           </div>
         </div>
 
         <div className="midnight-card p-3.5">
           <span className="text-[10px] text-[#6F6C69] uppercase block">Allowances</span>
           <div className="text-xl font-bold text-[#39D98A] mt-1">
-            +${(payrun.totals?.totalAllowances || 0).toLocaleString()}
+            +₹{(payrun.totals?.totalAllowances || 0).toLocaleString('en-IN')}
           </div>
         </div>
 
         <div className="midnight-card p-3.5">
           <span className="text-[10px] text-[#6F6C69] uppercase block">Deductions</span>
           <div className="text-xl font-bold text-[#FF5C5C] mt-1">
-            -${(payrun.totals?.totalDeductions || 0).toLocaleString()}
+            -₹{(payrun.totals?.totalDeductions || 0).toLocaleString('en-IN')}
           </div>
         </div>
 
         <div className="midnight-card-elevated p-3.5 border-[#FF6B3D]/30">
           <span className="text-[10px] text-[#FF8A65] uppercase block font-bold">Total Net Pay</span>
           <div className="text-xl font-bold text-[#F5F2EA] mt-1">
-            ${(payrun.totals?.totalNet || 0).toLocaleString()}
+            ₹{(payrun.totals?.totalNet || 0).toLocaleString('en-IN')}
           </div>
         </div>
       </div>
@@ -484,24 +484,24 @@ export const PayrunDetailPage = () => {
                     <td>
                       <div className="font-semibold text-[#F5F2EA]">{empName}</div>
                       <div className="text-[10px] font-mono text-[#6F6C69]">
-                        {emp?.employeeCode || '—'} • {emp?.department || 'General'}
+                        {emp?.employeeId || emp?.jobPosition || 'Staff'} • {emp?.department || 'General'}
                       </div>
                     </td>
 
                     <td className="text-right font-mono text-xs text-[#A6A3A0]">
-                      ${(ps.basicSalary || 0).toLocaleString()}
+                      ₹{(ps.basicSalary || ps.basic || 0).toLocaleString('en-IN')}
                     </td>
 
                     <td className="text-right font-mono text-xs text-[#F5F2EA]">
-                      ${(ps.grossSalary || 0).toLocaleString()}
+                      ₹{(ps.grossSalary || ps.gross || 0).toLocaleString('en-IN')}
                     </td>
 
                     <td className="text-right font-mono text-xs text-[#FF5C5C]">
-                      -${(ps.totalDeductions || 0).toLocaleString()}
+                      -₹{(ps.totalDeductions || ps.deductions || 0).toLocaleString('en-IN')}
                     </td>
 
                     <td className="text-right font-mono font-bold text-xs text-[#39D98A]">
-                      ${(ps.netSalary || 0).toLocaleString()}
+                      ₹{(ps.netSalary || ps.net || 0).toLocaleString('en-IN')}
                     </td>
 
                     <td className="text-center font-mono">
@@ -549,19 +549,19 @@ export const PayrunDetailPage = () => {
               <div className="p-3 bg-[#111114] rounded border border-white/10">
                 <span className="text-[9px] text-[#6F6C69] uppercase block">Gross Salary</span>
                 <span className="text-sm font-bold text-[#F5F2EA]">
-                  ${(selectedPayslip.grossSalary || 0).toLocaleString()}
+                  ₹{(selectedPayslip.grossSalary || selectedPayslip.gross || 0).toLocaleString('en-IN')}
                 </span>
               </div>
               <div className="p-3 bg-[#111114] rounded border border-white/10">
                 <span className="text-[9px] text-[#6F6C69] uppercase block">Total Deductions</span>
                 <span className="text-sm font-bold text-[#FF5C5C]">
-                  -${(selectedPayslip.totalDeductions || 0).toLocaleString()}
+                  -₹{(selectedPayslip.totalDeductions || selectedPayslip.deductions || 0).toLocaleString('en-IN')}
                 </span>
               </div>
               <div className="p-3 bg-[#111114] rounded border border-white/10">
                 <span className="text-[9px] text-[#6F6C69] uppercase block">Net Disbursed</span>
                 <span className="text-sm font-bold text-[#39D98A]">
-                  ${(selectedPayslip.netSalary || 0).toLocaleString()}
+                  ₹{(selectedPayslip.netSalary || selectedPayslip.net || 0).toLocaleString('en-IN')}
                 </span>
               </div>
             </div>
@@ -584,7 +584,7 @@ export const PayrunDetailPage = () => {
                         {li.rate ? `${li.rate}%` : ''}
                       </span>
                       <span className={`font-bold ${li.category === 'Deduction' ? 'text-[#FF5C5C]' : 'text-[#39D98A]'}`}>
-                        {li.category === 'Deduction' ? '-' : '+'}${Number(li.amount || 0).toFixed(2)}
+                        {li.category === 'Deduction' ? '-' : '+'}₹{Number(li.amount || 0).toLocaleString('en-IN', { minimumFractionDigits: 2 })}
                       </span>
                     </div>
                   </div>

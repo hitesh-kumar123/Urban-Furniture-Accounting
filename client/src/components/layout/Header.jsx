@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate, useLocation, Link } from 'react-router-dom';
-import { useAuth, DEMO_USERS } from '../../context/AuthContext';
+import { useAuth } from '../../context/AuthContext';
 import { GlobalSearchModal } from '../common/GlobalSearchModal';
 import { NotificationDrawer } from '../common/NotificationDrawer';
 
@@ -11,6 +11,7 @@ export const Header = ({ collapsed }) => {
   const [showProfileMenu, setShowProfileMenu] = useState(false);
   const [showNotifications, setShowNotifications] = useState(false);
   const [showSearchModal, setShowSearchModal] = useState(false);
+  const [unreadCount, setUnreadCount] = useState(0);
 
   useEffect(() => {
     const handleKeyDown = (e) => {
@@ -118,12 +119,15 @@ export const Header = ({ collapsed }) => {
               title="Notifications"
             >
               <span className="material-symbols-outlined text-base">notifications</span>
-              <span className="absolute top-1 right-1 w-1.5 h-1.5 bg-[#FF6B3D] rounded-full"></span>
+              {unreadCount > 0 && (
+                <span className="absolute top-1 right-1 w-1.5 h-1.5 bg-[#FF6B3D] rounded-full animate-pulse"></span>
+              )}
             </button>
 
             <NotificationDrawer
               isOpen={showNotifications}
               onClose={() => setShowNotifications(false)}
+              onUnreadCountChange={setUnreadCount}
             />
           </div>
 
@@ -153,32 +157,7 @@ export const Header = ({ collapsed }) => {
                   </div>
                 </div>
 
-                <div className="space-y-0.5">
-                  <span className="text-[9px] font-mono text-[#6F6C69] uppercase tracking-wider px-2 block">
-                    Fast Demo Role Switch:
-                  </span>
-                  {DEMO_USERS.map((demo) => (
-                    <button
-                      key={demo.role}
-                      onClick={async () => {
-                        await login(demo.email, demo.password);
-                        setShowProfileMenu(false);
-                      }}
-                      className={`w-full text-left px-2 py-1 rounded text-xs flex items-center justify-between transition-colors ${
-                        user?.role === demo.role
-                          ? 'bg-[#1E1E24] text-[#FF8A65] font-semibold'
-                          : 'hover:bg-[#1E1E24] text-[#A6A3A0]'
-                      }`}
-                    >
-                      <span className="truncate">{demo.role}</span>
-                      {user?.role === demo.role && (
-                        <span className="material-symbols-outlined text-xs text-[#FF6B3D]">check</span>
-                      )}
-                    </button>
-                  ))}
-                </div>
-
-                <div className="pt-1.5 border-t border-white/10 flex flex-col gap-0.5">
+                <div className="pt-1 border-t border-white/10 flex flex-col gap-0.5">
                   <button
                     onClick={() => {
                       navigate('/settings');

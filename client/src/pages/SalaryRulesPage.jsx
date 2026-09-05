@@ -224,7 +224,7 @@ export const SalaryRulesPage = () => {
 
                     <td className="text-xs">
                       {rule.calculationType === 'Fixed' ? (
-                        <span className="text-[#39D98A] font-bold">${rule.fixedAmount}</span>
+                        <span className="text-[#39D98A] font-bold">₹{Number(rule.fixedAmount || 0).toLocaleString('en-IN')}</span>
                       ) : rule.calculationType === 'Percentage' ? (
                         <span className="text-[#58B7FF] font-bold">{rule.percentage}% of {rule.percentageBaseRuleCode || 'BASIC'}</span>
                       ) : (
@@ -341,7 +341,7 @@ export const SalaryRulesPage = () => {
             </div>
             {formData.calculationType === 'Fixed' && (
               <div>
-                <label className="staffora-label">Fixed Amount ($) *</label>
+                <label className="staffora-label">Fixed Amount (₹) *</label>
                 <input
                   type="number"
                   required

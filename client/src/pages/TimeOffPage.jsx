@@ -50,14 +50,17 @@ export const TimeOffPage = () => {
   const fetchData = async () => {
     setLoading(true);
     try {
+      const empId = user?.employee?._id || user?.employee;
+      const isEmp = user?.role === 'Employee';
+
       const [reqRes, allRes, typRes, empRes] = await Promise.all([
         timeOffApi.getRequests({
           status: statusFilter || undefined,
-          employee: employeeFilter || undefined
+          employee: isEmp ? empId : (employeeFilter || undefined)
         }),
         timeOffApi.getAllocations(),
         timeOffApi.getTypes(),
-        employeeApi.getAll()
+        isEmp ? Promise.resolve({ success: true, data: [] }) : employeeApi.getAll()
       ]);
 
       if (reqRes.success) setRequests(reqRes.data);
@@ -69,17 +72,19 @@ export const TimeOffPage = () => {
           setAllocationForm((prev) => ({ ...prev, timeOffType: typRes.data[0]._id }));
         }
       }
-      if (empRes.success) {
+      if (empRes.success && empRes.data) {
         setEmployees(empRes.data);
-        if (!requestForm.employee && user?.employee) {
-          setRequestForm((prev) => ({ ...prev, employee: user.employee }));
+        if (!requestForm.employee && empId) {
+          setRequestForm((prev) => ({ ...prev, employee: empId }));
         } else if (!requestForm.employee && empRes.data.length > 0) {
           setRequestForm((prev) => ({ ...prev, employee: empRes.data[0]._id }));
           setAllocationForm((prev) => ({ ...prev, employee: empRes.data[0]._id }));
         }
+      } else if (empId) {
+        setRequestForm((prev) => ({ ...prev, employee: empId }));
       }
 
-      const targetEmp = employeeFilter || user?.employee || (empRes.data?.[0]?._id);
+      const targetEmp = isEmp ? empId : (employeeFilter || empId || empRes.data?.[0]?._id);
       if (targetEmp) {
         const balRes = await timeOffApi.getBalance({ employeeId: targetEmp, year: new Date().getFullYear() });
         if (balRes.success) {
@@ -95,7 +100,7 @@ export const TimeOffPage = () => {
 
   useEffect(() => {
     fetchData();
-  }, [statusFilter, employeeFilter, activeTab]);
+  }, [statusFilter, employeeFilter, activeTab, user]);
 
   const handleApprove = async (id) => {
     try {
@@ -144,10 +149,12 @@ export const TimeOffPage = () => {
       showToast('Please select start date and end date', 'warning');
       return;
     }
+    const empId = user?.role === 'Employee' ? (user?.employee?._id || user?.employee) : requestForm.employee;
     try {
       const dur = calculateDuration(requestForm.startDate, requestForm.endDate);
       const payload = {
         ...requestForm,
+        employee: empId,
         duration: dur > 0 ? dur : 1
       };
       const res = await timeOffApi.createRequest(payload);
@@ -176,8 +183,9 @@ export const TimeOffPage = () => {
   };
 
   const handleOpenRequestModal = () => {
+    const empId = user?.employee?._id || user?.employee || (employees[0]?._id || '');
     setRequestForm({
-      employee: user?.employee || (employees[0]?._id || ''),
+      employee: empId,
       timeOffType: types[0]?._id || '',
       startDate: '',
       endDate: '',
@@ -191,7 +199,7 @@ export const TimeOffPage = () => {
       employee: employees[0]?._id || '',
       timeOffType: types[0]?._id || '',
       year: new Date().getFullYear(),
-      numberOfDays: 20
+      numberOfDays: 12
     });
     setShowAllocationModal(true);
   };
@@ -333,7 +341,7 @@ export const TimeOffPage = () => {
                     </td>
 
                     <td className="text-center font-mono font-bold text-xs text-[#FF8A65]">
-                      {r.numberOfDays || 1}d
+                      {r.numberOfDays || r.duration || 1}d
                     </td>
 
                     <td className="font-mono">
@@ -386,21 +394,32 @@ export const TimeOffPage = () => {
         maxWidth="max-w-md"
       >
         <form onSubmit={handleCreateRequest} className="space-y-3 font-mono text-xs">
-          <div>
-            <label className="staffora-label">Employee</label>
-            <select
-              value={requestForm.employee}
-              onChange={(e) => setRequestForm({ ...requestForm, employee: e.target.value })}
-              className="staffora-input"
-              required
-            >
-              {employees.map((emp) => (
-                <option key={emp._id} value={emp._id}>
-                  {emp.firstName} {emp.lastName} ({emp.employeeId || emp.employeeCode || 'EMP'})
-                </option>
-              ))}
-            </select>
-          </div>
+          {user?.role === 'Employee' ? (
+            <div className="p-3 bg-[#111114] border border-white/10 rounded flex items-center justify-between">
+              <div>
+                <span className="text-[10px] uppercase text-[#6F6C69] font-bold block">Applying As</span>
+                <span className="text-xs font-semibold text-[#F5F2EA]">{user?.name}</span>
+              </div>
+              <Badge variant="info">{user?.employee?.employeeId || 'MY ACCOUNT'}</Badge>
+            </div>
+          ) : (
+            <div>
+              <label className="staffora-label">Employee *</label>
+              <select
+                value={requestForm.employee}
+                onChange={(e) => setRequestForm({ ...requestForm, employee: e.target.value })}
+                className="staffora-input"
+                required
+              >
+                <option value="" disabled>-- Select Employee --</option>
+                {employees.map((emp) => (
+                  <option key={emp._id} value={emp._id}>
+                    {emp.firstName} {emp.lastName} ({emp.employeeId || emp.jobPosition || 'Staff'})
+                  </option>
+                ))}
+              </select>
+            </div>
+          )}
 
           <div>
             <label className="staffora-label">Time Off Type</label>
@@ -455,7 +474,7 @@ export const TimeOffPage = () => {
               value={requestForm.reason}
               onChange={(e) => setRequestForm({ ...requestForm, reason: e.target.value })}
               className="staffora-input"
-              placeholder="Provide reason for time off"
+              placeholder="Provide reason for time off (e.g. Medical, Vacation, Family)"
             />
           </div>
 
@@ -479,16 +498,17 @@ export const TimeOffPage = () => {
       >
         <form onSubmit={handleCreateAllocation} className="space-y-3 font-mono text-xs">
           <div>
-            <label className="staffora-label">Employee</label>
+            <label className="staffora-label">Employee *</label>
             <select
               value={allocationForm.employee}
               onChange={(e) => setAllocationForm({ ...allocationForm, employee: e.target.value })}
               className="staffora-input"
               required
             >
+              <option value="" disabled>-- Select Employee --</option>
               {employees.map((emp) => (
                 <option key={emp._id} value={emp._id}>
-                  {emp.firstName} {emp.lastName} ({emp.employeeId || emp.employeeCode || 'EMP'})
+                  {emp.firstName} {emp.lastName} ({emp.employeeId || emp.jobPosition || 'Staff'})
                 </option>
               ))}
             </select>

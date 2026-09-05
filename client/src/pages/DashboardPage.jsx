@@ -1,13 +1,24 @@
 import React, { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, Link } from 'react-router-dom';
 import { dashboardApi } from '../api/dashboardApi';
+import { attendanceApi } from '../api/attendanceApi';
+import { timeOffApi } from '../api/timeOffApi';
+import { payslipApi } from '../api/payslipApi';
+import { contractApi } from '../api/contractApi';
 import { LoadingSpinner } from '../components/common/LoadingSpinner';
 import { Modal } from '../components/common/Modal';
 import { Button } from '../components/common/Button';
+import { Badge } from '../components/common/Badge';
 import { useAuth } from '../context/AuthContext';
 import { useToast } from '../context/ToastContext';
+import { formatINR } from '../utils/currency';
 
 export const DashboardPage = () => {
+  const { user, hasRole } = useAuth();
+  const { showToast } = useToast();
+  const navigate = useNavigate();
+
+  // Admin / HR Manager Dashboard States
   const [data, setData] = useState(null);
   const [loading, setLoading] = useState(true);
   const [departmentFilter, setDepartmentFilter] = useState('');
@@ -16,19 +27,70 @@ export const DashboardPage = () => {
   const [hoveredBar, setHoveredBar] = useState(null);
   const [showExportModal, setShowExportModal] = useState(false);
 
-  const { user, hasRole } = useAuth();
-  const { showToast } = useToast();
-  const navigate = useNavigate();
+  // Employee Self-Service Dashboard States
+  const [employeeData, setEmployeeData] = useState({
+    attendanceToday: null,
+    recentAttendance: [],
+    leaveBalances: [],
+    recentLeaves: [],
+    recentPayslips: [],
+    activeContract: null
+  });
+  const [punchLoading, setPunchLoading] = useState(false);
+  const [downloadingPdfId, setDownloadingPdfId] = useState(null);
+  const [showQuickLeaveModal, setShowQuickLeaveModal] = useState(false);
+  const [submittingLeave, setSubmittingLeave] = useState(false);
+  const [leaveTypes, setLeaveTypes] = useState([]);
+  const [quickLeaveForm, setQuickLeaveForm] = useState({
+    timeOffType: '',
+    startDate: '',
+    endDate: '',
+    reason: ''
+  });
+
+  const isEmployee = user?.role === 'Employee';
 
   const fetchMetrics = async () => {
     setLoading(true);
     try {
-      const res = await dashboardApi.getPayrollMetrics({
-        department: departmentFilter || undefined,
-        employeeType: employeeTypeFilter || undefined
-      });
-      if (res.success) {
-        setData(res.data);
+      if (isEmployee) {
+        const empId = user?.employee?._id || user?.employee;
+        const [typesRes, attRes, balRes, leavesRes, payslipsRes, contractsRes] = await Promise.all([
+          timeOffApi.getTypes(),
+          empId ? attendanceApi.getAll({ employee: empId }) : Promise.resolve({ data: [] }),
+          empId ? timeOffApi.getBalance({ employeeId: empId }) : Promise.resolve({ data: [] }),
+          empId ? timeOffApi.getRequests({ employee: empId }) : Promise.resolve({ data: [] }),
+          empId ? payslipApi.getAll({ employee: empId }) : Promise.resolve({ data: [] }),
+          empId ? contractApi.getAll({ employee: empId, status: 'Running' }) : Promise.resolve({ data: [] })
+        ]);
+
+        if (typesRes.success) {
+          setLeaveTypes(typesRes.data || []);
+          if (typesRes.data?.length > 0 && !quickLeaveForm.timeOffType) {
+            setQuickLeaveForm((prev) => ({ ...prev, timeOffType: typesRes.data[0]._id }));
+          }
+        }
+
+        const todayStr = new Date().toISOString().split('T')[0];
+        const attList = attRes.data || [];
+        const todayPunch = attList.find((a) => a.date?.startsWith(todayStr)) || null;
+
+        setEmployeeData({
+          attendanceToday: todayPunch,
+          recentAttendance: attList.slice(0, 5),
+          leaveBalances: Array.isArray(balRes.data) ? balRes.data : [],
+          recentLeaves: (leavesRes.data || []).slice(0, 5),
+          recentPayslips: (payslipsRes.data || []).slice(0, 5),
+          activeContract: (contractsRes.data || [])[0] || null
+        });
+      } else {
+        const res = await dashboardApi.getPayrollMetrics({
+          department: departmentFilter || undefined,
+          employeeType: employeeTypeFilter || undefined
+        });
+        if (res.success) {
+          setData(res.data);
+        }
       }
     } catch (err) {
       console.error('Failed to load dashboard metrics:', err);
@@ -39,10 +101,90 @@ export const DashboardPage = () => {
 
   useEffect(() => {
     fetchMetrics();
-  }, [departmentFilter, employeeTypeFilter]);
+  }, [departmentFilter, employeeTypeFilter, user]);
 
-  const handlePrintExecutiveReport = () => {
-    window.print();
+  const handleOpenQuickLeave = () => {
+    setQuickLeaveForm({
+      timeOffType: leaveTypes[0]?._id || '',
+      startDate: '',
+      endDate: '',
+      reason: ''
+    });
+    setShowQuickLeaveModal(true);
+  };
+
+  const handleQuickLeaveSubmit = async (e) => {
+    e.preventDefault();
+    if (!quickLeaveForm.startDate || !quickLeaveForm.endDate) {
+      showToast('Please select start and end dates', 'warning');
+      return;
+    }
+
+    const s = new Date(quickLeaveForm.startDate);
+    const end = new Date(quickLeaveForm.endDate);
+    const diff = Math.round((end.getTime() - s.getTime()) / (1000 * 60 * 60 * 24)) + 1;
+    const duration = diff > 0 ? diff : 1;
+
+    setSubmittingLeave(true);
+    try {
+      const res = await timeOffApi.createRequest({
+        ...quickLeaveForm,
+        employee: user?.employee?._id || user?.employee,
+        duration
+      });
+      if (res.success) {
+        showToast('Leave request submitted successfully!', 'success');
+        setShowQuickLeaveModal(false);
+        fetchMetrics();
+      }
+    } catch (err) {
+      showToast(err.response?.data?.message || 'Failed to submit leave request', 'error');
+    } finally {
+      setSubmittingLeave(false);
+    }
+  };
+
+  const handlePunchClock = async () => {
+    const empId = user?.employee?._id || user?.employee;
+    if (!empId) {
+      showToast('No linked employee profile found for punch clock', 'error');
+      return;
+    }
+
+    setPunchLoading(true);
+    try {
+      if (employeeData.attendanceToday && !employeeData.attendanceToday.checkOut) {
+        // Clock Out
+        const res = await attendanceApi.clockOut(employeeData.attendanceToday._id);
+        if (res.success) {
+          showToast('Clocked out successfully', 'success');
+          fetchMetrics();
+        }
+      } else {
+        // Clock In
+        const res = await attendanceApi.clockIn({ employee: empId });
+        if (res.success) {
+          showToast('Clocked in successfully', 'success');
+          fetchMetrics();
+        }
+      }
+    } catch (err) {
+      showToast(err.response?.data?.message || 'Punch operation failed', 'error');
+    } finally {
+      setPunchLoading(false);
+    }
+  };
+
+  const handleDownloadPDF = async (payslipId) => {
+    setDownloadingPdfId(payslipId);
+    try {
+      await payslipApi.downloadPDF(payslipId);
+      showToast('Certified PDF payslip downloaded', 'success');
+    } catch (err) {
+      showToast('Failed to download payslip PDF', 'error');
+    } finally {
+      setDownloadingPdfId(null);
+    }
   };
 
   const getGreeting = () => {
@@ -52,56 +194,326 @@ export const DashboardPage = () => {
     return 'Good evening';
   };
 
-  if (loading && !data) {
-    return <LoadingSpinner message="Aggregating workforce & payroll intelligence..." />;
+  if (loading && !data && !employeeData.activeContract && !employeeData.attendanceToday) {
+    return <LoadingSpinner message="Loading live operational metrics..." />;
   }
 
+  /* ------------------------------------------------------------- */
+  /*               EMPLOYEE SELF-SERVICE DASHBOARD                 */
+  /* ------------------------------------------------------------- */
+  if (isEmployee) {
+    const isClockedIn = !!(employeeData.attendanceToday && !employeeData.attendanceToday.checkOut);
+
+    return (
+      <div className="p-5 max-w-[1400px] w-full mx-auto flex flex-col gap-6">
+        {/* Welcome Header */}
+        <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 pb-4 border-b border-white/10">
+          <div>
+            <div className="flex items-center gap-2 mb-1">
+              <span className="font-mono text-[10px] uppercase tracking-widest text-[#FF6B3D] font-semibold">
+                Employee Self-Service Hub
+              </span>
+              <span className="text-[#6F6C69]">•</span>
+              <span className="font-mono text-[10px] text-[#A6A3A0] uppercase">
+                {new Date().toLocaleDateString(undefined, { weekday: 'long', month: 'short', day: 'numeric', year: 'numeric' })}
+              </span>
+            </div>
+            <h1 className="text-xl md:text-2xl font-bold text-[#F5F2EA] tracking-tight font-display">
+              {getGreeting()}, {user?.name}.
+            </h1>
+            <p className="text-xs text-[#A6A3A0] mt-0.5">
+              Role: <span className="text-[#F5F2EA] font-semibold">{user?.role}</span> • Employee ID: <span className="font-mono text-[#FF8A65]">{user?.employee?.employeeId || 'EMP-SELF'}</span>
+            </p>
+          </div>
+
+          <div className="flex items-center gap-2.5">
+            <Button
+              variant="primary"
+              size="sm"
+              onClick={handleOpenQuickLeave}
+              icon="event_busy"
+            >
+              Apply for Leave
+            </Button>
+            <Button
+              variant="secondary"
+              size="sm"
+              onClick={() => navigate('/time-off')}
+              icon="calendar_month"
+            >
+              Time Off Central
+            </Button>
+            <Button
+              variant="secondary"
+              size="sm"
+              onClick={() => navigate('/payslips')}
+              icon="receipt"
+            >
+              My Payslips
+            </Button>
+          </div>
+        </div>
+
+        {/* 3 Core Interactive Bento Cards */}
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-5">
+          {/* Card 1: Shift Attendance Desk */}
+          <div className="midnight-card p-5 flex flex-col justify-between gap-4">
+            <div className="flex items-center justify-between">
+              <span className="text-[10px] font-mono font-semibold uppercase tracking-wider text-[#6F6C69]">
+                Shift Punch Clock
+              </span>
+              <Badge variant={isClockedIn ? 'success' : 'neutral'}>
+                {isClockedIn ? 'Checked In' : 'Checked Out'}
+              </Badge>
+            </div>
+
+            <div className="space-y-1 my-2">
+              <div className="text-2xl font-bold text-[#F5F2EA] font-mono">
+                {new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+              </div>
+              <p className="text-xs text-[#A6A3A0]">
+                {isClockedIn
+                  ? `Clocked in at ${new Date(employeeData.attendanceToday.checkIn).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}`
+                  : 'Ready to start your working shift'}
+              </p>
+            </div>
+
+            <Button
+              variant={isClockedIn ? 'danger' : 'primary'}
+              onClick={handlePunchClock}
+              loading={punchLoading}
+              icon={isClockedIn ? 'logout' : 'login'}
+              className="w-full justify-center"
+            >
+              {isClockedIn ? 'Clock Out Shift' : 'Clock In Shift'}
+            </Button>
+          </div>
+
+          {/* Card 2: Active Compensation & Contract */}
+          <div className="midnight-card p-5 flex flex-col justify-between gap-4">
+            <div className="flex items-center justify-between">
+              <span className="text-[10px] font-mono font-semibold uppercase tracking-wider text-[#6F6C69]">
+                Active Contract
+              </span>
+              <Badge variant="info">Active</Badge>
+            </div>
+
+            <div className="space-y-1.5 my-1">
+              <span className="text-[10px] font-mono text-[#6F6C69] uppercase">Monthly Base Wage</span>
+              <div className="text-2xl font-black text-[#F5F2EA] font-mono">
+                {formatINR(employeeData.activeContract?.wage || user?.employee?.wage || 0)}
+              </div>
+              <p className="text-xs text-[#A6A3A0]">
+                Structure: <span className="text-[#F5F2EA] font-medium">{employeeData.activeContract?.salaryStructure?.name || 'Standard Monthly'}</span>
+              </p>
+            </div>
+
+            <div className="pt-2 border-t border-white/5 flex items-center justify-between text-xs font-mono text-[#6F6C69]">
+              <span>Department</span>
+              <span className="text-[#A6A3A0]">{user?.employee?.department || 'Engineering'}</span>
+            </div>
+          </div>
+
+          {/* Card 3: Latest Issued Payslip */}
+          <div className="midnight-card p-5 flex flex-col justify-between gap-4">
+            <div className="flex items-center justify-between">
+              <span className="text-[10px] font-mono font-semibold uppercase tracking-wider text-[#6F6C69]">
+                Latest Payslip
+              </span>
+              <Badge variant="success">Paid</Badge>
+            </div>
+
+            {employeeData.recentPayslips.length > 0 ? (
+              <div className="space-y-1.5 my-1">
+                <span className="text-[10px] font-mono text-[#6F6C69] uppercase">Net Salary Take-Home</span>
+                <div className="text-2xl font-black text-[#39D98A] font-mono">
+                  {formatINR(employeeData.recentPayslips[0].net)}
+                </div>
+                <p className="text-xs text-[#A6A3A0]">
+                  Period: {new Date(employeeData.recentPayslips[0].payrollPeriod?.start).toLocaleDateString()} - {new Date(employeeData.recentPayslips[0].payrollPeriod?.end).toLocaleDateString()}
+                </p>
+              </div>
+            ) : (
+              <div className="py-3 text-xs text-[#6F6C69]">
+                No payslips published yet for this cycle.
+              </div>
+            )}
+
+            {employeeData.recentPayslips.length > 0 ? (
+              <Button
+                variant="secondary"
+                size="sm"
+                onClick={() => handleDownloadPDF(employeeData.recentPayslips[0]._id)}
+                loading={downloadingPdfId === employeeData.recentPayslips[0]._id}
+                icon="picture_as_pdf"
+                className="w-full justify-center"
+              >
+                Download PDF
+              </Button>
+            ) : (
+              <Button variant="secondary" size="sm" onClick={() => navigate('/payslips')} className="w-full justify-center">
+                View Payslip History
+              </Button>
+            )}
+          </div>
+        </div>
+
+        {/* Leave Entitlement Progress Meters */}
+        <div className="midnight-card p-5 flex flex-col gap-4">
+          <div className="flex items-center justify-between pb-3 border-b border-white/10">
+            <div>
+              <span className="text-[10px] font-mono font-semibold uppercase tracking-wider text-[#6F6C69] block">
+                Statutory Entitlements
+              </span>
+              <h3 className="text-sm font-bold text-[#F5F2EA] font-display">
+                Annual Time Off Balances
+              </h3>
+            </div>
+            <Link to="/time-off" className="text-xs text-[#FF6B3D] hover:underline font-mono">
+              View All Requests →
+            </Link>
+          </div>
+
+          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4">
+            {employeeData.leaveBalances.length > 0 ? (
+              employeeData.leaveBalances.map((bal, idx) => {
+                const percent = bal.allocated > 0 ? Math.min(100, Math.round((bal.used / bal.allocated) * 100)) : 0;
+                return (
+                  <div key={idx} className="p-3.5 rounded bg-[#111114] border border-white/5 flex flex-col gap-2">
+                    <div className="flex items-center justify-between">
+                      <span className="text-xs font-semibold text-[#F5F2EA]">{bal.leaveType?.name || 'Leave'}</span>
+                      <span className="text-xs font-mono font-bold text-[#FF8A65]">{bal.remaining}d left</span>
+                    </div>
+                    <div className="w-full bg-[#1E1E24] rounded-full h-1.5 overflow-hidden">
+                      <div className="bg-[#FF6B3D] h-full rounded-full transition-all" style={{ width: `${percent}%` }}></div>
+                    </div>
+                    <div className="flex items-center justify-between text-[10px] font-mono text-[#6F6C69]">
+                      <span>Used: {bal.used}d</span>
+                      <span>Total: {bal.allocated}d</span>
+                    </div>
+                  </div>
+                );
+              })
+            ) : (
+              <div className="col-span-4 py-4 text-center text-xs text-[#6F6C69]">
+                Annual leave balance allocations are managed by HR.
+              </div>
+            )}
+          </div>
+        </div>
+
+        {/* Employee Quick Apply Leave Modal */}
+        {showQuickLeaveModal && (
+          <Modal
+            isOpen={showQuickLeaveModal}
+            onClose={() => setShowQuickLeaveModal(false)}
+            title="Quick Leave Application"
+            maxWidth="max-w-md"
+          >
+            <form onSubmit={handleQuickLeaveSubmit} className="space-y-3 font-mono text-xs">
+              <div className="p-3 bg-[#111114] border border-white/10 rounded flex items-center justify-between">
+                <div>
+                  <span className="text-[10px] uppercase text-[#6F6C69] font-bold block">Applying As</span>
+                  <span className="text-xs font-semibold text-[#F5F2EA]">{user?.name}</span>
+                </div>
+                <Badge variant="info">{user?.employee?.employeeId || 'MY ACCOUNT'}</Badge>
+              </div>
+
+              <div>
+                <label className="staffora-label">Leave Type *</label>
+                <select
+                  value={quickLeaveForm.timeOffType}
+                  onChange={(e) => setQuickLeaveForm({ ...quickLeaveForm, timeOffType: e.target.value })}
+                  className="staffora-input"
+                  required
+                >
+                  {leaveTypes.map((t) => (
+                    <option key={t._id} value={t._id}>
+                      {t.name} ({t.isPaid ? 'Paid' : 'Unpaid'})
+                    </option>
+                  ))}
+                </select>
+              </div>
+
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="staffora-label">Start Date *</label>
+                  <input
+                    type="date"
+                    required
+                    value={quickLeaveForm.startDate}
+                    onChange={(e) => setQuickLeaveForm({ ...quickLeaveForm, startDate: e.target.value })}
+                    className="staffora-input"
+                  />
+                </div>
+                <div>
+                  <label className="staffora-label">End Date *</label>
+                  <input
+                    type="date"
+                    required
+                    value={quickLeaveForm.endDate}
+                    onChange={(e) => setQuickLeaveForm({ ...quickLeaveForm, endDate: e.target.value })}
+                    className="staffora-input"
+                  />
+                </div>
+              </div>
+
+              <div>
+                <label className="staffora-label">Reason / Justification</label>
+                <textarea
+                  rows={2}
+                  value={quickLeaveForm.reason}
+                  onChange={(e) => setQuickLeaveForm({ ...quickLeaveForm, reason: e.target.value })}
+                  className="staffora-input"
+                  placeholder="e.g. Vacation, Medical emergency, Family event"
+                />
+              </div>
+
+              <div className="flex justify-end gap-2 pt-3 border-t border-white/10">
+                <Button variant="secondary" type="button" onClick={() => setShowQuickLeaveModal(false)}>
+                  Cancel
+                </Button>
+                <Button variant="primary" type="submit" loading={submittingLeave}>
+                  Submit Application
+                </Button>
+              </div>
+            </form>
+          </Modal>
+        )}
+      </div>
+    );
+  }
+
+  /* ------------------------------------------------------------- */
+  /*             EXECUTIVE HR / PAYROLL INTELLIGENCE DASHBOARD     */
+  /* ------------------------------------------------------------- */
   const { headcount, payroll, attendance, leave, alerts } = data || {
-    headcount: { total: 4, byDepartment: {} },
+    headcount: { total: 0, byDepartment: {} },
     payroll: {
-      totalNetPaid: 22771.2,
-      totalGross: 27500,
-      totalDeductions: 4728.8,
-      payslipsGenerated: 4,
-      averageSalary: 5692.8,
-      salaryCostByDepartment: [
-        { department: 'Engineering', totalCost: 8500, employeeCount: 1 },
-        { department: 'Product', totalCost: 7200, employeeCount: 1 },
-        { department: 'Marketing', totalCost: 4800, employeeCount: 1 },
-        { department: 'Design', totalCost: 4200, employeeCount: 1 }
-      ],
-      monthlyTrends: [
-        { month: 'Apr', netSalary: 21500, headcount: 3 },
-        { month: 'May', netSalary: 21500, headcount: 3 },
-        { month: 'Jun', netSalary: 22100, headcount: 4 },
-        { month: 'Jul', netSalary: 22400, headcount: 4 },
-        { month: 'Aug', netSalary: 22771.2, headcount: 4 },
-        { month: 'Sep', netSalary: 22771.2, headcount: 4 }
-      ]
+      totalNetPaid: 0,
+      totalGross: 0,
+      totalDeductions: 0,
+      payslipsGenerated: 0,
+      averageSalary: 0,
+      salaryCostByDepartment: [],
+      monthlyTrends: []
     },
-    attendance: { present: 52, late: 3, absent: 1, overtime: 4, totalWorkedHours: 476.0, manualCorrections: 0 },
-    leave: { pending: 1, approved: 1, approvedDays: 2 },
-    alerts: { missingBankInfoEmployees: 0, pendingLeaveRequests: 1 }
+    attendance: { present: 0, late: 0, absent: 0, overtime: 0, totalWorkedHours: 0, manualCorrections: 0 },
+    leave: { pending: 0, approved: 0, approvedDays: 0 },
+    alerts: { missingBankInfoEmployees: 0, pendingLeaveRequests: 0 }
   };
 
-  const rawMonthlyTrends = payroll.monthlyTrends && payroll.monthlyTrends.length > 0
-    ? payroll.monthlyTrends
-    : [
-        { month: 'Apr', netSalary: 21500, headcount: 3 },
-        { month: 'May', netSalary: 21500, headcount: 3 },
-        { month: 'Jun', netSalary: 22100, headcount: 4 },
-        { month: 'Jul', netSalary: 22400, headcount: 4 },
-        { month: 'Aug', netSalary: 22771.2, headcount: 4 },
-        { month: 'Sep', netSalary: 22771.2, headcount: 4 }
-      ];
+  const rawMonthlyTrends = payroll.monthlyTrends || [];
 
   const monthlyTrends = rawMonthlyTrends.map((m) => ({
     month: typeof m.month === 'string' ? (m.month.length > 5 ? m.month.slice(5) : m.month) : String(m.month || 'M'),
     netSalary: Number(m.netSalary ?? m.totalNet ?? 0),
-    headcount: Number(m.headcount ?? m.payslipCount ?? 4)
+    headcount: Number(m.headcount ?? m.payslipCount ?? 0)
   }));
 
-  const maxVal = Math.max(...monthlyTrends.map((m) => (chartMode === 'cost' ? m.netSalary : m.headcount * 6000)), 30000);
+  const maxVal = monthlyTrends.length > 0
+    ? Math.max(...monthlyTrends.map((m) => (chartMode === 'cost' ? m.netSalary : m.headcount * 60000)), 10000)
+    : 10000;
   const currentMonthName = new Date().toLocaleString('default', { month: 'long', year: 'numeric' });
   const pendingAttentionCount = (leave?.pending || 0) + (alerts?.missingBankInfoEmployees || 0);
 
@@ -120,10 +532,10 @@ export const DashboardPage = () => {
             </span>
           </div>
           <h1 className="text-xl md:text-2xl font-bold text-[#F5F2EA] tracking-tight font-display">
-            {getGreeting()}, {user?.name?.split(' ')[0] || 'Sarah'}.
+            {getGreeting()}, {user?.name?.split(' ')[0] || 'Manager'}.
           </h1>
           <p className="text-xs text-[#A6A3A0] mt-0.5">
-            {headcount.total || 4} active employees across {Object.keys(headcount.byDepartment || {}).length || 4} departments • {pendingAttentionCount > 0 ? `${pendingAttentionCount} items require operational review` : 'All records compliant'}.
+            {headcount.total || 0} active employees across {Object.keys(headcount.byDepartment || {}).length || 0} departments • {pendingAttentionCount > 0 ? `${pendingAttentionCount} items require operational review` : 'All records compliant'}.
           </p>
         </div>
 
@@ -164,25 +576,29 @@ export const DashboardPage = () => {
         </div>
       </div>
 
-      {/* 2. Hero Primary Payroll Metric (Large Editorial Format) */}
+      {/* 2. Hero Primary Payroll Metric */}
       <div className="midnight-card-elevated p-6 flex flex-col lg:flex-row lg:items-center justify-between gap-6">
         <div className="space-y-1">
           <span className="text-[10px] font-mono uppercase tracking-widest text-[#6F6C69] font-bold block">
             Primary Net Payout Liability — {currentMonthName}
           </span>
           <div className="text-4xl md:text-5xl font-black text-[#F5F2EA] tracking-tight font-mono-val">
-            ${payroll.totalNetPaid ? Number(payroll.totalNetPaid).toLocaleString(undefined, { minimumFractionDigits: 2 }) : '0.00'}
+            {formatINR(payroll.totalNetPaid || 0)}
           </div>
           <div className="flex items-center gap-3 pt-2 text-xs flex-wrap font-mono">
-            <span className="inline-flex items-center gap-1 text-[#39D98A] font-semibold bg-[#39D98A]/10 px-2 py-0.5 rounded border border-[#39D98A]/20 text-[11px]">
-              +4.8% vs last month
+            <span className={`inline-flex items-center gap-1 font-semibold px-2 py-0.5 rounded border text-[11px] ${
+              payroll.totalNetPaid > 0
+                ? 'bg-[#39D98A]/10 text-[#39D98A] border-[#39D98A]/20'
+                : 'bg-[#6F6C69]/10 text-[#A6A3A0] border-white/10'
+            }`}>
+              {payroll.totalNetPaid > 0 ? 'Active Cycle Settled' : 'Cycle Pending'}
             </span>
             <span className="text-[#A6A3A0]">
-              Gross: ${(payroll.totalGross || 27500).toLocaleString()}
+              Gross: {formatINR(payroll.totalGross || 0, { decimals: 0 })}
             </span>
             <span className="text-[#6F6C69]">•</span>
             <span className="text-[#FF5C5C]">
-              Deductions: -${(payroll.totalDeductions || 4728.8).toLocaleString()}
+              Deductions: -{formatINR(payroll.totalDeductions || 0, { decimals: 0 })}
             </span>
           </div>
         </div>
@@ -190,19 +606,19 @@ export const DashboardPage = () => {
         <div className="flex items-center gap-4 border-t lg:border-t-0 lg:border-l border-white/10 pt-4 lg:pt-0 lg:pl-6 text-xs font-mono">
           <div>
             <span className="text-[10px] text-[#6F6C69] uppercase tracking-wider block">Payslips Settled</span>
-            <span className="text-xl font-bold text-[#F5F2EA]">{payroll.payslipsGenerated || 0} / {headcount.total || 4}</span>
+            <span className="text-xl font-bold text-[#F5F2EA]">{payroll.payslipsGenerated || 0} / {headcount.total || 0}</span>
           </div>
           <div className="w-px h-8 bg-white/10"></div>
           <div>
             <span className="text-[10px] text-[#6F6C69] uppercase tracking-wider block">Average Salary</span>
-            <span className="text-xl font-bold text-[#F5F2EA]">${Number(payroll.averageSalary || 5692.8).toLocaleString(undefined, { maximumFractionDigits: 0 })}</span>
+            <span className="text-xl font-bold text-[#F5F2EA]">{formatINR(payroll.averageSalary || 0, { decimals: 0 })}</span>
           </div>
         </div>
       </div>
 
-      {/* 3. Asymmetric Section: 70% Trajectory Analytics + 30% Operational Attention */}
+      {/* 3. Asymmetric Section: Trajectory Analytics + Operational Attention */}
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-5 items-start">
-        {/* 70% Chart Column */}
+        {/* Chart Column */}
         <div className="lg:col-span-8 midnight-card p-5 flex flex-col justify-between">
           <div>
             <div className="flex items-center justify-between pb-3 border-b border-white/10">
@@ -225,7 +641,7 @@ export const DashboardPage = () => {
                       : 'text-[#6F6C69] hover:text-[#A6A3A0]'
                   }`}
                 >
-                  Cost ($)
+                  Cost (₹)
                 </button>
                 <button
                   onClick={() => setChartMode('headcount')}
@@ -235,297 +651,137 @@ export const DashboardPage = () => {
                       : 'text-[#6F6C69] hover:text-[#A6A3A0]'
                   }`}
                 >
-                  Staff ({headcount.total || 4})
+                  Staff ({headcount.total || 0})
                 </button>
               </div>
             </div>
 
-            {/* Custom Editorial Thin-Bar Visualizer */}
-            <div className="h-52 flex items-end justify-between gap-3 pt-8 px-2 relative">
-              {monthlyTrends.map((item, idx) => {
-                const currentVal = chartMode === 'cost' ? item.netSalary : item.headcount * 6000;
-                const heightPercent = Math.min(100, Math.max(16, Math.round((currentVal / maxVal) * 100)));
-                const isHovered = hoveredBar === idx;
-
-                return (
-                  <div
-                    key={idx}
-                    onMouseEnter={() => setHoveredBar(idx)}
-                    onMouseLeave={() => setHoveredBar(null)}
-                    className="flex-1 flex flex-col items-center gap-2 group cursor-pointer relative"
+            {/* Custom Bar Visualizer */}
+            {monthlyTrends.length === 0 ? (
+              <div className="h-52 flex flex-col items-center justify-center text-center p-6 bg-[#111114] border border-dashed border-white/10 rounded-lg mt-4">
+                <span className="material-symbols-outlined text-3xl text-[#6F6C69] mb-1.5">bar_chart</span>
+                <p className="text-xs font-semibold text-[#F5F2EA]">No Historical Payruns Yet</p>
+                <p className="text-[11px] text-[#6F6C69] max-w-xs mt-0.5">
+                  Generate and compute your monthly payrun batches to track real-time net salary trajectory.
+                </p>
+                {hasRole('Admin', 'HR Payroll User', 'HR Payroll Manager') && (
+                  <button
+                    onClick={() => navigate('/payruns')}
+                    className="mt-3 px-3 py-1 bg-[#FF6B3D] hover:bg-[#FF8A65] text-[#0B0B0D] font-bold text-xs rounded transition-colors"
                   >
-                    {/* Tooltip on Hover */}
-                    {isHovered && (
-                      <div className="absolute -top-10 z-20 px-2 py-1 bg-[#17171B] border border-white/20 text-[#F5F2EA] rounded shadow-2xl text-[11px] font-mono whitespace-nowrap flex flex-col items-center">
-                        <span className="font-bold text-[#FF8A65]">
-                          {chartMode === 'cost'
-                            ? `$${Number(item.netSalary || 0).toLocaleString(undefined, { minimumFractionDigits: 2 })}`
-                            : `${Number(item.headcount || 0)} Employees`}
-                        </span>
-                        <span className="text-[9px] text-[#6F6C69]">{item.month}</span>
-                      </div>
-                    )}
-
-                    <div className="w-full bg-[#0B0B0D] rounded h-36 flex items-end p-0.5 overflow-hidden border border-white/5">
-                      <div
-                        className={`w-full rounded-xs transition-all duration-200 ${
-                          idx === monthlyTrends.length - 1
-                            ? 'bg-[#FF6B3D]'
-                            : 'bg-[#242429] hover:bg-[#383842]'
-                        }`}
-                        style={{ height: `${heightPercent}%` }}
-                      />
-                    </div>
-                    <span
-                      className={`text-[11px] font-mono transition-colors ${
-                        isHovered ? 'text-[#FF8A65] font-bold' : 'text-[#6F6C69]'
-                      }`}
-                    >
-                      {item.month}
-                    </span>
-                  </div>
-                );
-              })}
-            </div>
-          </div>
-
-          <div className="pt-3 border-t border-white/10 flex items-center justify-between text-[11px] font-mono text-[#6F6C69]">
-            <span className="flex items-center gap-1.5">
-              <span className="w-1.5 h-1.5 rounded-full bg-[#FF6B3D]"></span>
-              Live Database Aggregation
-            </span>
-            <span>Deterministic Rules Engine</span>
-          </div>
-        </div>
-
-        {/* 30% Attention Required Column */}
-        <div className="lg:col-span-4 midnight-card p-5 flex flex-col justify-between">
-          <div>
-            <div className="flex items-center justify-between pb-3 border-b border-white/10">
-              <div>
-                <span className="text-[10px] font-mono font-semibold uppercase tracking-wider text-[#6F6C69] block">
-                  Action Center
-                </span>
-                <h3 className="text-sm font-bold text-[#F5F2EA] font-display">Attention Required</h3>
+                    Run First Payrun
+                  </button>
+                )}
               </div>
-              <span className="font-mono text-[10px] px-1.5 py-0.5 rounded bg-[#F5B942]/10 text-[#F5B942] border border-[#F5B942]/20 font-semibold">
-                {pendingAttentionCount} Issues
-              </span>
-            </div>
+            ) : (
+              <div className="h-52 flex items-end justify-between gap-3 pt-8 px-2 relative">
+                {monthlyTrends.map((item, idx) => {
+                  const currentVal = chartMode === 'cost' ? item.netSalary : item.headcount * 60000;
+                  const heightPercent = Math.min(100, Math.max(16, Math.round((currentVal / maxVal) * 100)));
+                  const isHovered = hoveredBar === idx;
 
-            <div className="space-y-2.5 mt-3">
-              {/* Issue 1: Pending Leave */}
-              <div className="p-3 bg-[#17171B] rounded border border-white/5 flex items-start justify-between gap-2">
-                <div>
-                  <div className="flex items-center gap-1.5">
-                    <span className="w-1.5 h-1.5 rounded-full bg-[#F5B942]"></span>
-                    <span className="text-xs font-semibold text-[#F5F2EA]">
-                      01 Pending Leave Approval
-                    </span>
-                  </div>
-                  <p className="text-[11px] text-[#A6A3A0] mt-0.5">
-                    Alex Turner (Engineering) requested 2 days annual leave.
-                  </p>
-                </div>
-                <button
-                  onClick={() => navigate('/time-off')}
-                  className="text-[11px] font-mono text-[#FF8A65] hover:underline shrink-0"
-                >
-                  Review →
-                </button>
-              </div>
-
-              {/* Issue 2: Payrun Stage */}
-              <div className="p-3 bg-[#17171B] rounded border border-white/5 flex items-start justify-between gap-2">
-                <div>
-                  <div className="flex items-center gap-1.5">
-                    <span className="w-1.5 h-1.5 rounded-full bg-[#58B7FF]"></span>
-                    <span className="text-xs font-semibold text-[#F5F2EA]">
-                      Payrun Batch Pending
-                    </span>
-                  </div>
-                  <p className="text-[11px] text-[#A6A3A0] mt-0.5">
-                    September payroll draft initialized. Ready for compute.
-                  </p>
-                </div>
-                <button
-                  onClick={() => navigate('/payruns')}
-                  className="text-[11px] font-mono text-[#FF8A65] hover:underline shrink-0"
-                >
-                  Compute →
-                </button>
-              </div>
-
-              {/* Issue 3: Contract Compliance */}
-              <div className="p-3 bg-[#17171B] rounded border border-white/5 flex items-start justify-between gap-2">
-                <div>
-                  <div className="flex items-center gap-1.5">
-                    <span className="w-1.5 h-1.5 rounded-full bg-[#39D98A]"></span>
-                    <span className="text-xs font-semibold text-[#F5F2EA]">
-                      00 Contract Mismatches
-                    </span>
-                  </div>
-                  <p className="text-[11px] text-[#A6A3A0] mt-0.5">
-                    All 4 employees have active contracts and bank records.
-                  </p>
-                </div>
-                <span className="text-[10px] font-mono text-[#39D98A] font-semibold">
-                  Valid
-                </span>
-              </div>
-            </div>
-          </div>
-
-          <div className="pt-3 border-t border-white/10">
-            <Button
-              variant="secondary"
-              size="sm"
-              onClick={() => navigate('/time-off')}
-              className="w-full text-xs"
-            >
-              Open Approvals Queue
-            </Button>
-          </div>
-        </div>
-      </div>
-
-      {/* 4. Section: 40% Workforce Snapshot + 60% Department Cost Tracks */}
-      <div className="grid grid-cols-1 lg:grid-cols-12 gap-5 items-start">
-        {/* Workforce Snapshot (40%) */}
-        <div className="lg:col-span-5 midnight-card p-5 space-y-4">
-          <div className="flex items-center justify-between pb-3 border-b border-white/10">
-            <div>
-              <span className="text-[10px] font-mono font-semibold uppercase tracking-wider text-[#6F6C69] block">
-                Workforce Metrics
-              </span>
-              <h3 className="text-sm font-bold text-[#F5F2EA] font-display">Talent &amp; Liability Roster</h3>
-            </div>
-            <span className="font-mono text-xs text-[#A6A3A0]">{headcount.total || 4} Staff</span>
-          </div>
-
-          <div className="grid grid-cols-2 gap-3 font-mono">
-            <div className="p-3 bg-[#17171B] rounded border border-white/5">
-              <span className="text-[10px] text-[#6F6C69] uppercase block">Total Basic Wage</span>
-              <span className="text-base font-bold text-[#F5F2EA]">${(payroll.totalGross || 27500).toLocaleString()}</span>
-            </div>
-            <div className="p-3 bg-[#17171B] rounded border border-white/5">
-              <span className="text-[10px] text-[#6F6C69] uppercase block">Logged Work Hours</span>
-              <span className="text-base font-bold text-[#39D98A]">{attendance.totalWorkedHours || 476}h</span>
-            </div>
-            <div className="p-3 bg-[#17171B] rounded border border-white/5">
-              <span className="text-[10px] text-[#6F6C69] uppercase block">Overtime Hours</span>
-              <span className="text-base font-bold text-[#FF8A65]">{attendance.overtime || 4}h</span>
-            </div>
-            <div className="p-3 bg-[#17171B] rounded border border-white/5">
-              <span className="text-[10px] text-[#6F6C69] uppercase block">Time Off Taken</span>
-              <span className="text-base font-bold text-[#58B7FF]">{leave.approvedDays || 2} Days</span>
-            </div>
-          </div>
-        </div>
-
-        {/* Department Distribution (60%) */}
-        <div className="lg:col-span-7 midnight-card p-5 space-y-4">
-          <div className="flex items-center justify-between pb-3 border-b border-white/10">
-            <div>
-              <span className="text-[10px] font-mono font-semibold uppercase tracking-wider text-[#6F6C69] block">
-                Department Allocation
-              </span>
-              <h3 className="text-sm font-bold text-[#F5F2EA] font-display">Salary Cost Distribution</h3>
-            </div>
-            <span className="font-mono text-xs text-[#A6A3A0]">
-              Total: ${(payroll.salaryCostByDepartment?.reduce((a, b) => a + b.totalCost, 0) || 24700).toLocaleString()}
-            </span>
-          </div>
-
-          <div className="space-y-3 font-mono">
-            {payroll.salaryCostByDepartment?.map((dept) => {
-              const totalAll = payroll.salaryCostByDepartment.reduce((acc, curr) => acc + curr.totalCost, 0) || 1;
-              const percent = Math.round((dept.totalCost / totalAll) * 100);
-
-              return (
-                <div key={dept.department} className="space-y-1">
-                  <div className="flex justify-between items-center text-xs">
-                    <span className="font-sans font-medium text-[#F5F2EA]">{dept.department}</span>
-                    <div className="flex items-center gap-2">
-                      <span className="text-[#A6A3A0]">${dept.totalCost.toLocaleString()}</span>
-                      <span className="text-[10px] text-[#6F6C69]">({percent}%)</span>
-                    </div>
-                  </div>
-                  <div className="w-full h-1.5 bg-[#0B0B0D] rounded-full overflow-hidden border border-white/5">
+                  return (
                     <div
-                      className="h-full rounded-full bg-[#FF6B3D] transition-all duration-300"
-                      style={{ width: `${percent}%` }}
-                    />
-                  </div>
+                      key={item.month + idx}
+                      className="flex-1 flex flex-col items-center gap-2 group cursor-pointer relative h-full justify-end"
+                      onMouseEnter={() => setHoveredBar(idx)}
+                      onMouseLeave={() => setHoveredBar(null)}
+                    >
+                      {isHovered && (
+                        <div className="absolute -top-12 z-20 bg-[#17171B] border border-white/20 px-2.5 py-1 rounded shadow-xl pointer-events-none text-center whitespace-nowrap">
+                          <span className="text-[10px] font-mono text-[#6F6C69] block">{item.month}</span>
+                          <span className="text-xs font-bold font-mono text-[#F5F2EA]">
+                            {chartMode === 'cost' ? formatINR(item.netSalary, { compact: true }) : `${item.headcount} Staff`}
+                          </span>
+                        </div>
+                      )}
+
+                      <div className="w-full max-w-[32px] bg-[#17171B] rounded-t flex flex-col justify-end overflow-hidden h-full border border-white/5 group-hover:border-[#FF6B3D]/50 transition-colors">
+                        <div
+                          className="w-full bg-[#FF6B3D] transition-all duration-300 rounded-t group-hover:bg-[#FF8A65]"
+                          style={{ height: `${heightPercent}%` }}
+                        ></div>
+                      </div>
+
+                      <span className="text-[10px] font-mono text-[#6F6C69] group-hover:text-[#F5F2EA] transition-colors">
+                        {item.month}
+                      </span>
+                    </div>
+                  );
+                })}
+              </div>
+            )}
+          </div>
+        </div>
+
+        {/* Operational Attention Column */}
+        <div className="lg:col-span-4 midnight-card p-5 flex flex-col gap-4">
+          <div className="pb-3 border-b border-white/10">
+            <span className="text-[10px] font-mono font-semibold uppercase tracking-wider text-[#6F6C69] block">
+              Governance &amp; Audit
+            </span>
+            <h3 className="text-sm font-bold text-[#F5F2EA] font-display">
+              Action Items
+            </h3>
+          </div>
+
+          <div className="flex flex-col gap-3">
+            <div className="p-3 rounded bg-[#111114] border border-white/5 flex items-center justify-between">
+              <div className="flex items-center gap-3">
+                <span className="material-symbols-outlined text-[#FF6B3D] text-lg">event_busy</span>
+                <div>
+                  <span className="text-xs font-semibold text-[#F5F2EA] block">Pending Leaves</span>
+                  <span className="text-[10px] text-[#6F6C69]">{leave?.pending || 0} requests awaiting review</span>
                 </div>
-              );
-            })}
+              </div>
+              <Button size="sm" variant="secondary" onClick={() => navigate('/time-off')}>
+                Review
+              </Button>
+            </div>
+
+            <div className="p-3 rounded bg-[#111114] border border-white/5 flex items-center justify-between">
+              <div className="flex items-center gap-3">
+                <span className="material-symbols-outlined text-[#39D98A] text-lg">schedule</span>
+                <div>
+                  <span className="text-xs font-semibold text-[#F5F2EA] block">Attendance Health</span>
+                  <span className="text-[10px] text-[#6F6C69]">{attendance?.present || 0} present today</span>
+                </div>
+              </div>
+              <Button size="sm" variant="secondary" onClick={() => navigate('/attendance')}>
+                Audits
+              </Button>
+            </div>
           </div>
         </div>
       </div>
 
-      {/* Audited Executive Memorandum Modal */}
-      <Modal
-        isOpen={showExportModal}
-        onClose={() => setShowExportModal(false)}
-        title="Staffora Audited Executive Memorandum"
-        maxWidth="max-w-2xl"
-      >
-        <div className="space-y-5 text-xs font-mono">
-          <div className="bg-[#111114] p-4 rounded border border-white/10">
-            <span className="text-[10px] uppercase text-[#FF6B3D] font-bold block">
-              FINANCIAL GOVERNANCE REPORT
-            </span>
-            <h3 className="text-base font-bold text-[#F5F2EA] font-sans mt-0.5">Staffora Payroll &amp; Workforce Settlement</h3>
-            <p className="text-[11px] text-[#A6A3A0] mt-0.5">
-              Period: {currentMonthName} • Corporate ID: US-EIN-98472910
+      {/* Export Memo Modal */}
+      {showExportModal && (
+        <Modal
+          title="Executive Financial Memo"
+          isOpen={showExportModal}
+          onClose={() => setShowExportModal(false)}
+        >
+          <div className="flex flex-col gap-4 text-xs">
+            <p className="text-[#A6A3A0]">
+              Generating operational snapshot for period <span className="text-[#F5F2EA] font-mono">{currentMonthName}</span>.
             </p>
-          </div>
-
-          <div className="grid grid-cols-3 gap-3 text-center">
-            <div className="p-3 bg-[#111114] rounded border border-white/10">
-              <span className="text-[9px] text-[#6F6C69] uppercase block">Gross Liability</span>
-              <span className="text-sm font-bold text-[#F5F2EA]">
-                ${(payroll.totalGross || 27500).toLocaleString()}
-              </span>
+            <div className="p-3 bg-[#111114] rounded border border-white/10 font-mono space-y-1">
+              <div>Total Headcount: {headcount.total}</div>
+              <div>Net Disbursal: {formatINR(payroll.totalNetPaid || 0)}</div>
+              <div>Average Wage: {formatINR(payroll.averageSalary || 0)}</div>
             </div>
-            <div className="p-3 bg-[#111114] rounded border border-white/10">
-              <span className="text-[9px] text-[#6F6C69] uppercase block">Deductions</span>
-              <span className="text-sm font-bold text-[#FF5C5C]">
-                -${(payroll.totalDeductions || 4728.8).toLocaleString()}
-              </span>
-            </div>
-            <div className="p-3 bg-[#111114] rounded border border-white/10">
-              <span className="text-[9px] text-[#6F6C69] uppercase block">Net Disbursed</span>
-              <span className="text-sm font-bold text-[#39D98A]">
-                ${(payroll.totalNetPaid || 22771.2).toLocaleString()}
-              </span>
+            <div className="flex justify-end gap-2 pt-2">
+              <Button variant="secondary" onClick={() => setShowExportModal(false)}>
+                Close
+              </Button>
+              <Button variant="primary" onClick={() => window.print()}>
+                Print Summary
+              </Button>
             </div>
           </div>
-
-          <div className="border border-white/10 rounded p-3 text-[11px] space-y-1.5 text-[#A6A3A0]">
-            <p className="text-[#F5F2EA] font-bold uppercase tracking-wider text-[10px]">
-              Compliance Certification:
-            </p>
-            <p>✓ All active contracts validated against sequential salary rule formulas.</p>
-            <p>✓ Statutory withholdings (tax, pension, insurance) computed deterministically.</p>
-            <p>✓ Biometric shift punch records reconciled against contracted schedules.</p>
-          </div>
-
-          <div className="flex justify-between items-center pt-3 border-t border-white/10">
-            <Button
-              variant="primary"
-              onClick={handlePrintExecutiveReport}
-              icon="print"
-            >
-              Print / Save PDF
-            </Button>
-            <Button variant="secondary" onClick={() => setShowExportModal(false)}>
-              Close
-            </Button>
-          </div>
-        </div>
-      </Modal>
+        </Modal>
+      )}
     </div>
   );
 };

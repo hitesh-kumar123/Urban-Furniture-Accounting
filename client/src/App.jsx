@@ -38,7 +38,7 @@ const ProtectedRoute = ({ children, allowedRoles }) => {
     return <Navigate to="/landing" replace />;
   }
 
-  if (allowedRoles && !allowedRoles.includes(user?.role)) {
+  if (allowedRoles && user?.role !== 'Admin' && !allowedRoles.includes(user?.role)) {
     return <Navigate to="/" replace />;
   }
 
@@ -66,16 +66,65 @@ export const App = () => {
             >
               <Route index element={<DashboardPage />} />
               <Route path="employees" element={<EmployeesPage />} />
-              <Route path="contracts" element={<ContractsPage />} />
-              <Route path="schedules" element={<SchedulesPage />} />
+              <Route
+                path="contracts"
+                element={
+                  <ProtectedRoute allowedRoles={['Admin', 'HR Manager', 'HR Payroll User', 'HR Payroll Manager']}>
+                    <ContractsPage />
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="schedules"
+                element={
+                  <ProtectedRoute allowedRoles={['Admin', 'HR Manager', 'HR Payroll User', 'HR Payroll Manager']}>
+                    <SchedulesPage />
+                  </ProtectedRoute>
+                }
+              />
               <Route path="attendance" element={<AttendancePage />} />
               <Route path="time-off" element={<TimeOffPage />} />
-              <Route path="payruns" element={<PayrunsPage />} />
-              <Route path="payruns/:id" element={<PayrunDetailPage />} />
+              <Route
+                path="payruns"
+                element={
+                  <ProtectedRoute allowedRoles={['Admin', 'HR Payroll User', 'HR Payroll Manager']}>
+                    <PayrunsPage />
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="payruns/:id"
+                element={
+                  <ProtectedRoute allowedRoles={['Admin', 'HR Payroll User', 'HR Payroll Manager']}>
+                    <PayrunDetailPage />
+                  </ProtectedRoute>
+                }
+              />
               <Route path="payslips" element={<PayslipsPage />} />
-              <Route path="salary-structures" element={<SalaryStructuresPage />} />
-              <Route path="salary-rules" element={<SalaryRulesPage />} />
-              <Route path="reports" element={<ReportsPage />} />
+              <Route
+                path="salary-structures"
+                element={
+                  <ProtectedRoute allowedRoles={['Admin', 'HR Payroll User', 'HR Payroll Manager']}>
+                    <SalaryStructuresPage />
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="salary-rules"
+                element={
+                  <ProtectedRoute allowedRoles={['Admin', 'HR Payroll User', 'HR Payroll Manager']}>
+                    <SalaryRulesPage />
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="reports"
+                element={
+                  <ProtectedRoute allowedRoles={['Admin', 'HR Manager', 'HR Payroll User', 'HR Payroll Manager']}>
+                    <ReportsPage />
+                  </ProtectedRoute>
+                }
+              />
               <Route path="settings" element={<SettingsPage />} />
             </Route>
 

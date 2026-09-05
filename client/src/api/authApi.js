@@ -12,5 +12,13 @@ export const authApi = {
   getMe: async () => {
     const res = await api.get('/auth/me');
     return res.data;
+  },
+  getUsers: async () => {
+    const res = await api.get('/auth/users');
+    return res.data;
+  },
+  updateUserRole: async (id, role) => {
+    const res = await api.patch(`/auth/users/${id}/role`, { role });
+    return res.data;
   }
 };
