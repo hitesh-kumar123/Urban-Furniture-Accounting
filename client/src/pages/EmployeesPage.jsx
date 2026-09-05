@@ -18,6 +18,7 @@ export const EmployeesPage = () => {
   const [search, setSearch] = useState('');
   const [deptFilter, setDeptFilter] = useState('');
   const [statusFilter, setStatusFilter] = useState('');
+  const [viewMode, setViewMode] = useState('list'); // 'list' | 'kanban'
   
   // Slide-over Hub selected employee
   const [selectedEmployee, setSelectedEmployee] = useState(null);
@@ -64,9 +65,6 @@ export const EmployeesPage = () => {
       });
       if (res.success) {
         setEmployees(res.data);
-        if (res.data.length > 0 && !selectedEmployee) {
-          selectEmployee(res.data[0]);
-        }
       }
     } catch (err) {
       showToast('Failed to load employee list', 'error');
@@ -95,6 +93,10 @@ export const EmployeesPage = () => {
   }, [search, deptFilter, statusFilter]);
 
   const selectEmployee = async (emp) => {
+    if (selectedEmployee?._id === emp._id) {
+      setSelectedEmployee(null);
+      return;
+    }
     setSelectedEmployee(emp);
     setHubLoading(true);
     try {
@@ -196,6 +198,99 @@ export const EmployeesPage = () => {
     }
   };
 
+  const [kanbanGroupBy, setKanbanGroupBy] = useState('department'); // 'department' | 'status'
+  const [draggedEmpId, setDraggedEmpId] = useState(null);
+  const [dragOverColId, setDragOverColId] = useState(null);
+
+  const DEPARTMENTS = ['Engineering', 'Product', 'Design', 'Marketing', 'Human Resources'];
+  const STATUSES = ['Active', 'Probation', 'Suspended', 'Terminated'];
+
+  // Helper to group employees into columns
+  const getKanbanColumns = () => {
+    if (kanbanGroupBy === 'status') {
+      return STATUSES.map((st) => ({
+        id: st,
+        title: st,
+        color: st === 'Active' ? '#39D98A' : st === 'Probation' ? '#F5B942' : '#FF5C5C',
+        items: employees.filter((e) => (e.employeeStatus || 'Active') === st)
+      }));
+    }
+    // Default group by department
+    const groups = DEPARTMENTS.map((dept) => ({
+      id: dept,
+      title: dept,
+      color: dept === 'Engineering' ? '#FF6B3D' : dept === 'Product' ? '#58B7FF' : dept === 'Design' ? '#D66BFF' : '#39D98A',
+      items: employees.filter((e) => (e.department || 'General') === dept)
+    }));
+
+    const otherEmps = employees.filter((e) => !DEPARTMENTS.includes(e.department));
+    if (otherEmps.length > 0) {
+      groups.push({
+        id: 'Other',
+        title: 'Other Departments',
+        color: '#A6A3A0',
+        items: otherEmps
+      });
+    }
+    return groups;
+  };
+
+  // Drag and Drop Handlers
+  const handleDragStart = (e, empId) => {
+    e.dataTransfer.setData('text/plain', empId);
+    setDraggedEmpId(empId);
+  };
+
+  const handleDragOver = (e, colId) => {
+    e.preventDefault();
+    if (dragOverColId !== colId) {
+      setDragOverColId(colId);
+    }
+  };
+
+  const handleDragLeave = () => {
+    setDragOverColId(null);
+  };
+
+  const handleDrop = async (e, targetColId) => {
+    e.preventDefault();
+    const empId = e.dataTransfer.getData('text/plain') || draggedEmpId;
+    setDragOverColId(null);
+    setDraggedEmpId(null);
+
+    if (!empId || !targetColId) return;
+
+    const targetEmp = employees.find((emp) => emp._id === empId);
+    if (!targetEmp) return;
+
+    if (kanbanGroupBy === 'department' && targetEmp.department === targetColId) return;
+    if (kanbanGroupBy === 'status' && targetEmp.employeeStatus === targetColId) return;
+
+    const payload =
+      kanbanGroupBy === 'department'
+        ? { department: targetColId }
+        : { employeeStatus: targetColId };
+
+    // Optimistic UI update
+    setEmployees((prev) =>
+      prev.map((emp) => (emp._id === empId ? { ...emp, ...payload } : emp))
+    );
+
+    try {
+      const res = await employeeApi.update(empId, payload);
+      if (res.success) {
+        showToast(
+          `${targetEmp.firstName} ${targetEmp.lastName} moved to ${targetColId}`,
+          'success'
+        );
+        fetchEmployees();
+      }
+    } catch (err) {
+      showToast(err.response?.data?.message || 'Failed to move employee', 'error');
+      fetchEmployees();
+    }
+  };
+
   return (
     <div className="p-5 max-w-[1600px] w-full mx-auto flex flex-col gap-5">
       {/* Top Header */}
@@ -215,6 +310,28 @@ export const EmployeesPage = () => {
         </div>
 
         <div className="flex items-center gap-2.5">
+          {/* View Mode Switcher: List vs Kanban (Odoo Spec A1 & B1) */}
+          <div className="flex items-center bg-[#111114] p-0.5 rounded border border-white/10">
+            <button
+              onClick={() => setViewMode('list')}
+              className={`p-1.5 rounded transition-colors ${
+                viewMode === 'list' ? 'bg-[#17171B] text-[#FF8A65]' : 'text-[#6F6C69] hover:text-[#A6A3A0]'
+              }`}
+              title="List View"
+            >
+              <span className="material-symbols-outlined text-base">format_list_bulleted</span>
+            </button>
+            <button
+              onClick={() => setViewMode('kanban')}
+              className={`p-1.5 rounded transition-colors ${
+                viewMode === 'kanban' ? 'bg-[#17171B] text-[#FF8A65]' : 'text-[#6F6C69] hover:text-[#A6A3A0]'
+              }`}
+              title="Kanban Cards View"
+            >
+              <span className="material-symbols-outlined text-base">grid_view</span>
+            </button>
+          </div>
+
           <select
             value={deptFilter}
             onChange={(e) => setDeptFilter(e.target.value)}
@@ -270,98 +387,280 @@ export const EmployeesPage = () => {
             />
           </div>
 
-          <div className="staffora-table-container">
-            {loading ? (
+          {viewMode === 'kanban' ? (
+            loading ? (
               <LoadingSpinner message="Querying employee records..." />
             ) : employees.length === 0 ? (
-              <div className="p-8 text-center text-[#6F6C69] font-mono text-xs">
+              <div className="p-8 text-center text-[#6F6C69] font-mono text-xs midnight-card">
                 No matching employees found.
               </div>
             ) : (
-              <table className="staffora-table">
-                <thead>
-                  <tr>
-                    <th>Employee</th>
-                    <th>Position / Dept</th>
-                    <th>Status</th>
-                    <th className="text-right">Actions</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {employees.map((emp) => {
-                    const isSelected = selectedEmployee?._id === emp._id;
+              <div className="space-y-3">
+                {/* Kanban Group By Controls */}
+                <div className="flex items-center justify-between bg-[#111114] p-2.5 rounded border border-white/10 text-xs font-mono">
+                  <div className="flex items-center gap-2">
+                    <span className="text-[#6F6C69]">Kanban Group By:</span>
+                    <button
+                      onClick={() => setKanbanGroupBy('department')}
+                      className={`px-2.5 py-1 rounded transition-colors ${
+                        kanbanGroupBy === 'department'
+                          ? 'bg-[#17171B] text-[#FF8A65] font-bold border border-white/10'
+                          : 'text-[#A6A3A0] hover:text-[#F5F2EA]'
+                      }`}
+                    >
+                      Department
+                    </button>
+                    <button
+                      onClick={() => setKanbanGroupBy('status')}
+                      className={`px-2.5 py-1 rounded transition-colors ${
+                        kanbanGroupBy === 'status'
+                          ? 'bg-[#17171B] text-[#FF8A65] font-bold border border-white/10'
+                          : 'text-[#A6A3A0] hover:text-[#F5F2EA]'
+                      }`}
+                    >
+                      Status
+                    </button>
+                  </div>
+
+                  <span className="text-[#6F6C69] text-[11px]">
+                    {employees.length} cards across {getKanbanColumns().length} lanes
+                  </span>
+                </div>
+
+                {/* Kanban Column Lanes */}
+                <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-3.5 items-start">
+                  {getKanbanColumns().map((col) => {
+                    const isDragOver = dragOverColId === col.id;
                     return (
-                      <tr
-                        key={emp._id}
-                        onClick={() => selectEmployee(emp)}
-                        className={`cursor-pointer ${
-                          isSelected ? 'bg-[#17171B] text-[#F5F2EA]' : ''
+                      <div
+                        key={col.id}
+                        onDragOver={(e) => handleDragOver(e, col.id)}
+                        onDragLeave={handleDragLeave}
+                        onDrop={(e) => handleDrop(e, col.id)}
+                        className={`rounded-lg p-3 flex flex-col gap-2.5 shadow-lg transition-all ${
+                          isDragOver
+                            ? 'bg-[#1C1A18] border-2 border-dashed border-[#FF6B3D] ring-2 ring-[#FF6B3D]/20'
+                            : 'bg-[#111114] border border-white/10'
                         }`}
                       >
-                        <td>
+                        {/* Column Header */}
+                        <div className="flex items-center justify-between pb-2 border-b border-white/5">
                           <div className="flex items-center gap-2">
-                            <div className="w-6 h-6 rounded bg-[#1E1E24] border border-white/10 text-[#FF8A65] flex items-center justify-center font-bold text-[10px] font-mono shrink-0">
-                              {emp.firstName?.[0]}{emp.lastName?.[0]}
-                            </div>
-                            <div className="min-w-0">
-                              <span className="font-semibold text-[#F5F2EA] text-xs block truncate">
-                                {emp.firstName} {emp.lastName}
-                              </span>
-                              <span className="text-[10px] font-mono text-[#6F6C69] block truncate">
-                                {emp.employeeId}
-                              </span>
-                            </div>
+                            <span
+                              className="w-2.5 h-2.5 rounded-full"
+                              style={{ backgroundColor: col.color }}
+                            ></span>
+                            <span className="font-bold text-xs text-[#F5F2EA] font-display">
+                              {col.title}
+                            </span>
                           </div>
-                        </td>
-
-                        <td className="text-xs">
-                          <span className="text-[#F5F2EA] block truncate">{emp.jobPosition}</span>
-                          <span className="text-[10px] text-[#6F6C69] block font-mono truncate">{emp.department}</span>
-                        </td>
-
-                        <td className="font-mono">
-                          <Badge
-                            variant={
-                              emp.employeeStatus === 'Active'
-                                ? 'success'
-                                : emp.employeeStatus === 'Probation'
-                                ? 'warning'
-                                : 'danger'
-                            }
-                          >
-                            {emp.employeeStatus}
-                          </Badge>
-                        </td>
-
-                        <td className="text-right" onClick={(e) => e.stopPropagation()}>
-                          <div className="inline-flex items-center gap-1">
-                            {hasRole('Admin', 'HR Manager', 'HR Payroll Manager') && (
-                              <button
-                                onClick={() => handleOpenEdit(emp)}
-                                className="p-1 hover:bg-[#1E1E24] rounded text-[#A6A3A0] hover:text-[#F5F2EA]"
-                                title="Edit"
-                              >
-                                <span className="material-symbols-outlined text-[15px]">edit</span>
-                              </button>
+                          <div className="flex items-center gap-1.5">
+                            {isDragOver && (
+                              <span className="text-[10px] font-mono text-[#FF8A65] font-bold animate-pulse">
+                                Drop Here
+                              </span>
                             )}
-                            {hasRole('Admin', 'HR Manager') && (
-                              <button
-                                onClick={() => handleDelete(emp._id)}
-                                className="p-1 hover:bg-[#FF5C5C]/10 rounded text-[#FF5C5C]"
-                                title="Delete"
-                              >
-                                <span className="material-symbols-outlined text-[15px]">delete</span>
-                              </button>
-                            )}
+                            <span className="font-mono text-[10px] font-bold px-2 py-0.5 rounded bg-[#17171B] text-[#A6A3A0] border border-white/5">
+                              {col.items.length}
+                            </span>
                           </div>
-                        </td>
-                      </tr>
+                        </div>
+
+                        {/* Cards Container */}
+                        <div className="flex flex-col gap-2.5 min-h-[120px]">
+                          {col.items.length === 0 ? (
+                            <div className="p-4 text-center text-[#6F6C69] font-mono text-[11px] border border-dashed border-white/5 rounded my-auto">
+                              Drag &amp; drop cards here
+                            </div>
+                          ) : (
+                            col.items.map((emp) => {
+                              const isSelected = selectedEmployee?._id === emp._id;
+                              const isBeingDragged = draggedEmpId === emp._id;
+                              return (
+                                <div
+                                  key={emp._id}
+                                  draggable={hasRole('Admin', 'HR Manager', 'HR Payroll Manager')}
+                                  onDragStart={(e) => handleDragStart(e, emp._id)}
+                                  onClick={() => selectEmployee(emp)}
+                                  className={`midnight-card p-3 flex flex-col gap-2 transition-all cursor-grab active:cursor-grabbing hover:border-[#FF6B3D]/40 ${
+                                    isBeingDragged
+                                      ? 'opacity-30 border-dashed border-[#FF6B3D]'
+                                      : ''
+                                  } ${isSelected ? 'border-[#FF6B3D] bg-[#17171B]' : ''}`}
+                                >
+                                  <div className="flex items-start justify-between gap-1.5">
+                                    <div className="flex items-center gap-2">
+                                      <div className="w-7 h-7 rounded bg-[#1E1E24] border border-white/10 text-[#FF6B3D] flex items-center justify-center font-bold text-[10px] font-mono shrink-0">
+                                        {emp.firstName?.[0]}{emp.lastName?.[0]}
+                                      </div>
+                                      <div className="min-w-0">
+                                        <span className="font-bold text-[#F5F2EA] text-xs block truncate">
+                                          {emp.firstName} {emp.lastName}
+                                        </span>
+                                        <span className="text-[10px] font-mono text-[#6F6C69] block truncate">
+                                          {emp.employeeId}
+                                        </span>
+                                      </div>
+                                    </div>
+
+                                    <div className="flex items-center gap-1.5">
+                                      <Badge
+                                        variant={
+                                          emp.employeeStatus === 'Active'
+                                            ? 'success'
+                                            : emp.employeeStatus === 'Probation'
+                                            ? 'warning'
+                                            : 'danger'
+                                        }
+                                      >
+                                        {emp.employeeStatus}
+                                      </Badge>
+                                      <span
+                                        className="material-symbols-outlined text-xs text-[#6F6C69] hover:text-[#A6A3A0] cursor-grab"
+                                        title="Drag card to move"
+                                      >
+                                        drag_indicator
+                                      </span>
+                                    </div>
+                                  </div>
+
+                                  <div className="text-[11px] font-mono text-[#A6A3A0] space-y-0.5 pt-1.5 border-t border-white/5">
+                                    <div className="text-[#F5F2EA] font-sans font-medium truncate">{emp.jobPosition}</div>
+                                    <div className="text-[10px] text-[#6F6C69]">{emp.department} • {emp.employeeType}</div>
+                                  </div>
+
+                                  <div className="flex items-center justify-between pt-1.5 border-t border-white/5 text-[10px] font-mono">
+                                    <span className="text-[#FF8A65] flex items-center gap-1">
+                                      <span className="material-symbols-outlined text-[13px]">badge</span>
+                                      Hub 360°
+                                    </span>
+
+                                    <div className="flex items-center gap-1" onClick={(e) => e.stopPropagation()}>
+                                      {hasRole('Admin', 'HR Manager', 'HR Payroll Manager') && (
+                                        <button
+                                          onClick={() => handleOpenEdit(emp)}
+                                          className="p-1 hover:bg-[#1E1E24] rounded text-[#A6A3A0] hover:text-[#F5F2EA]"
+                                          title="Edit"
+                                        >
+                                          <span className="material-symbols-outlined text-[13px]">edit</span>
+                                        </button>
+                                      )}
+                                      {hasRole('Admin', 'HR Manager') && (
+                                        <button
+                                          onClick={() => handleDelete(emp._id)}
+                                          className="p-1 hover:bg-[#FF5C5C]/10 rounded text-[#FF5C5C]"
+                                          title="Delete"
+                                        >
+                                          <span className="material-symbols-outlined text-[13px]">delete</span>
+                                        </button>
+                                      )}
+                                    </div>
+                                  </div>
+                                </div>
+                              );
+                            })
+                          )}
+                        </div>
+                      </div>
                     );
                   })}
-                </tbody>
-              </table>
-            )}
-          </div>
+                </div>
+              </div>
+            )
+          ) : (
+            <div className="staffora-table-container">
+              {loading ? (
+                <LoadingSpinner message="Querying employee records..." />
+              ) : employees.length === 0 ? (
+                <div className="p-8 text-center text-[#6F6C69] font-mono text-xs">
+                  No matching employees found.
+                </div>
+              ) : (
+                <table className="staffora-table">
+                  <thead>
+                    <tr>
+                      <th>Employee</th>
+                      <th>Position / Dept</th>
+                      <th>Status</th>
+                      <th className="text-right">Actions</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {employees.map((emp) => {
+                      const isSelected = selectedEmployee?._id === emp._id;
+                      return (
+                        <tr
+                          key={emp._id}
+                          onClick={() => selectEmployee(emp)}
+                          className={`cursor-pointer ${
+                            isSelected ? 'bg-[#17171B] text-[#F5F2EA]' : ''
+                          }`}
+                        >
+                          <td>
+                            <div className="flex items-center gap-2">
+                              <div className="w-6 h-6 rounded bg-[#1E1E24] border border-white/10 text-[#FF8A65] flex items-center justify-center font-bold text-[10px] font-mono shrink-0">
+                                {emp.firstName?.[0]}{emp.lastName?.[0]}
+                              </div>
+                              <div className="min-w-0">
+                                <span className="font-semibold text-[#F5F2EA] text-xs block truncate">
+                                  {emp.firstName} {emp.lastName}
+                                </span>
+                                <span className="text-[10px] font-mono text-[#6F6C69] block truncate">
+                                  {emp.employeeId}
+                                </span>
+                              </div>
+                            </div>
+                          </td>
+
+                          <td className="text-xs">
+                            <span className="text-[#F5F2EA] block truncate">{emp.jobPosition}</span>
+                            <span className="text-[10px] text-[#6F6C69] block font-mono truncate">{emp.department}</span>
+                          </td>
+
+                          <td className="font-mono">
+                            <Badge
+                              variant={
+                                emp.employeeStatus === 'Active'
+                                  ? 'success'
+                                  : emp.employeeStatus === 'Probation'
+                                  ? 'warning'
+                                  : 'danger'
+                              }
+                            >
+                              {emp.employeeStatus}
+                            </Badge>
+                          </td>
+
+                          <td className="text-right" onClick={(e) => e.stopPropagation()}>
+                            <div className="inline-flex items-center gap-1">
+                              {hasRole('Admin', 'HR Manager', 'HR Payroll Manager') && (
+                                <button
+                                  onClick={() => handleOpenEdit(emp)}
+                                  className="p-1 hover:bg-[#1E1E24] rounded text-[#A6A3A0] hover:text-[#F5F2EA]"
+                                  title="Edit"
+                                >
+                                  <span className="material-symbols-outlined text-[15px]">edit</span>
+                                </button>
+                              )}
+                              {hasRole('Admin', 'HR Manager') && (
+                                <button
+                                  onClick={() => handleDelete(emp._id)}
+                                  className="p-1 hover:bg-[#FF5C5C]/10 rounded text-[#FF5C5C]"
+                                  title="Delete"
+                                >
+                                  <span className="material-symbols-outlined text-[15px]">delete</span>
+                                </button>
+                              )}
+                            </div>
+                          </td>
+                        </tr>
+                      );
+                    })}
+                  </tbody>
+                </table>
+              )}
+            </div>
+          )}
         </div>
 
         {/* Right Column: Employee Command Hub */}
@@ -386,9 +685,18 @@ export const EmployeesPage = () => {
                 </div>
               </div>
 
-              <Badge variant={selectedEmployee.employeeStatus === 'Active' ? 'success' : 'warning'}>
-                {selectedEmployee.employeeStatus}
-              </Badge>
+              <div className="flex items-center gap-2">
+                <Badge variant={selectedEmployee.employeeStatus === 'Active' ? 'success' : 'warning'}>
+                  {selectedEmployee.employeeStatus}
+                </Badge>
+                <button
+                  onClick={() => setSelectedEmployee(null)}
+                  className="w-7 h-7 rounded bg-[#0B0B0D] hover:bg-[#1E1E24] text-[#A6A3A0] hover:text-[#F5F2EA] border border-white/10 flex items-center justify-center transition-colors cursor-pointer"
+                  title="Close 360° Hub"
+                >
+                  <span className="material-symbols-outlined text-sm">close</span>
+                </button>
+              </div>
             </div>
 
             {/* Hub Tabs */}

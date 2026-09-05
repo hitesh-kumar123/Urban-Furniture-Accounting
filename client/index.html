@@ -11,6 +11,23 @@
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Plus+Jakarta+Sans:wght@500;600;700;800&display=swap" rel="stylesheet" />
     
+    <!-- Global Exception Filter for Injected Browser Extension Scripts -->
+    <script>
+      window.addEventListener('error', function (event) {
+        if (
+          event.message &&
+          (event.message.includes("reading 'startTime'") ||
+            event.message.includes('reportAllChanges') ||
+            event.filename === '' ||
+            (event.filename && event.filename.includes('chrome-extension')))
+        ) {
+          event.preventDefault();
+          event.stopPropagation();
+          return true;
+        }
+      }, true);
+    </script>
+
     <!-- Material Symbols Outlined -->
     <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&display=swap" rel="stylesheet" />
   </head>

@@ -131,20 +131,24 @@ export const TimeOffPage = () => {
   };
 
   const calculateDuration = (start, end) => {
-    if (!start || !end) return 1;
+    if (!start || !end) return 0;
     const s = new Date(start);
     const e = new Date(end);
     const diff = Math.round((e.getTime() - s.getTime()) / (1000 * 60 * 60 * 24)) + 1;
-    return diff > 0 ? diff : 1;
+    return diff > 0 ? diff : 0;
   };
 
   const handleCreateRequest = async (e) => {
     e.preventDefault();
+    if (!requestForm.startDate || !requestForm.endDate) {
+      showToast('Please select start date and end date', 'warning');
+      return;
+    }
     try {
       const dur = calculateDuration(requestForm.startDate, requestForm.endDate);
       const payload = {
         ...requestForm,
-        duration: dur
+        duration: dur > 0 ? dur : 1
       };
       const res = await timeOffApi.createRequest(payload);
       if (res.success) {
@@ -172,12 +176,11 @@ export const TimeOffPage = () => {
   };
 
   const handleOpenRequestModal = () => {
-    const today = new Date().toISOString().split('T')[0];
     setRequestForm({
       employee: user?.employee || (employees[0]?._id || ''),
       timeOffType: types[0]?._id || '',
-      startDate: today,
-      endDate: today,
+      startDate: '',
+      endDate: '',
       reason: ''
     });
     setShowRequestModal(true);
@@ -393,7 +396,7 @@ export const TimeOffPage = () => {
             >
               {employees.map((emp) => (
                 <option key={emp._id} value={emp._id}>
-                  {emp.firstName} {emp.lastName} ({emp.employeeCode})
+                  {emp.firstName} {emp.lastName} ({emp.employeeId || emp.employeeCode || 'EMP'})
                 </option>
               ))}
             </select>
@@ -485,7 +488,7 @@ export const TimeOffPage = () => {
             >
               {employees.map((emp) => (
                 <option key={emp._id} value={emp._id}>
-                  {emp.firstName} {emp.lastName} ({emp.employeeCode})
+                  {emp.firstName} {emp.lastName} ({emp.employeeId || emp.employeeCode || 'EMP'})
                 </option>
               ))}
             </select>

@@ -74,8 +74,10 @@ export const PayrunsPage = () => {
         wizardData.periodEnd
       );
       if (res.success) {
-        setEligibleEmployees(res.data);
-        setSelectedEmpIds(res.data.map((e) => e._id));
+        const rawList = res.data || [];
+        const empIds = rawList.map((item) => item.employee?._id || item._id).filter(Boolean);
+        setEligibleEmployees(rawList);
+        setSelectedEmpIds(empIds);
         setWizardStep(2);
       }
     } catch (err) {
@@ -86,16 +88,18 @@ export const PayrunsPage = () => {
   };
 
   const handleToggleEmployee = (id) => {
+    if (!id) return;
     setSelectedEmpIds((prev) =>
       prev.includes(id) ? prev.filter((item) => item !== id) : [...prev, id]
     );
   };
 
   const handleToggleAllEmployees = () => {
-    if (selectedEmpIds.length === eligibleEmployees.length) {
+    const allIds = eligibleEmployees.map((item) => item.employee?._id || item._id).filter(Boolean);
+    if (selectedEmpIds.length === allIds.length) {
       setSelectedEmpIds([]);
     } else {
-      setSelectedEmpIds(eligibleEmployees.map((e) => e._id));
+      setSelectedEmpIds(allIds);
     }
   };
 
@@ -392,12 +396,15 @@ export const PayrunsPage = () => {
               </div>
             ) : (
               <div className="max-h-60 overflow-y-auto border border-white/10 rounded divide-y divide-white/5 bg-[#111114]">
-                {eligibleEmployees.map((emp) => {
-                  const isChecked = selectedEmpIds.includes(emp._id);
+                {eligibleEmployees.map((item) => {
+                  const emp = item.employee || item;
+                  const contract = item.applicableContract;
+                  const empId = emp._id;
+                  const isChecked = selectedEmpIds.includes(empId);
                   return (
                     <div
-                      key={emp._id}
-                      onClick={() => handleToggleEmployee(emp._id)}
+                      key={empId || item._id}
+                      onClick={() => handleToggleEmployee(empId)}
                       className={`p-2.5 flex items-center justify-between cursor-pointer transition-colors ${
                         isChecked ? 'bg-[#1E1E24]' : 'hover:bg-[#17171B]'
                       }`}
@@ -414,10 +421,19 @@ export const PayrunsPage = () => {
                             {emp.firstName} {emp.lastName}
                           </span>
                           <span className="text-[10px] font-mono text-[#6F6C69]">
-                            {emp.employeeCode} • {emp.department} • {emp.jobPosition}
+                            {emp.employeeId || emp.employeeCode || 'EMP'} • {emp.department || 'General'} • {emp.jobPosition || 'Staff'} {contract ? `• $${contract.wage}/mo` : ''}
                           </span>
                         </div>
                       </div>
+                      {item.matchesSelectedStructure ? (
+                        <span className="text-[10px] font-mono font-bold text-[#39D98A] bg-[#39D98A]/10 border border-[#39D98A]/20 px-2 py-0.5 rounded">
+                          Matches Structure
+                        </span>
+                      ) : (
+                        <span className="text-[10px] font-mono text-[#A6A3A0] bg-[#17171B] border border-white/10 px-2 py-0.5 rounded">
+                          Linked
+                        </span>
+                      )}
                     </div>
                   );
                 })}
