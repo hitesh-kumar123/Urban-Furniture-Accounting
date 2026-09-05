@@ -18,7 +18,7 @@ export const Layout = () => {
         }`}
       >
         <Header collapsed={collapsed} />
-        <main className="flex-1 pt-16 bg-surface min-h-screen">
+        <main className="flex-1 pt-16 bg-[#f8fafc] ambient-bg min-h-screen">
           <Outlet />
         </main>
       </div>

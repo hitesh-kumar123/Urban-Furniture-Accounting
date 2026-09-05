@@ -1,18 +1,273 @@
+@import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap');
+
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
 
 @layer base {
+  :root {
+    --brand-indigo: #4F46E5;
+    --brand-deep: #4338CA;
+    --brand-violet: #7C3AED;
+    --bg-pearl: #F8FAFC;
+    --bg-white: #FFFFFF;
+    --text-primary: #0F172A;
+    --text-secondary: #64748B;
+    --text-muted: #94A3B8;
+  }
+
   html, body {
     margin: 0;
     padding: 0;
-    background-color: #faf8ff;
-    color: #131b2e;
-    font-family: 'Inter', sans-serif;
+    background-color: #F8FAFC;
+    color: #0F172A;
+    font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+    letter-spacing: -0.011em;
+  }
+
+  h1, h2, h3, h4, h5, h6 {
+    font-family: 'Plus Jakarta Sans', sans-serif;
+    letter-spacing: -0.025em;
+    color: #0F172A;
+    font-weight: 700;
+  }
+
+  /* JetBrains Mono strictly for financial, code, IDs, formulas, calculation traces */
+  .font-mono-val,
+  .tabular-nums {
+    font-family: 'JetBrains Mono', monospace;
+    font-variant-numeric: tabular-nums;
   }
 }
 
-/* Custom Scrollbar */
+/* ==========================================================================
+   Design System Components & Utilities
+   ========================================================================== */
+
+/* Standard Crisp Enterprise Card */
+.staffora-card {
+  background-color: #FFFFFF;
+  border: 1px solid #E2E8F0;
+  border-radius: 0.75rem;
+  box-shadow: 0 1px 3px 0 rgba(15, 23, 42, 0.04), 0 1px 2px -1px rgba(15, 23, 42, 0.02);
+  transition: border-color 0.2s ease, box-shadow 0.2s ease, transform 0.2s ease;
+}
+
+.staffora-card-interactive:hover {
+  border-color: #CBD5E1;
+  box-shadow: 0 4px 12px -2px rgba(15, 23, 42, 0.06), 0 2px 4px -2px rgba(15, 23, 42, 0.03);
+}
+
+/* Glassmorphism strictly for Modals, Overlays, and Topbar */
+.glass-panel {
+  background: rgba(255, 255, 255, 0.92);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border-bottom: 1px solid rgba(226, 232, 240, 0.9);
+}
+
+.modal-backdrop {
+  background: rgba(15, 23, 42, 0.45);
+  backdrop-filter: blur(6px);
+  -webkit-backdrop-filter: blur(6px);
+}
+
+/* Ambient subtle background for Login & Hero areas only */
+.ambient-hero-bg {
+  background-image: 
+    radial-gradient(at 0% 0%, rgba(79, 70, 229, 0.04) 0px, transparent 45%),
+    radial-gradient(at 100% 0%, rgba(124, 58, 237, 0.04) 0px, transparent 45%),
+    radial-gradient(at 50% 100%, rgba(6, 182, 212, 0.03) 0px, transparent 45%);
+}
+
+.ambient-dot-grid {
+  background-image: radial-gradient(#CBD5E1 1px, transparent 1px);
+  background-size: 24px 24px;
+}
+
+/* ==========================================================================
+   Buttons
+   ========================================================================== */
+.btn-primary {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  background-color: #4F46E5;
+  color: #FFFFFF;
+  font-weight: 500;
+  font-size: 0.875rem;
+  padding: 0.5rem 1rem;
+  border-radius: 0.5rem;
+  transition: all 0.15s ease;
+  box-shadow: 0 1px 2px 0 rgba(79, 70, 229, 0.2);
+  border: 1px solid transparent;
+}
+
+.btn-primary:hover:not(:disabled) {
+  background-color: #4338CA;
+  box-shadow: 0 2px 4px 0 rgba(79, 70, 229, 0.3);
+}
+
+.btn-primary:active:not(:disabled) {
+  transform: scale(0.98);
+}
+
+.btn-primary:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.btn-secondary {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  background-color: #FFFFFF;
+  color: #0F172A;
+  font-weight: 500;
+  font-size: 0.875rem;
+  padding: 0.5rem 1rem;
+  border-radius: 0.5rem;
+  border: 1px solid #E2E8F0;
+  transition: all 0.15s ease;
+  box-shadow: 0 1px 2px 0 rgba(15, 23, 42, 0.02);
+}
+
+.btn-secondary:hover:not(:disabled) {
+  background-color: #F8FAFC;
+  border-color: #CBD5E1;
+}
+
+.btn-secondary:active:not(:disabled) {
+  transform: scale(0.98);
+}
+
+.btn-ghost {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  background-color: transparent;
+  color: #64748B;
+  font-weight: 500;
+  font-size: 0.875rem;
+  padding: 0.5rem 0.75rem;
+  border-radius: 0.5rem;
+  transition: all 0.15s ease;
+}
+
+.btn-ghost:hover:not(:disabled) {
+  background-color: #F1F5F9;
+  color: #0F172A;
+}
+
+.btn-danger {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  background-color: #FFF1F2;
+  color: #E11D48;
+  border: 1px solid #FECDD3;
+  font-weight: 500;
+  font-size: 0.875rem;
+  padding: 0.5rem 1rem;
+  border-radius: 0.5rem;
+  transition: all 0.15s ease;
+}
+
+.btn-danger:hover:not(:disabled) {
+  background-color: #FFE4E6;
+  border-color: #FDA4AF;
+}
+
+/* ==========================================================================
+   Form Controls
+   ========================================================================== */
+.staffora-input {
+  width: 100%;
+  border-radius: 0.5rem;
+  border: 1px solid #CBD5E1;
+  background-color: #FFFFFF;
+  padding: 0.5rem 0.75rem;
+  font-size: 0.875rem;
+  color: #0F172A;
+  transition: border-color 0.15s ease, box-shadow 0.15s ease;
+}
+
+.staffora-input:focus {
+  outline: none;
+  border-color: #4F46E5;
+  box-shadow: 0 0 0 3px rgba(79, 70, 229, 0.15);
+}
+
+.staffora-input::placeholder {
+  color: #94A3B8;
+}
+
+.staffora-label {
+  display: block;
+  font-size: 0.8125rem;
+  font-weight: 600;
+  color: #334155;
+  margin-bottom: 0.375rem;
+}
+
+/* ==========================================================================
+   Table Styling
+   ========================================================================== */
+.staffora-table-container {
+  width: 100%;
+  overflow-x: auto;
+  border: 1px solid #E2E8F0;
+  border-radius: 0.75rem;
+  background-color: #FFFFFF;
+}
+
+.staffora-table {
+  width: 100%;
+  border-collapse: collapse;
+  text-align: left;
+  font-size: 0.875rem;
+}
+
+.staffora-table th {
+  background-color: #F8FAFC;
+  padding: 0.75rem 1rem;
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: #64748B;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  border-bottom: 1px solid #E2E8F0;
+  white-space: nowrap;
+}
+
+.staffora-table td {
+  padding: 0.875rem 1rem;
+  border-bottom: 1px solid #F1F5F9;
+  color: #1E293B;
+  vertical-align: middle;
+}
+
+.staffora-table tr:last-child td {
+  border-bottom: none;
+}
+
+.staffora-table tbody tr {
+  transition: background-color 0.15s ease;
+}
+
+.staffora-table tbody tr:hover {
+  background-color: #F8FAFC;
+}
+
+/* ==========================================================================
+   Scrollbar
+   ========================================================================== */
 ::-webkit-scrollbar {
   width: 6px;
   height: 6px;
@@ -23,14 +278,19 @@
 }
 
 ::-webkit-scrollbar-thumb {
-  background: #c7c4d7;
+  background: #CBD5E1;
   border-radius: 9999px;
 }
 
 ::-webkit-scrollbar-thumb:hover {
-  background: #777586;
+  background: #94A3B8;
 }
 
-.font-tabular-numeric {
-  font-variant-numeric: tabular-nums;
+/* Accessibility: Reduced Motion */
+@media (prefers-reduced-motion: reduce) {
+  * {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
 }
