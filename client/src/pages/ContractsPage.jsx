@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { contractApi } from '../api/contractApi';
 import { employeeApi } from '../api/employeeApi';
-import { salaryApi } from '../api/salaryApi';
+import { salaryStructureApi } from '../api/salaryStructureApi';
 import { scheduleApi } from '../api/scheduleApi';
 import { Badge } from '../components/common/Badge';
 import { Button } from '../components/common/Button';
@@ -16,24 +16,29 @@ export const ContractsPage = () => {
   const [structures, setStructures] = useState([]);
   const [schedules, setSchedules] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [statusFilter, setStatusFilter] = useState('');
-  
-  // Modals & Applicable lookup tester
+
+  // Modals
   const [showModal, setShowModal] = useState(false);
   const [editingContract, setEditingContract] = useState(null);
   const [showLookupModal, setShowLookupModal] = useState(false);
   const [lookupResult, setLookupResult] = useState(null);
-  const [lookupForm, setLookupForm] = useState({ employeeId: '', startDate: '', endDate: '' });
 
+  // Forms
   const [formData, setFormData] = useState({
     name: '',
     employee: '',
-    wage: 5000,
+    wage: '',
     salaryStructure: '',
     workingSchedule: '',
     startDate: new Date().toISOString().split('T')[0],
     endDate: '',
-    state: 'Active'
+    status: 'Active'
+  });
+
+  const [lookupForm, setLookupForm] = useState({
+    employeeId: '',
+    startDate: new Date().toISOString().split('T')[0],
+    endDate: new Date().toISOString().split('T')[0]
   });
 
   const { hasRole } = useAuth();
@@ -42,16 +47,16 @@ export const ContractsPage = () => {
   const fetchData = async () => {
     setLoading(true);
     try {
-      const [cRes, eRes, strRes, schRes] = await Promise.all([
-        contractApi.getAll({ status: statusFilter || undefined }),
+      const [cRes, eRes, sRes, schRes] = await Promise.all([
+        contractApi.getAll(),
         employeeApi.getAll(),
-        salaryApi.getStructures(),
+        salaryStructureApi.getAll(),
         scheduleApi.getAll()
       ]);
 
       if (cRes.success) setContracts(cRes.data);
       if (eRes.success) setEmployees(eRes.data);
-      if (strRes.success) setStructures(strRes.data);
+      if (sRes.success) setStructures(sRes.data);
       if (schRes.success) setSchedules(schRes.data);
     } catch (err) {
       showToast('Failed to load contract registry', 'error');
@@ -62,31 +67,32 @@ export const ContractsPage = () => {
 
   useEffect(() => {
     fetchData();
-  }, [statusFilter]);
+  }, []);
 
   const handleOpenModal = (contract = null) => {
+    setEditingContract(contract);
     if (contract) {
-      setEditingContract(contract);
       setFormData({
-        name: contract.name,
+        name: contract.name || '',
         employee: contract.employee?._id || contract.employee || '',
         wage: contract.wage || '',
-        salaryStructure: contract.salaryStructure?._id || contract.salaryStructure || (structures[0]?._id || ''),
-        workingSchedule: contract.workingSchedule?._id || contract.workingSchedule || (schedules[0]?._id || ''),
+        salaryStructure: contract.salaryStructure?._id || contract.salaryStructure || '',
+        workingSchedule: contract.workingSchedule?._id || contract.workingSchedule || '',
         startDate: contract.startDate ? contract.startDate.split('T')[0] : '',
         endDate: contract.endDate ? contract.endDate.split('T')[0] : '',
-        status: contract.status || contract.state || 'Active'
+        status: contract.state || contract.status || 'Active'
       });
     } else {
-      setEditingContract(null);
-      const firstEmp = employees[0];
+      const defaultEmp = employees[0]?._id || '';
+      const matchedEmp = employees.find((e) => e._id === defaultEmp);
+
       setFormData({
-        name: firstEmp ? `Contract — ${firstEmp.firstName} ${firstEmp.lastName || ''}`.trim() : '',
-        employee: firstEmp?._id || '',
-        wage: '',
+        name: `Contract - ${matchedEmp ? `${matchedEmp.firstName} ${matchedEmp.lastName}` : 'Staff'}`,
+        employee: defaultEmp,
+        wage: matchedEmp?.wage || 65000,
         salaryStructure: structures[0]?._id || '',
         workingSchedule: schedules[0]?._id || '',
-        startDate: firstEmp?.joiningDate ? firstEmp.joiningDate.split('T')[0] : '',
+        startDate: new Date().toISOString().split('T')[0],
         endDate: '',
         status: 'Active'
       });
@@ -95,12 +101,12 @@ export const ContractsPage = () => {
   };
 
   const handleEmployeeChange = (empId) => {
-    const selected = employees.find((e) => e._id === empId);
+    const emp = employees.find((e) => e._id === empId);
     setFormData((prev) => ({
       ...prev,
       employee: empId,
-      name: selected ? `Contract — ${selected.firstName} ${selected.lastName || ''}`.trim() : prev.name,
-      startDate: selected?.joiningDate ? selected.joiningDate.split('T')[0] : prev.startDate
+      name: emp ? `Contract - ${emp.firstName} ${emp.lastName}` : prev.name,
+      wage: emp?.wage || prev.wage
     }));
   };
 
@@ -108,16 +114,9 @@ export const ContractsPage = () => {
     e.preventDefault();
     try {
       const payload = {
-        name: formData.name.trim(),
-        employee: formData.employee,
-        wage: Number(formData.wage),
-        salaryStructure: formData.salaryStructure,
-        workingSchedule: formData.workingSchedule || null,
-        startDate: formData.startDate,
-        endDate: formData.endDate ? formData.endDate : null,
-        status: formData.status || 'Active'
+        ...formData,
+        state: formData.status
       };
-
       if (editingContract) {
         const res = await contractApi.update(editingContract._id, payload);
         if (res.success) {
@@ -128,22 +127,22 @@ export const ContractsPage = () => {
       } else {
         const res = await contractApi.create(payload);
         if (res.success) {
-          showToast('Contract created successfully', 'success');
+          showToast('Contract registered successfully', 'success');
           setShowModal(false);
           fetchData();
         }
       }
     } catch (err) {
-      showToast(err.response?.data?.message || 'Action failed', 'error');
+      showToast(err.response?.data?.message || 'Contract saving failed', 'error');
     }
   };
 
   const handleDelete = async (id) => {
-    if (!window.confirm('Delete this contract record?')) return;
+    if (!window.confirm('Are you sure you want to remove this contract?')) return;
     try {
       const res = await contractApi.delete(id);
       if (res.success) {
-        showToast('Contract deleted', 'success');
+        showToast('Contract removed', 'success');
         fetchData();
       }
     } catch (err) {
@@ -167,19 +166,19 @@ export const ContractsPage = () => {
   const canManage = hasRole('Admin', 'HR Manager', 'HR Payroll Manager');
 
   return (
-    <div className="p-5 max-w-[1600px] w-full mx-auto flex flex-col gap-5">
+    <div className="p-5 max-w-[1600px] w-full mx-auto flex flex-col gap-5 font-body">
       {/* Top Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-4 border-b border-white/10">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-4 border-b border-[#E7E2D9]">
         <div>
           <div className="flex items-center gap-2 mb-1">
-            <span className="font-mono text-[10px] uppercase tracking-widest text-[#FF6B3D] font-semibold">
+            <span className="font-mono text-xs text-[#0F5C4A] font-semibold">
               Employment Registry
             </span>
           </div>
-          <h1 className="text-xl md:text-2xl font-bold text-[#F5F2EA] tracking-tight font-display">
+          <h1 className="text-2xl md:text-3xl font-heading font-medium text-[#1C1B19]">
             Contracts &amp; Wage Terms ({contracts.length})
           </h1>
-          <p className="text-xs text-[#A6A3A0] mt-0.5">
+          <p className="text-xs text-[#6B665C] mt-0.5">
             Base wages, salary structure linkages, shift schedule mappings, and historical terms.
           </p>
         </div>
@@ -220,7 +219,7 @@ export const ContractsPage = () => {
         {loading ? (
           <LoadingSpinner message="Querying active contracts..." />
         ) : contracts.length === 0 ? (
-          <div className="p-10 text-center text-[#6F6C69] font-mono text-xs">
+          <div className="p-10 text-center text-[#6B665C] text-xs">
             No contract records found.
           </div>
         ) : (
@@ -249,32 +248,32 @@ export const ContractsPage = () => {
                 return (
                   <tr key={c._id}>
                     <td>
-                      <div className="font-semibold text-[#F5F2EA]">{c.name}</div>
-                      <div className="text-[10px] font-mono text-[#6F6C69]">
+                      <div className="font-medium text-[#1C1B19]">{c.name}</div>
+                      <div className="text-[11px] font-mono text-[#6B665C]">
                         ID: {c._id.slice(-6)}
                       </div>
                     </td>
 
                     <td>
-                      <div className="font-semibold text-[#F5F2EA]">{empName}</div>
-                      <div className="text-[10px] font-mono text-[#6F6C69]">
+                      <div className="font-medium text-[#1C1B19]">{empName}</div>
+                      <div className="text-[11px] font-mono text-[#6B665C]">
                         {c.employee?.employeeCode || '—'}
                       </div>
                     </td>
 
-                    <td className="text-right font-mono font-bold text-xs text-[#39D98A]">
+                    <td className="text-right font-mono font-bold text-xs text-[#8A6D3B]">
                       ₹{Number(c.wage || 0).toLocaleString('en-IN')}
                     </td>
 
-                    <td className="text-xs font-mono text-[#A6A3A0]">
+                    <td className="text-xs text-[#6B665C]">
                       {c.salaryStructure?.name || 'Standard'}
                     </td>
 
-                    <td className="font-mono text-xs text-[#A6A3A0]">
+                    <td className="font-mono text-xs text-[#6B665C]">
                       {sDate} → {eDate}
                     </td>
 
-                    <td className="font-mono">
+                    <td>
                       <Badge variant={c.state === 'Active' ? 'success' : c.state === 'Draft' ? 'default' : 'danger'}>
                         {c.state || 'Active'}
                       </Badge>
@@ -285,14 +284,14 @@ export const ContractsPage = () => {
                         <div className="inline-flex items-center gap-1">
                           <button
                             onClick={() => handleOpenModal(c)}
-                            className="p-1 hover:bg-[#17171B] rounded text-[#A6A3A0] hover:text-[#F5F2EA]"
+                            className="p-1.5 hover:bg-[#FAF9F6] rounded-md text-[#6B665C] hover:text-[#1C1B19] transition-colors"
                             title="Edit Contract"
                           >
                             <span className="material-symbols-outlined text-sm">edit</span>
                           </button>
                           <button
                             onClick={() => handleDelete(c._id)}
-                            className="p-1 hover:bg-[#FF5C5C]/10 rounded text-[#FF5C5C]"
+                            className="p-1.5 hover:bg-[#FDF1EE] rounded-md text-[#B5482E] transition-colors"
                             title="Delete Contract"
                           >
                             <span className="material-symbols-outlined text-sm">delete</span>
@@ -315,7 +314,7 @@ export const ContractsPage = () => {
         title={editingContract ? 'Edit Employment Contract' : 'New Contract Record'}
         maxWidth="max-w-xl"
       >
-        <form onSubmit={handleSubmit} className="space-y-3 font-mono text-xs">
+        <form onSubmit={handleSubmit} className="space-y-3 text-xs">
           <div>
             <label className="staffora-label">Contract Reference Name *</label>
             <input
@@ -352,7 +351,7 @@ export const ContractsPage = () => {
                 placeholder="e.g. 50000"
                 value={formData.wage}
                 onChange={(e) => setFormData({ ...formData, wage: e.target.value ? Number(e.target.value) : '' })}
-                className="staffora-input font-mono font-bold text-[#39D98A]"
+                className="staffora-input font-mono font-bold text-[#8A6D3B]"
               />
             </div>
           </div>
@@ -397,7 +396,7 @@ export const ContractsPage = () => {
                 required
                 value={formData.startDate}
                 onChange={(e) => setFormData({ ...formData, startDate: e.target.value })}
-                className="staffora-input"
+                className="staffora-input font-mono"
               />
             </div>
             <div>
@@ -406,7 +405,7 @@ export const ContractsPage = () => {
                 type="date"
                 value={formData.endDate}
                 onChange={(e) => setFormData({ ...formData, endDate: e.target.value })}
-                className="staffora-input"
+                className="staffora-input font-mono"
               />
             </div>
           </div>
@@ -425,7 +424,7 @@ export const ContractsPage = () => {
             </select>
           </div>
 
-          <div className="flex justify-end gap-2 pt-3 border-t border-white/10">
+          <div className="flex justify-end gap-2 pt-3 border-t border-[#E7E2D9]">
             <Button variant="secondary" type="button" onClick={() => setShowModal(false)}>
               Cancel
             </Button>
@@ -443,7 +442,7 @@ export const ContractsPage = () => {
         title="Period Contract Resolution Tester"
         maxWidth="max-w-md"
       >
-        <form onSubmit={handleLookup} className="space-y-3 font-mono text-xs">
+        <form onSubmit={handleLookup} className="space-y-3 text-xs">
           <div>
             <label className="staffora-label">Employee</label>
             <select
@@ -468,7 +467,7 @@ export const ContractsPage = () => {
                 required
                 value={lookupForm.startDate}
                 onChange={(e) => setLookupForm({ ...lookupForm, startDate: e.target.value })}
-                className="staffora-input"
+                className="staffora-input font-mono"
               />
             </div>
             <div>
@@ -478,7 +477,7 @@ export const ContractsPage = () => {
                 required
                 value={lookupForm.endDate}
                 onChange={(e) => setLookupForm({ ...lookupForm, endDate: e.target.value })}
-                className="staffora-input"
+                className="staffora-input font-mono"
               />
             </div>
           </div>
@@ -488,11 +487,11 @@ export const ContractsPage = () => {
           </Button>
 
           {lookupResult && (
-            <div className="p-3 bg-[#111114] rounded border border-white/10 space-y-1">
-              <span className="text-[10px] text-[#39D98A] uppercase font-bold block">✓ Applicable Contract Resolved</span>
-              <div className="font-bold text-[#F5F2EA]">{lookupResult.name}</div>
-              <div className="text-[#A6A3A0]">Wage: ₹{Number(lookupResult.wage).toLocaleString('en-IN')}/mo</div>
-              <div className="text-[#6F6C69]">Structure: {lookupResult.salaryStructure?.name || 'Standard'}</div>
+            <div className="p-3 bg-[#FAF9F6] rounded-lg border border-[#E7E2D9] space-y-1">
+              <span className="text-xs text-[#0F5C4A] font-semibold block">✓ Applicable Contract Resolved</span>
+              <div className="font-semibold text-[#1C1B19]">{lookupResult.name}</div>
+              <div className="text-[#8A6D3B] font-mono">Wage: ₹{Number(lookupResult.wage).toLocaleString('en-IN')}/mo</div>
+              <div className="text-[#6B665C]">Structure: {lookupResult.salaryStructure?.name || 'Standard'}</div>
             </div>
           )}
         </form>

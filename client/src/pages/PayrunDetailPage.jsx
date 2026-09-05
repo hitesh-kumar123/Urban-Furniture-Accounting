@@ -30,9 +30,15 @@ export const PayrunDetailPage = () => {
   const [actionLoading, setActionLoading] = useState(false);
   const [computingStage, setComputingStage] = useState(null);
 
-  // Inspector Modal
+  // Inspector Modal & Warning Confirmation Modal
   const [selectedPayslip, setSelectedPayslip] = useState(null);
   const [showInspectorModal, setShowInspectorModal] = useState(false);
+  const [confirmModal, setConfirmModal] = useState({
+    isOpen: false,
+    actionType: null, // 'validate' | 'markPaid'
+    title: '',
+    message: ''
+  });
 
   const fetchPayrun = async () => {
     setLoading(true);
@@ -79,13 +85,14 @@ export const PayrunDetailPage = () => {
     }
   };
 
-  const handleValidate = async () => {
+  const executeValidate = async () => {
     setActionLoading(true);
     try {
       const res = await payrunApi.validate(id);
       if (res.success) {
         showToast('Payrun validated and locked', 'success');
         setPayrun(res.data);
+        setConfirmModal({ isOpen: false, actionType: null, title: '', message: '' });
       }
     } catch (err) {
       showToast(err.response?.data?.message || 'Validation failed', 'error');
@@ -94,18 +101,46 @@ export const PayrunDetailPage = () => {
     }
   };
 
-  const handleMarkPaid = async () => {
+  const handleValidate = () => {
+    const nonCritical = (payrun.warnings || []).filter((w) => w.level !== 'Critical');
+    if (nonCritical.length > 0) {
+      setConfirmModal({
+        isOpen: true,
+        actionType: 'validate',
+        title: 'Confirm Payrun Validation',
+        message: `This payrun has ${nonCritical.length} audit note(s) (such as missing bank details). Are you sure you want to validate and lock this payroll batch?`
+      });
+    } else {
+      executeValidate();
+    }
+  };
+
+  const executeMarkPaid = async () => {
     setActionLoading(true);
     try {
       const res = await payrunApi.markPaid(id);
       if (res.success) {
         showToast('Payrun marked as Paid', 'success');
         setPayrun(res.data);
+        setConfirmModal({ isOpen: false, actionType: null, title: '', message: '' });
       }
     } catch (err) {
       showToast(err.response?.data?.message || 'Failed to update payment status', 'error');
     } finally {
       setActionLoading(false);
+    }
+  };
+
+  const handleMarkPaid = () => {
+    if (payrun.warnings && payrun.warnings.length > 0) {
+      setConfirmModal({
+        isOpen: true,
+        actionType: 'markPaid',
+        title: 'Confirm Payment Disbursal',
+        message: `This payrun has ${payrun.warnings.length} audit note(s). Are you sure you want to execute settlement and mark all payslips as Paid?`
+      });
+    } else {
+      executeMarkPaid();
     }
   };
 
@@ -169,8 +204,8 @@ export const PayrunDetailPage = () => {
 
   if (!payrun) {
     return (
-      <div className="p-8 text-center bg-[#111114] rounded border border-white/10">
-        <h3 className="text-sm font-bold text-[#F5F2EA]">Payrun Not Found</h3>
+      <div className="p-8 text-center bg-white rounded-xl border border-[#E7E2D9]">
+        <h3 className="text-sm font-bold text-[#1C1B19]">Payrun Not Found</h3>
         <Button variant="primary" onClick={() => navigate('/payruns')} className="mt-4">
           Back to Payruns
         </Button>
@@ -201,24 +236,24 @@ export const PayrunDetailPage = () => {
   else if (isComputed) activeStep = 3;
 
   return (
-    <div className="p-5 max-w-[1600px] w-full mx-auto flex flex-col gap-5">
+    <div className="p-5 max-w-[1600px] w-full mx-auto flex flex-col gap-5 font-body">
       {/* Breadcrumb & Batch Header */}
-      <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4 pb-4 border-b border-white/10">
+      <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4 pb-4 border-b border-[#E7E2D9]">
         <div>
-          <div className="flex items-center gap-2 font-mono text-[11px] text-[#6F6C69] mb-1">
-            <Link to="/payruns" className="hover:text-[#F5F2EA] transition-colors">
+          <div className="flex items-center gap-2 font-mono text-xs text-[#6B665C] mb-1">
+            <Link to="/payruns" className="hover:text-[#1C1B19] transition-colors">
               Payruns
             </Link>
             <span>/</span>
-            <span className="text-[#A6A3A0]">{payrun._id}</span>
+            <span className="text-[#918C82]">{payrun._id}</span>
           </div>
           <div className="flex items-center gap-3">
-            <h1 className="text-xl md:text-2xl font-bold text-[#F5F2EA] tracking-tight font-display">
+            <h1 className="text-2xl md:text-3xl font-heading font-medium text-[#1C1B19]">
               {payrun.name}
             </h1>
             {getStatusBadge(payrun.status)}
           </div>
-          <div className="flex items-center gap-3 font-mono text-xs text-[#A6A3A0] mt-0.5">
+          <div className="flex items-center gap-3 font-mono text-xs text-[#6B665C] mt-0.5">
             <span>{pStart} — {pEnd}</span>
             <span>•</span>
             <span>{payrun.salaryStructure?.name || 'Standard Structure'}</span>
@@ -279,7 +314,7 @@ export const PayrunDetailPage = () => {
             )}
 
             {isSent && (
-              <div className="px-2.5 py-1 bg-[#39D98A]/10 text-[#39D98A] border border-[#39D98A]/25 rounded text-xs font-mono font-semibold flex items-center gap-1">
+              <div className="px-3 py-1.5 bg-[#E8F4F1] text-[#0F5C4A] border border-[#0F5C4A]/25 rounded-md text-xs font-medium flex items-center gap-1">
                 <span className="material-symbols-outlined text-sm">check</span>
                 Distributed &amp; Closed
               </div>
@@ -289,17 +324,17 @@ export const PayrunDetailPage = () => {
       </div>
 
       {/* 7-Stage Payroll Pipeline Horizontal Stepper */}
-      <div className="midnight-card p-4">
-        <div className="flex items-center justify-between mb-3 font-mono text-xs">
-          <span className="text-[10px] uppercase tracking-wider text-[#6F6C69] font-bold">
+      <div className="bg-white rounded-xl border border-[#E7E2D9] p-4 shadow-sm">
+        <div className="flex items-center justify-between mb-3 text-xs">
+          <span className="text-xs uppercase tracking-wider text-[#6B665C] font-semibold">
             Payroll Pipeline
           </span>
-          <span className="text-[#FF8A65]">
+          <span className="text-[#0F5C4A] font-mono font-medium">
             {computingStage ? `Executing Stage 0${computingStage}...` : `Stage 0${activeStep} of 07`}
           </span>
         </div>
 
-        <div className="grid grid-cols-7 gap-1.5 font-mono">
+        <div className="grid grid-cols-7 gap-2">
           {PIPELINE_STAGES.map((stage) => {
             const isCompleted = activeStep > stage.id;
             const isCurrent = activeStep === stage.id;
@@ -307,26 +342,26 @@ export const PayrunDetailPage = () => {
             return (
               <div
                 key={stage.id}
-                className={`p-2 rounded border transition-all ${
+                className={`p-2.5 rounded-lg border transition-all ${
                   isCurrent
-                    ? 'bg-[#17171B] border-[#FF6B3D] text-[#F5F2EA]'
+                    ? 'bg-[#E8F4F1] border-[#0F5C4A] text-[#0F5C4A] font-semibold'
                     : isCompleted
-                    ? 'bg-[#111114] border-[#39D98A]/30 text-[#39D98A]'
-                    : 'bg-[#0B0B0D] border-white/5 text-[#6F6C69]'
+                    ? 'bg-white border-[#0F5C4A]/30 text-[#0F5C4A]'
+                    : 'bg-[#FAF9F6] border-[#E7E2D9] text-[#918C82]'
                 }`}
               >
-                <div className="flex items-center justify-between text-[10px]">
+                <div className="flex items-center justify-between text-xs font-mono">
                   <span className="font-bold">0{stage.id}</span>
                   {isCompleted ? (
-                    <span className="text-[#39D98A]">✓</span>
+                    <span className="text-[#0F5C4A] font-bold">✓</span>
                   ) : isCurrent ? (
-                    <span className="text-[#FF6B3D]">●</span>
+                    <span className="text-[#0F5C4A]">●</span>
                   ) : (
-                    <span className="text-[#6F6C69]">○</span>
+                    <span className="text-[#918C82]">○</span>
                   )}
                 </div>
-                <div className="text-xs font-semibold mt-1 truncate font-sans">{stage.name}</div>
-                <div className="text-[9px] text-[#6F6C69] truncate mt-0.5">{stage.label}</div>
+                <div className="text-xs font-medium mt-1 truncate">{stage.name}</div>
+                <div className="text-[10px] text-[#6B665C] truncate mt-0.5">{stage.label}</div>
               </div>
             );
           })}
@@ -335,45 +370,45 @@ export const PayrunDetailPage = () => {
 
       {/* Computation State Live Box (During Execution) */}
       {actionLoading && computingStage && (
-        <div className="midnight-card-elevated p-4 font-mono text-xs space-y-2 border-[#FF6B3D]/30">
-          <div className="flex items-center gap-2 text-[#FF8A65] font-bold text-xs">
-            <span className="w-2 h-2 rounded-full bg-[#FF6B3D] animate-ping"></span>
-            COMPUTING PAYROLL
+        <div className="bg-white rounded-xl border border-[#0F5C4A]/30 p-4 text-xs space-y-2 shadow-sm">
+          <div className="flex items-center gap-2 text-[#0F5C4A] font-semibold text-xs font-mono">
+            <span className="w-2 h-2 rounded-full bg-[#0F5C4A] animate-ping"></span>
+            COMPUTING PAYROLL ENGINE
           </div>
-          <div className="grid grid-cols-2 sm:grid-cols-3 gap-2 pt-1 text-[11px]">
-            <div className="flex items-center justify-between p-2 bg-[#111114] rounded border border-white/5">
+          <div className="grid grid-cols-2 sm:grid-cols-3 gap-2 pt-1 text-xs">
+            <div className="flex items-center justify-between p-2 bg-[#FAF9F6] rounded border border-[#E7E2D9]">
               <span>Checking Contracts</span>
-              <span className={computingStage >= 1 ? 'text-[#39D98A]' : 'text-[#6F6C69]'}>
+              <span className={computingStage >= 1 ? 'text-[#0F5C4A] font-bold' : 'text-[#918C82]'}>
                 {computingStage >= 1 ? '✓' : '○'}
               </span>
             </div>
-            <div className="flex items-center justify-between p-2 bg-[#111114] rounded border border-white/5">
+            <div className="flex items-center justify-between p-2 bg-[#FAF9F6] rounded border border-[#E7E2D9]">
               <span>Processing Attendance</span>
-              <span className={computingStage >= 2 ? 'text-[#39D98A]' : 'text-[#6F6C69]'}>
+              <span className={computingStage >= 2 ? 'text-[#0F5C4A] font-bold' : 'text-[#918C82]'}>
                 {computingStage >= 2 ? '✓' : '○'}
               </span>
             </div>
-            <div className="flex items-center justify-between p-2 bg-[#111114] rounded border border-white/5">
+            <div className="flex items-center justify-between p-2 bg-[#FAF9F6] rounded border border-[#E7E2D9]">
               <span>Applying Leave</span>
-              <span className={computingStage >= 3 ? 'text-[#39D98A]' : 'text-[#6F6C69]'}>
+              <span className={computingStage >= 3 ? 'text-[#0F5C4A] font-bold' : 'text-[#918C82]'}>
                 {computingStage >= 3 ? '✓' : '○'}
               </span>
             </div>
-            <div className="flex items-center justify-between p-2 bg-[#111114] rounded border border-white/5">
+            <div className="flex items-center justify-between p-2 bg-[#FAF9F6] rounded border border-[#E7E2D9]">
               <span>Running Salary Rules</span>
-              <span className={computingStage >= 4 ? 'text-[#39D98A]' : 'text-[#6F6C69]'}>
+              <span className={computingStage >= 4 ? 'text-[#0F5C4A] font-bold' : 'text-[#918C82]'}>
                 {computingStage >= 4 ? '✓' : '○'}
               </span>
             </div>
-            <div className="flex items-center justify-between p-2 bg-[#111114] rounded border border-white/5">
+            <div className="flex items-center justify-between p-2 bg-[#FAF9F6] rounded border border-[#E7E2D9]">
               <span>Calculating Deductions</span>
-              <span className={computingStage >= 5 ? 'text-[#39D98A]' : 'text-[#6F6C69]'}>
+              <span className={computingStage >= 5 ? 'text-[#0F5C4A] font-bold' : 'text-[#918C82]'}>
                 {computingStage >= 5 ? '✓' : '○'}
               </span>
             </div>
-            <div className="flex items-center justify-between p-2 bg-[#111114] rounded border border-white/5">
+            <div className="flex items-center justify-between p-2 bg-[#FAF9F6] rounded border border-[#E7E2D9]">
               <span>Generating Payslips</span>
-              <span className={computingStage >= 6 ? 'text-[#39D98A]' : 'text-[#6F6C69]'}>
+              <span className={computingStage >= 6 ? 'text-[#0F5C4A] font-bold' : 'text-[#918C82]'}>
                 {computingStage >= 6 ? '✓' : '○'}
               </span>
             </div>
@@ -383,20 +418,20 @@ export const PayrunDetailPage = () => {
 
       {/* Warnings Banner (If present) */}
       {payrun.warnings && payrun.warnings.length > 0 && (
-        <div className="midnight-card p-4 border-[#F5B942]/30 space-y-2">
-          <div className="flex items-center gap-2 font-mono text-xs text-[#F5B942] font-semibold">
-            <span className="material-symbols-outlined text-sm">warning</span>
-            REVIEW REQUIRED ({payrun.warnings.length} Audit Notes)
+        <div className="bg-[#FDF1EE] rounded-xl p-4 border border-[#B5482E]/30 space-y-2">
+          <div className="flex items-center gap-2 text-xs text-[#B5482E] font-semibold">
+            <span className="material-symbols-outlined text-base">warning</span>
+            Review Required ({payrun.warnings.length} Audit Notes)
           </div>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-2 text-xs">
             {payrun.warnings.map((w, idx) => (
-              <div key={idx} className="p-2.5 bg-[#17171B] rounded border border-white/5 flex items-start gap-2">
-                <span className="material-symbols-outlined text-[#F5B942] text-sm shrink-0 mt-0.5">info</span>
+              <div key={idx} className="p-2.5 bg-white rounded-lg border border-[#B5482E]/20 flex items-start gap-2">
+                <span className="material-symbols-outlined text-[#B5482E] text-sm shrink-0 mt-0.5">info</span>
                 <div>
-                  <span className="font-semibold text-[#F5F2EA] block">
+                  <span className="font-medium text-[#1C1B19] block">
                     {w.employee ? `${w.employee.firstName} ${w.employee.lastName}: ` : 'Audit: '}
                   </span>
-                  <span className="text-[#A6A3A0] text-[11px]">{w.message}</span>
+                  <span className="text-[#6B665C] text-xs">{w.message}</span>
                 </div>
               </div>
             ))}
@@ -405,38 +440,38 @@ export const PayrunDetailPage = () => {
       )}
 
       {/* Summary Metrics Strip */}
-      <div className="grid grid-cols-2 sm:grid-cols-5 gap-3 font-mono">
-        <div className="midnight-card p-3.5">
-          <span className="text-[10px] text-[#6F6C69] uppercase block">Staff Selected</span>
-          <div className="text-xl font-bold text-[#F5F2EA] mt-1">
+      <div className="grid grid-cols-2 sm:grid-cols-5 gap-3">
+        <div className="bg-white rounded-xl border border-[#E7E2D9] p-3.5 shadow-sm">
+          <span className="text-xs text-[#6B665C] uppercase block">Staff Selected</span>
+          <div className="text-xl font-bold text-[#1C1B19] font-mono mt-1">
             {payrun.totals?.employeeCount || payrun.selectedEmployees?.length || 0}
           </div>
         </div>
 
-        <div className="midnight-card p-3.5">
-          <span className="text-[10px] text-[#6F6C69] uppercase block">Basic Salary</span>
-          <div className="text-xl font-bold text-[#F5F2EA] mt-1">
+        <div className="bg-white rounded-xl border border-[#E7E2D9] p-3.5 shadow-sm">
+          <span className="text-xs text-[#6B665C] uppercase block">Basic Salary</span>
+          <div className="text-xl font-bold text-[#1C1B19] font-mono mt-1">
             ₹{(payrun.totals?.totalBasic || 0).toLocaleString('en-IN')}
           </div>
         </div>
 
-        <div className="midnight-card p-3.5">
-          <span className="text-[10px] text-[#6F6C69] uppercase block">Allowances</span>
-          <div className="text-xl font-bold text-[#39D98A] mt-1">
+        <div className="bg-white rounded-xl border border-[#E7E2D9] p-3.5 shadow-sm">
+          <span className="text-xs text-[#6B665C] uppercase block">Allowances</span>
+          <div className="text-xl font-bold text-[#0F5C4A] font-mono mt-1">
             +₹{(payrun.totals?.totalAllowances || 0).toLocaleString('en-IN')}
           </div>
         </div>
 
-        <div className="midnight-card p-3.5">
-          <span className="text-[10px] text-[#6F6C69] uppercase block">Deductions</span>
-          <div className="text-xl font-bold text-[#FF5C5C] mt-1">
+        <div className="bg-white rounded-xl border border-[#E7E2D9] p-3.5 shadow-sm">
+          <span className="text-xs text-[#6B665C] uppercase block">Deductions</span>
+          <div className="text-xl font-bold text-[#B5482E] font-mono mt-1">
             -₹{(payrun.totals?.totalDeductions || 0).toLocaleString('en-IN')}
           </div>
         </div>
 
-        <div className="midnight-card-elevated p-3.5 border-[#FF6B3D]/30">
-          <span className="text-[10px] text-[#FF8A65] uppercase block font-bold">Total Net Pay</span>
-          <div className="text-xl font-bold text-[#F5F2EA] mt-1">
+        <div className="bg-[#FAF4E8] rounded-xl border border-[#8A6D3B]/30 p-3.5 shadow-sm">
+          <span className="text-xs text-[#8A6D3B] uppercase block font-semibold">Total Net Pay</span>
+          <div className="text-xl font-bold text-[#8A6D3B] font-mono mt-1">
             ₹{(payrun.totals?.totalNet || 0).toLocaleString('en-IN')}
           </div>
         </div>
@@ -444,14 +479,14 @@ export const PayrunDetailPage = () => {
 
       {/* Calculated Payslip Roster Table */}
       <div className="staffora-table-container">
-        <div className="p-3.5 bg-[#0E0E11] border-b border-white/10 flex items-center justify-between">
-          <span className="font-mono text-xs font-semibold text-[#F5F2EA]">
-            CALCULATED PAYSLIP ROSTER ({payrun.payslips?.length || 0} Records)
+        <div className="p-3.5 bg-[#FAF9F6] border-b border-[#E7E2D9] flex items-center justify-between">
+          <span className="text-xs font-semibold text-[#1C1B19]">
+            Calculated Payslip Roster ({payrun.payslips?.length || 0} Records)
           </span>
         </div>
 
         {!payrun.payslips || payrun.payslips.length === 0 ? (
-          <div className="p-10 text-center text-[#6F6C69] font-mono text-xs">
+          <div className="p-10 text-center text-[#6B665C] text-xs">
             {payrun.status === 'Draft'
               ? 'Click "Compute Payrun" above to calculate earnings and deductions.'
               : 'No payslips generated.'}
@@ -482,29 +517,29 @@ export const PayrunDetailPage = () => {
                 return (
                   <tr key={itemKey}>
                     <td>
-                      <div className="font-semibold text-[#F5F2EA]">{empName}</div>
-                      <div className="text-[10px] font-mono text-[#6F6C69]">
+                      <div className="font-medium text-[#1C1B19]">{empName}</div>
+                      <div className="text-xs font-mono text-[#6B665C]">
                         {emp?.employeeId || emp?.jobPosition || 'Staff'} • {emp?.department || 'General'}
                       </div>
                     </td>
 
-                    <td className="text-right font-mono text-xs text-[#A6A3A0]">
+                    <td className="text-right font-mono text-xs text-[#6B665C]">
                       ₹{(ps.basicSalary || ps.basic || 0).toLocaleString('en-IN')}
                     </td>
 
-                    <td className="text-right font-mono text-xs text-[#F5F2EA]">
+                    <td className="text-right font-mono text-xs text-[#1C1B19]">
                       ₹{(ps.grossSalary || ps.gross || 0).toLocaleString('en-IN')}
                     </td>
 
-                    <td className="text-right font-mono text-xs text-[#FF5C5C]">
+                    <td className="text-right font-mono text-xs text-[#B5482E]">
                       -₹{(ps.totalDeductions || ps.deductions || 0).toLocaleString('en-IN')}
                     </td>
 
-                    <td className="text-right font-mono font-bold text-xs text-[#39D98A]">
+                    <td className="text-right font-mono font-bold text-xs text-[#0F5C4A]">
                       ₹{(ps.netSalary || ps.net || 0).toLocaleString('en-IN')}
                     </td>
 
-                    <td className="text-center font-mono">
+                    <td className="text-center">
                       <Badge variant={ps.status === 'Paid' ? 'success' : 'primary'}>
                         {ps.status}
                       </Badge>
@@ -514,14 +549,14 @@ export const PayrunDetailPage = () => {
                       <div className="inline-flex items-center gap-1.5">
                         <button
                           onClick={() => handleOpenInspector(ps)}
-                          className="px-2 py-1 bg-[#17171B] hover:bg-[#1E1E24] text-[#FF8A65] border border-white/10 rounded font-mono text-[11px] flex items-center gap-1"
+                          className="px-2.5 py-1 bg-white hover:bg-[#FAF9F6] text-[#0F5C4A] border border-[#E7E2D9] rounded-md text-xs font-medium flex items-center gap-1 transition-colors"
                         >
                           <span className="material-symbols-outlined text-[14px]">query_stats</span>
                           Trace
                         </button>
                         <button
                           onClick={() => handleDownloadPDF(ps._id, empName)}
-                          className="p-1 bg-[#17171B] hover:bg-[#1E1E24] text-[#A6A3A0] hover:text-[#F5F2EA] border border-white/10 rounded"
+                          className="p-1.5 bg-white hover:bg-[#FAF9F6] text-[#6B665C] hover:text-[#1C1B19] border border-[#E7E2D9] rounded-md transition-colors"
                           title="Download PDF"
                         >
                           <span className="material-symbols-outlined text-[14px]">download</span>
@@ -552,33 +587,33 @@ export const PayrunDetailPage = () => {
           >
             <div className="space-y-4 font-mono text-xs">
               <div className="grid grid-cols-3 gap-3 text-center">
-                <div className="p-3 bg-[#111114] rounded border border-white/10">
-                  <span className="text-[9px] text-[#6F6C69] uppercase block">Gross Salary</span>
-                  <span className="text-sm font-bold text-[#F5F2EA]">
+                <div className="p-3 bg-[#FAF9F6] rounded-lg border border-[#E7E2D9]">
+                  <span className="text-[10px] text-[#6B665C] uppercase block font-medium">Gross Salary</span>
+                  <span className="text-sm font-bold text-[#1C1B19]">
                     ₹{Number(grossAmt).toLocaleString('en-IN')}
                   </span>
                 </div>
-                <div className="p-3 bg-[#111114] rounded border border-white/10">
-                  <span className="text-[9px] text-[#6F6C69] uppercase block">Total Deductions</span>
-                  <span className="text-sm font-bold text-[#FF5C5C]">
+                <div className="p-3 bg-[#FAF9F6] rounded-lg border border-[#E7E2D9]">
+                  <span className="text-[10px] text-[#6B665C] uppercase block font-medium">Total Deductions</span>
+                  <span className="text-sm font-bold text-[#B5482E]">
                     -₹{Number(dedAmt).toLocaleString('en-IN')}
                   </span>
                 </div>
-                <div className="p-3 bg-[#111114] rounded border border-white/10">
-                  <span className="text-[9px] text-[#6F6C69] uppercase block">Net Disbursed</span>
-                  <span className="text-sm font-bold text-[#39D98A]">
+                <div className="p-3 bg-[#FAF4E8] rounded-lg border border-[#8A6D3B]/30">
+                  <span className="text-[10px] text-[#8A6D3B] uppercase block font-semibold">Net Disbursed</span>
+                  <span className="text-sm font-bold text-[#8A6D3B]">
                     ₹{Number(netAmt).toLocaleString('en-IN')}
                   </span>
                 </div>
               </div>
 
               <div className="space-y-2">
-                <span className="text-[10px] text-[#6F6C69] uppercase font-bold tracking-wider block">
+                <span className="text-xs text-[#6B665C] font-semibold block">
                   Rule-by-Rule Sequential Computation Trace ({items.length} Rules)
                 </span>
-                <div className="border border-white/10 rounded divide-y divide-white/5 bg-[#111114] max-h-60 overflow-y-auto">
+                <div className="border border-[#E7E2D9] rounded-lg divide-y divide-[#E7E2D9] bg-white max-h-60 overflow-y-auto">
                   {items.length === 0 ? (
-                    <div className="p-4 text-center text-[#6F6C69] text-xs">
+                    <div className="p-4 text-center text-[#6B665C] text-xs">
                       No trace line items available.
                     </div>
                   ) : (
@@ -589,24 +624,24 @@ export const PayrunDetailPage = () => {
                       return (
                         <div key={idx} className="p-2.5 flex items-center justify-between">
                           <div>
-                            <span className={`font-bold ${isNetOrGross ? 'text-[#F5F2EA]' : 'text-[#D0CDC7]'}`}>
+                            <span className={`font-semibold ${isNetOrGross ? 'text-[#1C1B19]' : 'text-[#6B665C]'}`}>
                               {li.name || li.code}
                             </span>
-                            <span className="text-[10px] text-[#6F6C69] ml-2">
+                            <span className="text-[10px] text-[#918C82] ml-2">
                               [{li.category}]
                             </span>
                           </div>
                           <div className="flex items-center gap-3">
-                            <span className="text-[10px] text-[#A6A3A0]">
+                            <span className="text-xs text-[#6B665C]">
                               {li.formulaOrBase || (li.rate ? `${li.rate}%` : '')}
                             </span>
                             <span
-                              className={`font-bold ${
+                              className={`font-bold font-mono ${
                                 isDeduction
-                                  ? 'text-[#FF5C5C]'
+                                  ? 'text-[#B5482E]'
                                   : isNetOrGross
-                                  ? 'text-[#F5F2EA]'
-                                  : 'text-[#39D98A]'
+                                  ? 'text-[#1C1B19]'
+                                  : 'text-[#0F5C4A]'
                               }`}
                             >
                               {isDeduction ? '-' : '+'}₹{Number(li.amount || 0).toLocaleString('en-IN', { minimumFractionDigits: 2 })}
@@ -619,7 +654,7 @@ export const PayrunDetailPage = () => {
                 </div>
               </div>
 
-              <div className="flex justify-end pt-3 border-t border-white/10">
+              <div className="flex justify-end pt-3 border-t border-[#E7E2D9]">
                 <Button variant="secondary" onClick={() => setShowInspectorModal(false)}>
                   Close Trace
                 </Button>
@@ -628,6 +663,58 @@ export const PayrunDetailPage = () => {
           </Modal>
         );
       })()}
+
+      {/* Audit Warning Confirmation Modal */}
+      {confirmModal.isOpen && (
+        <Modal
+          isOpen={confirmModal.isOpen}
+          onClose={() => setConfirmModal({ isOpen: false, actionType: null, title: '', message: '' })}
+          title={confirmModal.title}
+          maxWidth="max-w-md"
+        >
+          <div className="space-y-4 text-xs">
+            <div className="p-3 bg-[#FDF1EE] border border-[#B5482E]/30 rounded-lg space-y-2">
+              <div className="flex items-center gap-2 text-[#B5482E] font-semibold text-xs">
+                <span className="material-symbols-outlined text-base">warning</span>
+                <span>Active Audit Warnings Detected</span>
+              </div>
+              <p className="text-[#6B665C] text-xs leading-relaxed">
+                {confirmModal.message}
+              </p>
+            </div>
+
+            <div className="space-y-1.5 max-h-40 overflow-y-auto">
+              {(payrun.warnings || []).map((w, idx) => (
+                <div key={idx} className="p-2 bg-[#FAF9F6] border border-[#E7E2D9] rounded-md text-xs flex items-start gap-2">
+                  <span className={`material-symbols-outlined text-xs mt-0.5 ${w.level === 'Critical' ? 'text-[#B5482E]' : 'text-[#8A6D3B]'}`}>
+                    {w.level === 'Critical' ? 'error' : 'info'}
+                  </span>
+                  <span className="text-[#1C1B19]">{w.message}</span>
+                </div>
+              ))}
+            </div>
+
+            <div className="flex justify-end gap-2 pt-3 border-t border-[#E7E2D9]">
+              <Button
+                variant="secondary"
+                size="sm"
+                onClick={() => setConfirmModal({ isOpen: false, actionType: null, title: '', message: '' })}
+                disabled={actionLoading}
+              >
+                Cancel
+              </Button>
+              <Button
+                variant="primary"
+                size="sm"
+                onClick={confirmModal.actionType === 'validate' ? executeValidate : executeMarkPaid}
+                loading={actionLoading}
+              >
+                Confirm &amp; Proceed
+              </Button>
+            </div>
+          </div>
+        </Modal>
+      )}
     </div>
   );
 };

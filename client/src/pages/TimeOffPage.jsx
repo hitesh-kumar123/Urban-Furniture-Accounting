@@ -9,23 +9,20 @@ import { useAuth } from '../context/AuthContext';
 import { useToast } from '../context/ToastContext';
 
 export const TimeOffPage = () => {
-  const [activeTab, setActiveTab] = useState('requests'); // 'requests', 'allocations'
   const [requests, setRequests] = useState([]);
-  const [allocations, setAllocations] = useState([]);
   const [types, setTypes] = useState([]);
-  const [employees, setEmployees] = useState([]);
   const [balances, setBalances] = useState([]);
+  const [employees, setEmployees] = useState([]);
   const [loading, setLoading] = useState(true);
 
   // Filters
   const [statusFilter, setStatusFilter] = useState('');
-  const [employeeFilter, setEmployeeFilter] = useState('');
 
   // Modals
   const [showRequestModal, setShowRequestModal] = useState(false);
   const [showAllocationModal, setShowAllocationModal] = useState(false);
   const [showRejectModal, setShowRejectModal] = useState(false);
-  const [rejectingRequest, setRejectingRequest] = useState(null);
+  const [selectedRequest, setSelectedRequest] = useState(null);
   const [rejectionReason, setRejectionReason] = useState('');
 
   // Forms
@@ -41,7 +38,7 @@ export const TimeOffPage = () => {
     employee: '',
     timeOffType: '',
     year: new Date().getFullYear(),
-    numberOfDays: 20
+    numberOfDays: 12
   });
 
   const { user, hasRole } = useAuth();
@@ -50,46 +47,20 @@ export const TimeOffPage = () => {
   const fetchData = async () => {
     setLoading(true);
     try {
-      const empId = user?.employee?._id || user?.employee;
-      const isEmp = user?.role === 'Employee';
-
-      const [reqRes, allRes, typRes, empRes] = await Promise.all([
-        timeOffApi.getRequests({
-          status: statusFilter || undefined,
-          employee: isEmp ? empId : (employeeFilter || undefined)
-        }),
-        timeOffApi.getAllocations(),
+      const [reqRes, typeRes, empRes] = await Promise.all([
+        timeOffApi.getRequests({ status: statusFilter || undefined }),
         timeOffApi.getTypes(),
-        isEmp ? Promise.resolve({ success: true, data: [] }) : employeeApi.getAll()
+        employeeApi.getAll()
       ]);
 
       if (reqRes.success) setRequests(reqRes.data);
-      if (allRes.success) setAllocations(allRes.data);
-      if (typRes.success) {
-        setTypes(typRes.data);
-        if (typRes.data.length > 0 && !requestForm.timeOffType) {
-          setRequestForm((prev) => ({ ...prev, timeOffType: typRes.data[0]._id }));
-          setAllocationForm((prev) => ({ ...prev, timeOffType: typRes.data[0]._id }));
-        }
-      }
-      if (empRes.success && empRes.data) {
-        setEmployees(empRes.data);
-        if (!requestForm.employee && empId) {
-          setRequestForm((prev) => ({ ...prev, employee: empId }));
-        } else if (!requestForm.employee && empRes.data.length > 0) {
-          setRequestForm((prev) => ({ ...prev, employee: empRes.data[0]._id }));
-          setAllocationForm((prev) => ({ ...prev, employee: empRes.data[0]._id }));
-        }
-      } else if (empId) {
-        setRequestForm((prev) => ({ ...prev, employee: empId }));
-      }
+      if (typeRes.success) setTypes(typeRes.data);
+      if (empRes.success) setEmployees(empRes.data);
 
-      const targetEmp = isEmp ? empId : (employeeFilter || empId || empRes.data?.[0]?._id);
-      if (targetEmp) {
-        const balRes = await timeOffApi.getBalance({ employeeId: targetEmp, year: new Date().getFullYear() });
-        if (balRes.success) {
-          setBalances(balRes.data);
-        }
+      // If employee, fetch individual balances
+      if (user?.employee) {
+        const balRes = await timeOffApi.getBalance({ employeeId: user.employee });
+        if (balRes.success) setBalances(Array.isArray(balRes.data) ? balRes.data : []);
       }
     } catch (err) {
       showToast('Failed to load leave records', 'error');
@@ -100,7 +71,48 @@ export const TimeOffPage = () => {
 
   useEffect(() => {
     fetchData();
-  }, [statusFilter, employeeFilter, activeTab, user]);
+  }, [statusFilter]);
+
+  const calculateDuration = (start, end) => {
+    if (!start || !end) return 1;
+    const s = new Date(start);
+    const e = new Date(end);
+    const diff = Math.round((e.getTime() - s.getTime()) / (1000 * 60 * 60 * 24)) + 1;
+    return diff > 0 ? diff : 1;
+  };
+
+  const handleCreateRequest = async (e) => {
+    e.preventDefault();
+    try {
+      const duration = calculateDuration(requestForm.startDate, requestForm.endDate);
+      const res = await timeOffApi.createRequest({
+        ...requestForm,
+        employee: user?.role === 'Employee' ? user.employee : requestForm.employee,
+        duration
+      });
+      if (res.success) {
+        showToast('Time off request submitted', 'success');
+        setShowRequestModal(false);
+        fetchData();
+      }
+    } catch (err) {
+      showToast(err.response?.data?.message || 'Submission failed', 'error');
+    }
+  };
+
+  const handleCreateAllocation = async (e) => {
+    e.preventDefault();
+    try {
+      const res = await timeOffApi.allocate(allocationForm);
+      if (res.success) {
+        showToast('Annual quota allocated successfully', 'success');
+        setShowAllocationModal(false);
+        fetchData();
+      }
+    } catch (err) {
+      showToast(err.response?.data?.message || 'Allocation failed', 'error');
+    }
+  };
 
   const handleApprove = async (id) => {
     try {
@@ -110,82 +122,34 @@ export const TimeOffPage = () => {
         fetchData();
       }
     } catch (err) {
-      showToast(err.response?.data?.message || 'Failed to approve', 'error');
+      showToast(err.response?.data?.message || 'Approval failed', 'error');
     }
   };
 
   const handleOpenReject = (req) => {
-    setRejectingRequest(req);
+    setSelectedRequest(req);
     setRejectionReason('');
     setShowRejectModal(true);
   };
 
   const handleConfirmReject = async (e) => {
     e.preventDefault();
-    if (!rejectingRequest) return;
+    if (!selectedRequest) return;
     try {
-      const res = await timeOffApi.rejectRequest(rejectingRequest._id, { rejectionReason });
+      const res = await timeOffApi.rejectRequest(selectedRequest._id, { rejectionReason });
       if (res.success) {
-        showToast('Leave request rejected', 'success');
+        showToast('Leave request rejected', 'info');
         setShowRejectModal(false);
         fetchData();
       }
     } catch (err) {
-      showToast(err.response?.data?.message || 'Failed to reject', 'error');
-    }
-  };
-
-  const calculateDuration = (start, end) => {
-    if (!start || !end) return 0;
-    const s = new Date(start);
-    const e = new Date(end);
-    const diff = Math.round((e.getTime() - s.getTime()) / (1000 * 60 * 60 * 24)) + 1;
-    return diff > 0 ? diff : 0;
-  };
-
-  const handleCreateRequest = async (e) => {
-    e.preventDefault();
-    if (!requestForm.startDate || !requestForm.endDate) {
-      showToast('Please select start date and end date', 'warning');
-      return;
-    }
-    const empId = user?.role === 'Employee' ? (user?.employee?._id || user?.employee) : requestForm.employee;
-    try {
-      const dur = calculateDuration(requestForm.startDate, requestForm.endDate);
-      const payload = {
-        ...requestForm,
-        employee: empId,
-        duration: dur > 0 ? dur : 1
-      };
-      const res = await timeOffApi.createRequest(payload);
-      if (res.success) {
-        showToast('Leave request submitted successfully', 'success');
-        setShowRequestModal(false);
-        fetchData();
-      }
-    } catch (err) {
-      showToast(err.response?.data?.message || 'Failed to submit request', 'error');
-    }
-  };
-
-  const handleCreateAllocation = async (e) => {
-    e.preventDefault();
-    try {
-      const res = await timeOffApi.createAllocation(allocationForm);
-      if (res.success) {
-        showToast('Leave quota allocated', 'success');
-        setShowAllocationModal(false);
-        fetchData();
-      }
-    } catch (err) {
-      showToast(err.response?.data?.message || 'Failed to allocate', 'error');
+      showToast(err.response?.data?.message || 'Rejection failed', 'error');
     }
   };
 
   const handleOpenRequestModal = () => {
-    const empId = user?.employee?._id || user?.employee || (employees[0]?._id || '');
     setRequestForm({
-      employee: empId,
+      employee: employees[0]?._id || '',
       timeOffType: types[0]?._id || '',
       startDate: '',
       endDate: '',
@@ -207,19 +171,19 @@ export const TimeOffPage = () => {
   const canApprove = hasRole('Admin', 'HR Manager', 'HR Payroll Manager');
 
   return (
-    <div className="p-5 max-w-[1600px] w-full mx-auto flex flex-col gap-5">
+    <div className="p-5 max-w-[1600px] w-full mx-auto flex flex-col gap-5 font-body">
       {/* Top Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-4 border-b border-white/10">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-4 border-b border-[#E7E2D9]">
         <div>
           <div className="flex items-center gap-2 mb-1">
-            <span className="font-mono text-[10px] uppercase tracking-widest text-[#FF6B3D] font-semibold">
+            <span className="font-mono text-xs text-[#0F5C4A] font-semibold">
               Time Off
             </span>
           </div>
-          <h1 className="text-xl md:text-2xl font-bold text-[#F5F2EA] tracking-tight font-display">
+          <h1 className="text-2xl md:text-3xl font-heading font-medium text-[#1C1B19]">
             Leave Central &amp; Approvals
           </h1>
-          <p className="text-xs text-[#A6A3A0] mt-0.5">
+          <p className="text-xs text-[#6B665C] mt-0.5">
             Annual entitlements, paid/unpaid leave approval queue, and balance meters.
           </p>
         </div>
@@ -228,7 +192,7 @@ export const TimeOffPage = () => {
           <select
             value={statusFilter}
             onChange={(e) => setStatusFilter(e.target.value)}
-            className="staffora-input py-1 px-2.5 text-xs w-auto font-mono"
+            className="staffora-input py-1.5 px-3 text-xs w-auto font-medium"
           >
             <option value="">All Statuses</option>
             <option value="Pending">Pending</option>
@@ -260,7 +224,7 @@ export const TimeOffPage = () => {
 
       {/* Leave Entitlement Balance Meters */}
       {balances.length > 0 && (
-        <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 font-mono">
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
           {balances.map((b) => {
             const used = b.taken || 0;
             const total = b.allocated || 20;
@@ -268,22 +232,22 @@ export const TimeOffPage = () => {
             const percent = Math.min(100, Math.round((used / total) * 100));
 
             return (
-              <div key={b.timeOffType?._id || b.timeOffType} className="midnight-card p-4 space-y-2">
+              <div key={b.timeOffType?._id || b.timeOffType} className="bg-white rounded-xl border border-[#E7E2D9] p-4 space-y-2 shadow-sm">
                 <div className="flex justify-between items-center text-xs">
-                  <span className="font-bold text-[#F5F2EA] uppercase tracking-wider font-sans">
+                  <span className="font-semibold text-[#1C1B19]">
                     {b.timeOffType?.name || 'Annual Leave'}
                   </span>
-                  <span className="text-[#39D98A] font-bold">{remaining}d remaining</span>
+                  <span className="text-[#0F5C4A] font-bold font-mono">{remaining}d remaining</span>
                 </div>
 
-                <div className="flex justify-between items-center text-[11px] text-[#6F6C69]">
+                <div className="flex justify-between items-center text-xs text-[#6B665C]">
                   <span>{used} / {total} days used</span>
-                  <span>{percent}%</span>
+                  <span className="font-mono">{percent}%</span>
                 </div>
 
-                <div className="w-full h-1.5 bg-[#0B0B0D] rounded-full overflow-hidden border border-white/5">
+                <div className="w-full h-1.5 bg-[#E7E2D9] rounded-full overflow-hidden">
                   <div
-                    className="h-full rounded-full bg-[#FF6B3D]"
+                    className="h-full rounded-full bg-[#0F5C4A]"
                     style={{ width: `${percent}%` }}
                   />
                 </div>
@@ -298,7 +262,7 @@ export const TimeOffPage = () => {
         {loading ? (
           <LoadingSpinner message="Querying leave registry..." />
         ) : requests.length === 0 ? (
-          <div className="p-10 text-center text-[#6F6C69] font-mono text-xs">
+          <div className="p-10 text-center text-[#6B665C] text-xs">
             No leave requests found.
           </div>
         ) : (
@@ -326,25 +290,25 @@ export const TimeOffPage = () => {
                 return (
                   <tr key={r._id}>
                     <td>
-                      <div className="font-semibold text-[#F5F2EA]">{empName}</div>
-                      <div className="text-[10px] font-mono text-[#6F6C69]">
+                      <div className="font-medium text-[#1C1B19]">{empName}</div>
+                      <div className="text-[11px] text-[#6B665C]">
                         {r.reason || 'No reason provided'}
                       </div>
                     </td>
 
-                    <td className="text-xs text-[#A6A3A0]">
+                    <td className="text-xs text-[#6B665C]">
                       {r.timeOffType?.name || 'Leave'}
                     </td>
 
-                    <td className="font-mono text-xs text-[#A6A3A0]">
+                    <td className="font-mono text-xs text-[#6B665C]">
                       {sDate} → {eDate}
                     </td>
 
-                    <td className="text-center font-mono font-bold text-xs text-[#FF8A65]">
+                    <td className="text-center font-mono font-bold text-xs text-[#0F5C4A]">
                       {r.numberOfDays || r.duration || 1}d
                     </td>
 
-                    <td className="font-mono">
+                    <td>
                       <Badge
                         variant={
                           r.status === 'Approved'
@@ -363,19 +327,19 @@ export const TimeOffPage = () => {
                         <div className="inline-flex items-center gap-1.5">
                           <button
                             onClick={() => handleApprove(r._id)}
-                            className="px-2 py-0.5 bg-[#39D98A]/10 text-[#39D98A] hover:bg-[#39D98A]/20 border border-[#39D98A]/25 rounded text-[11px] font-mono font-semibold"
+                            className="px-2.5 py-1 bg-[#E8F4F1] text-[#0F5C4A] hover:bg-[#0F5C4A]/10 border border-[#0F5C4A]/25 rounded-md text-xs font-medium"
                           >
                             Approve
                           </button>
                           <button
                             onClick={() => handleOpenReject(r)}
-                            className="px-2 py-0.5 bg-[#FF5C5C]/10 text-[#FF5C5C] hover:bg-[#FF5C5C]/20 border border-[#FF5C5C]/25 rounded text-[11px] font-mono font-semibold"
+                            className="px-2.5 py-1 bg-[#FDF1EE] text-[#B5482E] hover:bg-[#B5482E]/10 border border-[#B5482E]/25 rounded-md text-xs font-medium"
                           >
                             Reject
                           </button>
                         </div>
                       ) : (
-                        <span className="text-[11px] font-mono text-[#6F6C69]">Resolved</span>
+                        <span className="text-xs text-[#918C82]">Resolved</span>
                       )}
                     </td>
                   </tr>
@@ -393,12 +357,12 @@ export const TimeOffPage = () => {
         title="Submit Time Off Request"
         maxWidth="max-w-md"
       >
-        <form onSubmit={handleCreateRequest} className="space-y-3 font-mono text-xs">
+        <form onSubmit={handleCreateRequest} className="space-y-3 text-xs">
           {user?.role === 'Employee' ? (
-            <div className="p-3 bg-[#111114] border border-white/10 rounded flex items-center justify-between">
+            <div className="p-3 bg-[#FAF9F6] border border-[#E7E2D9] rounded-lg flex items-center justify-between">
               <div>
-                <span className="text-[10px] uppercase text-[#6F6C69] font-bold block">Applying As</span>
-                <span className="text-xs font-semibold text-[#F5F2EA]">{user?.name}</span>
+                <span className="text-[10px] text-[#6B665C] font-semibold block">Applying As</span>
+                <span className="text-xs font-semibold text-[#1C1B19]">{user?.name}</span>
               </div>
               <Badge variant="info">{user?.employee?.employeeId || 'MY ACCOUNT'}</Badge>
             </div>
@@ -445,7 +409,7 @@ export const TimeOffPage = () => {
                 required
                 value={requestForm.startDate}
                 onChange={(e) => setRequestForm({ ...requestForm, startDate: e.target.value })}
-                className="staffora-input"
+                className="staffora-input font-mono"
               />
             </div>
             <div>
@@ -455,14 +419,14 @@ export const TimeOffPage = () => {
                 required
                 value={requestForm.endDate}
                 onChange={(e) => setRequestForm({ ...requestForm, endDate: e.target.value })}
-                className="staffora-input"
+                className="staffora-input font-mono"
               />
             </div>
           </div>
 
-          <div className="flex items-center justify-between text-xs text-[#A6A3A0] bg-[#111114] p-2.5 rounded border border-white/5 font-mono">
+          <div className="flex items-center justify-between text-xs text-[#6B665C] bg-[#FAF9F6] p-2.5 rounded-lg border border-[#E7E2D9]">
             <span>Requested Duration:</span>
-            <span className="font-bold text-[#FF8A65]">
+            <span className="font-bold text-[#0F5C4A] font-mono">
               {calculateDuration(requestForm.startDate, requestForm.endDate)} day(s)
             </span>
           </div>
@@ -478,7 +442,7 @@ export const TimeOffPage = () => {
             />
           </div>
 
-          <div className="flex justify-end gap-2 pt-3 border-t border-white/10">
+          <div className="flex justify-end gap-2 pt-3 border-t border-[#E7E2D9]">
             <Button variant="secondary" type="button" onClick={() => setShowRequestModal(false)}>
               Cancel
             </Button>
@@ -496,7 +460,7 @@ export const TimeOffPage = () => {
         title="Allocate Annual Leave Quota"
         maxWidth="max-w-md"
       >
-        <form onSubmit={handleCreateAllocation} className="space-y-3 font-mono text-xs">
+        <form onSubmit={handleCreateAllocation} className="space-y-3 text-xs">
           <div>
             <label className="staffora-label">Employee *</label>
             <select
@@ -538,7 +502,7 @@ export const TimeOffPage = () => {
                 required
                 value={allocationForm.year}
                 onChange={(e) => setAllocationForm({ ...allocationForm, year: Number(e.target.value) })}
-                className="staffora-input"
+                className="staffora-input font-mono"
               />
             </div>
             <div>
@@ -548,12 +512,12 @@ export const TimeOffPage = () => {
                 required
                 value={allocationForm.numberOfDays}
                 onChange={(e) => setAllocationForm({ ...allocationForm, numberOfDays: Number(e.target.value) })}
-                className="staffora-input"
+                className="staffora-input font-mono"
               />
             </div>
           </div>
 
-          <div className="flex justify-end gap-2 pt-3 border-t border-white/10">
+          <div className="flex justify-end gap-2 pt-3 border-t border-[#E7E2D9]">
             <Button variant="secondary" type="button" onClick={() => setShowAllocationModal(false)}>
               Cancel
             </Button>
@@ -571,8 +535,8 @@ export const TimeOffPage = () => {
         title="Reject Leave Request"
         maxWidth="max-w-md"
       >
-        <form onSubmit={handleConfirmReject} className="space-y-3 font-mono text-xs">
-          <p className="text-[#A6A3A0]">
+        <form onSubmit={handleConfirmReject} className="space-y-3 text-xs">
+          <p className="text-[#6B665C]">
             Please provide an operational justification for refusing this leave request:
           </p>
           <div>
@@ -585,7 +549,7 @@ export const TimeOffPage = () => {
               placeholder="e.g. Critical project deadline, overlapping team leaves"
             />
           </div>
-          <div className="flex justify-end gap-2 pt-3 border-t border-white/10">
+          <div className="flex justify-end gap-2 pt-3 border-t border-[#E7E2D9]">
             <Button variant="secondary" type="button" onClick={() => setShowRejectModal(false)}>
               Cancel
             </Button>

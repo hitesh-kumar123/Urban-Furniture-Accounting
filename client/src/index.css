@@ -1,4 +1,4 @@
-@import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500;600;700&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,500;0,9..144,600;0,9..144,700;0,9..144,800;1,9..144,600&family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500;600;700&display=swap');
 
 @tailwind base;
 @tailwind components;
@@ -6,32 +6,32 @@
 
 @layer base {
   :root {
-    --bg-primary: #0B0B0D;
-    --bg-secondary: #111114;
-    --surface-elevated: #17171B;
-    --surface-hover: #1E1E24;
-    --border-subtle: rgba(255, 255, 255, 0.08);
-    --border-strong: rgba(255, 255, 255, 0.14);
+    --bg-primary: #F7F5F1;
+    --bg-secondary: #FFFFFF;
+    --surface-card: #FFFFFF;
+    --surface-elevated: #FFFFFF;
+    --surface-hover: #F5F2EB;
+    --surface-inset: #F0ECE1;
     
-    --text-primary: #F5F2EA;
-    --text-secondary: #A6A3A0;
-    --text-muted: #6F6C69;
+    --border-subtle: #E7E2D9;
+    --border-strong: #DDD8CD;
     
-    --brand-orange: #FF6B3D;
-    --brand-coral: #FF8A65;
+    --text-primary: #1C1B19;
+    --text-secondary: #6B665C;
+    --text-muted: #918C82;
     
-    --semantic-success: #39D98A;
-    --semantic-warning: #F5B942;
-    --semantic-danger: #FF5C5C;
-    --semantic-info: #58B7FF;
+    --brand-action: #0F5C4A;
+    --brand-action-hover: #0B4739;
+    --currency-gold: #8A6D3B;
+    --warning-brick: #B5482E;
+    --info-blue: #20639B;
   }
 
   html, body {
     margin: 0;
     padding: 0;
-    background-color: #0B0B0D;
-    color: #F5F2EA;
-    color-scheme: dark;
+    background-color: #F7F5F1;
+    color: #1C1B19;
     font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
@@ -39,13 +39,13 @@
   }
 
   h1, h2, h3, h4, h5, h6 {
-    font-family: 'Plus Jakarta Sans', sans-serif;
-    letter-spacing: -0.025em;
-    color: #F5F2EA;
-    font-weight: 700;
+    font-family: 'Fraunces', Georgia, serif;
+    letter-spacing: -0.02em;
+    color: #1C1B19;
+    font-weight: 600;
   }
 
-  /* JetBrains Mono strictly for financial, code, IDs, formulas, calculation traces */
+  /* JetBrains Mono strictly for financial amounts, code, IDs, formulas, calculation traces */
   .font-mono-val,
   .tabular-nums,
   code, kbd, pre {
@@ -54,258 +54,258 @@
   }
 }
 
-/* ==========================================================================
-   Midnight Workforce OS — Solid Surface Tokens & Card Classes
-   ========================================================================== */
+@layer components {
+  /* ==========================================================================
+     Enterprise Warm Paper Card Tokens
+     ========================================================================== */
+  .paper-card,
+  .midnight-card {
+    background-color: #FFFFFF;
+    border: 1px solid #E7E2D9;
+    border-radius: 0.5rem;
+    transition: border-color 0.15s ease, box-shadow 0.15s ease;
+  }
 
-/* Dark elevated surface with solid contrast and 1px hairline border */
-.midnight-card {
-  background-color: #111114;
-  border: 1px solid rgba(255, 255, 255, 0.08);
-  border-radius: 0.5rem;
-  transition: border-color 0.15s ease, background-color 0.15s ease;
-}
+  .paper-card:hover,
+  .midnight-card:hover {
+    border-color: #D3CDC2;
+  }
 
-.midnight-card-elevated {
-  background-color: #17171B;
-  border: 1px solid rgba(255, 255, 255, 0.1);
-  border-radius: 0.5rem;
-}
+  .paper-card-elevated,
+  .midnight-card-elevated {
+    background-color: #FFFFFF;
+    border: 1px solid #E0D9CD;
+    border-radius: 0.5rem;
+    box-shadow: 0 1px 3px 0 rgba(28, 27, 25, 0.04);
+  }
 
-.midnight-card:hover {
-  border-color: rgba(255, 255, 255, 0.14);
-}
+  .hairline-card {
+    background-color: #FFFFFF;
+    border: 1px solid #E7E2D9;
+    border-radius: 0.375rem;
+  }
 
-/* Solid Topbar & Modal Backdrops (Strictly No Glassmorphism) */
-.midnight-topbar {
-  background-color: #0B0B0D;
-  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
-}
+  .inset-card {
+    background-color: #F0ECE1;
+    border: 1px solid #E7E2D9;
+    border-radius: 0.375rem;
+  }
 
-.midnight-sidebar {
-  background-color: #0B0B0D;
-  border-right: 1px solid rgba(255, 255, 255, 0.08);
-}
+  /* Topbar & Modals */
+  .paper-topbar,
+  .midnight-topbar {
+    background-color: #F7F5F1;
+    border-bottom: 1px solid #E7E2D9;
+  }
 
-.midnight-modal-backdrop {
-  background-color: rgba(0, 0, 0, 0.75);
-}
+  .paper-sidebar,
+  .midnight-sidebar {
+    background-color: #FFFFFF;
+    border-right: 1px solid #E7E2D9;
+  }
 
-/* ==========================================================================
-   Buttons — Dark Surface + Burnt Orange Accent
-   ========================================================================== */
-.btn-primary {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  gap: 0.5rem;
-  background-color: #FF6B3D;
-  color: #0B0B0D;
-  font-weight: 600;
-  font-size: 0.8125rem;
-  padding: 0.5rem 0.875rem;
-  border-radius: 0.375rem;
-  transition: all 0.15s ease;
-  border: 1px solid transparent;
-  cursor: pointer;
-}
+  .midnight-modal-backdrop {
+    background-color: rgba(28, 27, 25, 0.45);
+    backdrop-filter: blur(2px);
+  }
 
-.btn-primary:hover:not(:disabled) {
-  background-color: #FF8A65;
-}
+  /* ==========================================================================
+     Buttons — Deep Emerald Action + Hairline Secondary
+     ========================================================================== */
+  .btn-primary {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.5rem;
+    background-color: #0F5C4A;
+    color: #FFFFFF;
+    font-weight: 500;
+    font-size: 0.8125rem;
+    padding: 0.4375rem 0.875rem;
+    border-radius: 0.375rem;
+    transition: all 0.15s ease;
+    border: 1px solid transparent;
+    cursor: pointer;
+  }
 
-.btn-primary:active:not(:disabled) {
-  transform: scale(0.98);
-}
+  .btn-primary:hover:not(:disabled) {
+    background-color: #0B4739;
+  }
 
-.btn-primary:disabled {
-  opacity: 0.4;
-  cursor: not-allowed;
-}
+  .btn-primary:active:not(:disabled) {
+    transform: scale(0.98);
+  }
 
-.btn-secondary {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  gap: 0.5rem;
-  background-color: #17171B;
-  color: #F5F2EA;
-  font-weight: 500;
-  font-size: 0.8125rem;
-  padding: 0.5rem 0.875rem;
-  border-radius: 0.375rem;
-  border: 1px solid rgba(255, 255, 255, 0.08);
-  transition: all 0.15s ease;
-  cursor: pointer;
-}
+  .btn-primary:disabled {
+    opacity: 0.45;
+    cursor: not-allowed;
+  }
 
-.btn-secondary:hover:not(:disabled) {
-  background-color: #1E1E24;
-  border-color: rgba(255, 255, 255, 0.16);
-}
+  .btn-secondary {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.5rem;
+    background-color: #FFFFFF;
+    color: #1C1B19;
+    border: 1px solid #E7E2D9;
+    font-weight: 500;
+    font-size: 0.8125rem;
+    padding: 0.4375rem 0.875rem;
+    border-radius: 0.375rem;
+    transition: all 0.15s ease;
+    cursor: pointer;
+  }
 
-.btn-secondary:active:not(:disabled) {
-  transform: scale(0.98);
-}
+  .btn-secondary:hover:not(:disabled) {
+    background-color: #FAF9F6;
+    border-color: #D3CDC2;
+  }
 
-.btn-ghost {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  gap: 0.5rem;
-  background-color: transparent;
-  color: #A6A3A0;
-  font-weight: 500;
-  font-size: 0.8125rem;
-  padding: 0.375rem 0.625rem;
-  border-radius: 0.375rem;
-  transition: all 0.15s ease;
-  cursor: pointer;
-}
+  .btn-secondary:active:not(:disabled) {
+    transform: scale(0.98);
+  }
 
-.btn-ghost:hover:not(:disabled) {
-  background-color: #17171B;
-  color: #F5F2EA;
-}
+  .btn-ghost {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.5rem;
+    background-color: transparent;
+    color: #6B665C;
+    font-weight: 500;
+    font-size: 0.8125rem;
+    padding: 0.375rem 0.625rem;
+    border-radius: 0.375rem;
+    transition: all 0.15s ease;
+    cursor: pointer;
+  }
 
-.btn-danger {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  gap: 0.5rem;
-  background-color: rgba(255, 92, 92, 0.1);
-  color: #FF5C5C;
-  border: 1px solid rgba(255, 92, 92, 0.2);
-  font-weight: 500;
-  font-size: 0.8125rem;
-  padding: 0.5rem 0.875rem;
-  border-radius: 0.375rem;
-  transition: all 0.15s ease;
-  cursor: pointer;
-}
+  .btn-ghost:hover:not(:disabled) {
+    background-color: #F0ECE1;
+    color: #1C1B19;
+  }
 
-.btn-danger:hover:not(:disabled) {
-  background-color: rgba(255, 92, 92, 0.18);
-  border-color: rgba(255, 92, 92, 0.35);
-}
+  .btn-danger {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.5rem;
+    background-color: #FDF1EE;
+    color: #B5482E;
+    border: 1px solid #F3C9BF;
+    font-weight: 500;
+    font-size: 0.8125rem;
+    padding: 0.4375rem 0.875rem;
+    border-radius: 0.375rem;
+    transition: all 0.15s ease;
+    cursor: pointer;
+  }
 
-/* ==========================================================================
-   Form Controls (Dark, Crisp, High-Density)
-   ========================================================================== */
-.staffora-input {
-  width: 100%;
-  border-radius: 0.375rem;
-  border: 1px solid rgba(255, 255, 255, 0.1);
-  background-color: #111114;
-  padding: 0.4375rem 0.6875rem;
-  font-size: 0.8125rem;
-  color: #F5F2EA;
-  transition: border-color 0.15s ease;
-}
+  .btn-danger:hover:not(:disabled) {
+    background-color: #F9DDD6;
+    border-color: #E7A99B;
+  }
 
-.staffora-input:focus {
-  outline: none;
-  border-color: #FF6B3D;
-}
+  /* ==========================================================================
+     Form Controls (Warm, Clean, Hairline)
+     ========================================================================== */
+  .staffora-input {
+    width: 100%;
+    border-radius: 0.375rem;
+    border: 1px solid #E7E2D9;
+    background-color: #FFFFFF;
+    padding: 0.5rem 0.75rem;
+    font-size: 0.8125rem;
+    color: #1C1B19;
+    transition: border-color 0.15s ease, box-shadow 0.15s ease;
+  }
 
-.staffora-input::placeholder {
-  color: #6F6C69;
-}
+  .staffora-input:focus {
+    outline: none;
+    border-color: #0F5C4A;
+    box-shadow: 0 0 0 2px rgba(15, 92, 74, 0.12);
+  }
 
-input[type="date"] {
-  color-scheme: dark;
-}
+  .staffora-input::placeholder {
+    color: #918C82;
+  }
 
-input[type="date"]::-webkit-calendar-picker-indicator {
-  cursor: pointer;
-  filter: invert(0.8) brightness(1.2);
-  opacity: 0.85;
-  transition: filter 0.15s ease, opacity 0.15s ease;
-}
+  .staffora-label {
+    display: block;
+    font-size: 0.75rem;
+    font-weight: 500;
+    color: #6B665C;
+    margin-bottom: 0.3125rem;
+  }
 
-input[type="date"]::-webkit-calendar-picker-indicator:hover {
-  opacity: 1;
-  filter: invert(0.6) sepia(1) saturate(5) hue-rotate(330deg);
-}
+  /* ==========================================================================
+     Table Styling (Clean Hairline Grid)
+     ========================================================================== */
+  .staffora-table-container {
+    width: 100%;
+    overflow-x: auto;
+    border: 1px solid #E7E2D9;
+    border-radius: 0.5rem;
+    background-color: #FFFFFF;
+  }
 
-.staffora-label {
-  display: block;
-  font-size: 0.75rem;
-  font-weight: 600;
-  color: #A6A3A0;
-  text-transform: uppercase;
-  letter-spacing: 0.04em;
-  margin-bottom: 0.3125rem;
-}
+  .staffora-table {
+    width: 100%;
+    border-collapse: collapse;
+    text-align: left;
+    font-size: 0.8125rem;
+  }
 
-/* ==========================================================================
-   Table Styling (Dark, Editorial, High-Density)
-   ========================================================================== */
-.staffora-table-container {
-  width: 100%;
-  overflow-x: auto;
-  border: 1px solid rgba(255, 255, 255, 0.08);
-  border-radius: 0.5rem;
-  background-color: #111114;
-}
+  .staffora-table th {
+    background-color: #F9F8F5;
+    padding: 0.625rem 0.875rem;
+    font-size: 0.6875rem;
+    font-weight: 600;
+    color: #6B665C;
+    border-bottom: 1px solid #E7E2D9;
+    white-space: nowrap;
+  }
 
-.staffora-table {
-  width: 100%;
-  border-collapse: collapse;
-  text-align: left;
-  font-size: 0.8125rem;
-}
+  .staffora-table td {
+    padding: 0.6875rem 0.875rem;
+    border-bottom: 1px solid #F0ECE1;
+    color: #1C1B19;
+    vertical-align: middle;
+  }
 
-.staffora-table th {
-  background-color: #0E0E11;
-  padding: 0.625rem 0.875rem;
-  font-size: 0.6875rem;
-  font-weight: 600;
-  color: #6F6C69;
-  text-transform: uppercase;
-  letter-spacing: 0.06em;
-  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
-  white-space: nowrap;
-}
+  .staffora-table tr:last-child td {
+    border-bottom: none;
+  }
 
-.staffora-table td {
-  padding: 0.6875rem 0.875rem;
-  border-bottom: 1px solid rgba(255, 255, 255, 0.04);
-  color: #F5F2EA;
-  vertical-align: middle;
-}
+  .staffora-table tbody tr {
+    transition: background-color 0.1s ease;
+  }
 
-.staffora-table tr:last-child td {
-  border-bottom: none;
-}
-
-.staffora-table tbody tr {
-  transition: background-color 0.1s ease;
-}
-
-.staffora-table tbody tr:hover {
-  background-color: #17171B;
+  .staffora-table tbody tr:hover {
+    background-color: #FAF9F6;
+  }
 }
 
 /* ==========================================================================
    Scrollbar & Utilities
    ========================================================================== */
 ::-webkit-scrollbar {
-  width: 5px;
-  height: 5px;
+  width: 6px;
+  height: 6px;
 }
 
 ::-webkit-scrollbar-track {
-  background: #0B0B0D;
+  background: #F7F5F1;
 }
 
 ::-webkit-scrollbar-thumb {
-  background: #242429;
+  background: #D3CDC2;
   border-radius: 9999px;
 }
 
 ::-webkit-scrollbar-thumb:hover {
-  background: #383842;
+  background: #B8B0A2;
 }
 
 /* Accessibility */

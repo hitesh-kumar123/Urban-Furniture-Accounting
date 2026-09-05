@@ -1,9 +1,10 @@
 const SalaryStructure = require('../models/SalaryStructure');
+const Contract = require('../models/Contract');
 const { successResponse } = require('../utils/apiResponse');
 const { AppError } = require('../middleware/errorMiddleware');
 
 /**
- * Get all salary structures
+ * Get all salary structures with rule and employee metrics
  * GET /api/salary-structures
  */
 const getSalaryStructures = async (req, res, next) => {
@@ -14,9 +15,27 @@ const getSalaryStructures = async (req, res, next) => {
 
     const structures = await SalaryStructure.find(query)
       .populate('rules')
-      .sort({ createdAt: -1 });
+      .sort({ createdAt: -1 })
+      .lean();
 
-    return successResponse(res, { data: structures });
+    // Aggregate active employee contracts count using each structure
+    const contractCounts = await Contract.aggregate([
+      { $match: { status: { $in: ['Active', 'Running'] } } },
+      { $group: { _id: '$salaryStructure', count: { $sum: 1 } } }
+    ]);
+
+    const countMap = {};
+    contractCounts.forEach((c) => {
+      if (c._id) countMap[c._id.toString()] = c.count;
+    });
+
+    const structuresWithMetrics = structures.map((s) => ({
+      ...s,
+      rulesCount: s.rules?.length || 0,
+      employeeCount: countMap[s._id.toString()] || 0
+    }));
+
+    return successResponse(res, { data: structuresWithMetrics });
   } catch (error) {
     next(error);
   }

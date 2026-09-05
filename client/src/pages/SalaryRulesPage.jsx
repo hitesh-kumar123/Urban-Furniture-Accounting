@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { salaryApi } from '../api/salaryApi';
+import { salaryRuleApi as salaryApi } from '../api/salaryRuleApi';
 import { Badge } from '../components/common/Badge';
 import { Button } from '../components/common/Button';
 import { Modal } from '../components/common/Modal';
@@ -12,20 +12,21 @@ export const SalaryRulesPage = () => {
   const [loading, setLoading] = useState(true);
   const [categoryFilter, setCategoryFilter] = useState('');
 
-  // Modal State
+  // Modals
   const [showModal, setShowModal] = useState(false);
   const [editingRule, setEditingRule] = useState(null);
+
+  // Form
   const [formData, setFormData] = useState({
     name: '',
     code: '',
-    category: 'Allowances',
+    category: 'Basic',
     sequence: 10,
     calculationType: 'Percentage',
     fixedAmount: 0,
-    percentage: 10,
+    percentage: 0,
     percentageBaseRuleCode: 'BASIC',
     formula: '',
-    description: '',
     active: true
   });
 
@@ -35,12 +36,11 @@ export const SalaryRulesPage = () => {
   const fetchRules = async () => {
     setLoading(true);
     try {
-      const res = await salaryApi.getRules({
+      const res = await salaryApi.getAll({
         category: categoryFilter || undefined
       });
       if (res.success) {
-        const sorted = [...res.data].sort((a, b) => (a.sequence || 0) - (b.sequence || 0));
-        setRules(sorted);
+        setRules(res.data);
       }
     } catch (err) {
       showToast('Failed to load salary rules', 'error');
@@ -54,23 +54,21 @@ export const SalaryRulesPage = () => {
   }, [categoryFilter]);
 
   const handleOpenModal = (rule = null) => {
+    setEditingRule(rule);
     if (rule) {
-      setEditingRule(rule);
       setFormData({
         name: rule.name,
         code: rule.code,
         category: rule.category,
         sequence: rule.sequence || 10,
-        calculationType: rule.calculationType || 'Percentage',
+        calculationType: rule.calculationType,
         fixedAmount: rule.fixedAmount || 0,
         percentage: rule.percentage || 0,
         percentageBaseRuleCode: rule.percentageBaseRuleCode || 'BASIC',
         formula: rule.formula || '',
-        description: rule.description || '',
         active: rule.active !== undefined ? rule.active : true
       });
     } else {
-      setEditingRule(null);
       setFormData({
         name: '',
         code: '',
@@ -81,7 +79,6 @@ export const SalaryRulesPage = () => {
         percentage: 10,
         percentageBaseRuleCode: 'BASIC',
         formula: '',
-        description: '',
         active: true
       });
     }
@@ -101,7 +98,7 @@ export const SalaryRulesPage = () => {
       } else {
         const res = await salaryApi.createRule(formData);
         if (res.success) {
-          showToast('Salary rule created', 'success');
+          showToast('Salary rule registered', 'success');
           setShowModal(false);
           fetchRules();
         }
@@ -127,19 +124,19 @@ export const SalaryRulesPage = () => {
   const canManage = hasRole('Admin', 'HR Payroll Manager');
 
   return (
-    <div className="p-5 max-w-[1600px] w-full mx-auto flex flex-col gap-5">
+    <div className="p-5 max-w-[1600px] w-full mx-auto flex flex-col gap-5 font-body">
       {/* Top Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-4 border-b border-white/10">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-4 border-b border-[#E7E2D9]">
         <div>
           <div className="flex items-center gap-2 mb-1">
-            <span className="font-mono text-[10px] uppercase tracking-widest text-[#FF6B3D] font-semibold">
+            <span className="font-mono text-xs text-[#0F5C4A] font-semibold">
               Calculation Engine
             </span>
           </div>
-          <h1 className="text-xl md:text-2xl font-bold text-[#F5F2EA] tracking-tight font-display">
+          <h1 className="text-2xl md:text-3xl font-heading font-medium text-[#1C1B19]">
             Salary Rules &amp; Formula Engine
           </h1>
-          <p className="text-xs text-[#A6A3A0] mt-0.5">
+          <p className="text-xs text-[#6B665C] mt-0.5">
             Sequential salary computation rules, statutory tax formulas, and deduction tiers.
           </p>
         </div>
@@ -148,7 +145,7 @@ export const SalaryRulesPage = () => {
           <select
             value={categoryFilter}
             onChange={(e) => setCategoryFilter(e.target.value)}
-            className="staffora-input py-1 px-2.5 text-xs w-auto font-mono"
+            className="staffora-input py-1.5 px-3 text-xs w-auto font-medium"
           >
             <option value="">All Categories</option>
             <option value="Basic">Basic Salary</option>
@@ -176,7 +173,7 @@ export const SalaryRulesPage = () => {
         {loading ? (
           <LoadingSpinner message="Querying rule ASTs and formulas..." />
         ) : rules.length === 0 ? (
-          <div className="p-10 text-center text-[#6F6C69] font-mono text-xs">
+          <div className="p-10 text-center text-[#6B665C] text-xs">
             No salary rules defined.
           </div>
         ) : (
@@ -198,37 +195,37 @@ export const SalaryRulesPage = () => {
                 const isDeduction = rule.category === 'Deduction';
                 return (
                   <tr key={rule._id}>
-                    <td className="text-center font-bold text-[#FF8A65]">
+                    <td className="text-center font-bold text-[#0F5C4A]">
                       {rule.sequence}
                     </td>
 
                     <td>
-                      <span className="font-bold text-[#F5F2EA] bg-[#17171B] border border-white/10 px-1.5 py-0.5 rounded text-xs">
+                      <span className="font-bold text-[#1C1B19] bg-[#FAF9F6] border border-[#E7E2D9] px-2 py-0.5 rounded text-xs">
                         {rule.code}
                       </span>
                     </td>
 
-                    <td className="font-sans font-semibold text-xs text-[#F5F2EA]">
+                    <td className="font-body font-medium text-xs text-[#1C1B19]">
                       {rule.name}
                     </td>
 
                     <td>
-                      <span className="text-xs text-[#A6A3A0]">
+                      <span className="text-xs text-[#6B665C]">
                         {rule.category}
                       </span>
                     </td>
 
-                    <td className="text-xs text-[#A6A3A0]">
+                    <td className="text-xs text-[#6B665C]">
                       {rule.calculationType}
                     </td>
 
                     <td className="text-xs">
                       {rule.calculationType === 'Fixed' ? (
-                        <span className="text-[#39D98A] font-bold">₹{Number(rule.fixedAmount || 0).toLocaleString('en-IN')}</span>
+                        <span className="text-[#0F5C4A] font-bold">₹{Number(rule.fixedAmount || 0).toLocaleString('en-IN')}</span>
                       ) : rule.calculationType === 'Percentage' ? (
-                        <span className="text-[#58B7FF] font-bold">{rule.percentage}% of {rule.percentageBaseRuleCode || 'BASIC'}</span>
+                        <span className="text-[#0F5C4A] font-bold">{rule.percentage}% of {rule.percentageBaseRuleCode || 'BASIC'}</span>
                       ) : (
-                        <span className="text-[#FF8A65] font-bold">{rule.formula}</span>
+                        <span className="text-[#8A6D3B] font-bold">{rule.formula}</span>
                       )}
                     </td>
 
@@ -238,19 +235,19 @@ export const SalaryRulesPage = () => {
                       </Badge>
                     </td>
 
-                    <td className="text-right font-sans">
+                    <td className="text-right font-body">
                       {canManage && (
                         <div className="inline-flex items-center gap-1">
                           <button
                             onClick={() => handleOpenModal(rule)}
-                            className="p-1 hover:bg-[#17171B] rounded text-[#A6A3A0] hover:text-[#F5F2EA]"
+                            className="p-1.5 hover:bg-[#FAF9F6] rounded-md text-[#6B665C] hover:text-[#1C1B19] transition-colors"
                             title="Edit Rule"
                           >
                             <span className="material-symbols-outlined text-sm">edit</span>
                           </button>
                           <button
                             onClick={() => handleDelete(rule._id)}
-                            className="p-1 hover:bg-[#FF5C5C]/10 rounded text-[#FF5C5C]"
+                            className="p-1.5 hover:bg-[#FDF1EE] rounded-md text-[#B5482E] transition-colors"
                             title="Delete Rule"
                           >
                             <span className="material-symbols-outlined text-sm">delete</span>
@@ -273,7 +270,7 @@ export const SalaryRulesPage = () => {
         title={editingRule ? 'Edit Calculation Rule' : 'New Salary Rule Formula'}
         maxWidth="max-w-xl"
       >
-        <form onSubmit={handleSubmit} className="space-y-3 font-mono text-xs">
+        <form onSubmit={handleSubmit} className="space-y-3 text-xs">
           <div className="grid grid-cols-2 gap-3">
             <div>
               <label className="staffora-label">Rule Name *</label>
@@ -293,7 +290,7 @@ export const SalaryRulesPage = () => {
                 required
                 value={formData.code}
                 onChange={(e) => setFormData({ ...formData, code: e.target.value.toUpperCase() })}
-                className="staffora-input"
+                className="staffora-input font-mono"
                 placeholder="e.g. PF_DED"
               />
             </div>
@@ -321,7 +318,7 @@ export const SalaryRulesPage = () => {
                 required
                 value={formData.sequence}
                 onChange={(e) => setFormData({ ...formData, sequence: Number(e.target.value) })}
-                className="staffora-input"
+                className="staffora-input font-mono"
               />
             </div>
           </div>
@@ -347,7 +344,7 @@ export const SalaryRulesPage = () => {
                   required
                   value={formData.fixedAmount}
                   onChange={(e) => setFormData({ ...formData, fixedAmount: Number(e.target.value) })}
-                  className="staffora-input"
+                  className="staffora-input font-mono"
                 />
               </div>
             )}
@@ -360,7 +357,7 @@ export const SalaryRulesPage = () => {
                   required
                   value={formData.percentage}
                   onChange={(e) => setFormData({ ...formData, percentage: Number(e.target.value) })}
-                  className="staffora-input"
+                  className="staffora-input font-mono"
                 />
               </div>
             )}
@@ -373,7 +370,7 @@ export const SalaryRulesPage = () => {
                 type="text"
                 value={formData.percentageBaseRuleCode}
                 onChange={(e) => setFormData({ ...formData, percentageBaseRuleCode: e.target.value.toUpperCase() })}
-                className="staffora-input"
+                className="staffora-input font-mono"
               />
             </div>
           )}
@@ -391,7 +388,7 @@ export const SalaryRulesPage = () => {
             </div>
           )}
 
-          <div className="flex justify-end gap-2 pt-3 border-t border-white/10">
+          <div className="flex justify-end gap-2 pt-3 border-t border-[#E7E2D9]">
             <Button variant="secondary" type="button" onClick={() => setShowModal(false)}>
               Cancel
             </Button>

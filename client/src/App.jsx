@@ -28,7 +28,7 @@ const ProtectedRoute = ({ children, allowedRoles }) => {
 
   if (loading) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-[#0B0B0D]">
+      <div className="min-h-screen flex items-center justify-center bg-[#F7F5F1]">
         <LoadingSpinner />
       </div>
     );

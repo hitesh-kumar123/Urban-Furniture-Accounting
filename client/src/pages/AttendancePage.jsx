@@ -188,19 +188,19 @@ export const AttendancePage = () => {
   const canCorrect = hasRole('Admin', 'HR Manager', 'HR Payroll Manager');
 
   return (
-    <div className="p-5 max-w-[1600px] w-full mx-auto flex flex-col gap-5">
+    <div className="p-5 max-w-[1600px] w-full mx-auto flex flex-col gap-5 font-body">
       {/* Top Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-4 border-b border-white/10">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-4 border-b border-[#E7E2D9]">
         <div>
           <div className="flex items-center gap-2 mb-1">
-            <span className="font-mono text-[10px] uppercase tracking-widest text-[#FF6B3D] font-semibold">
+            <span className="font-mono text-xs text-[#0F5C4A] font-semibold">
               Time &amp; Attendance
             </span>
           </div>
-          <h1 className="text-xl md:text-2xl font-bold text-[#F5F2EA] tracking-tight font-display">
+          <h1 className="text-2xl md:text-3xl font-heading font-medium text-[#1C1B19]">
             Attendance &amp; Shift Logs
           </h1>
-          <p className="text-xs text-[#A6A3A0] mt-0.5">
+          <p className="text-xs text-[#6B665C] mt-0.5">
             Biometric punch desk, shift adherence records, overtime hours, and manual HR corrections.
           </p>
         </div>
@@ -210,13 +210,13 @@ export const AttendancePage = () => {
             type="date"
             value={selectedDate}
             onChange={(e) => setSelectedDate(e.target.value)}
-            className="staffora-input py-1 px-2.5 text-xs w-auto font-mono"
+            className="staffora-input py-1.5 px-3 text-xs w-auto font-mono"
           />
 
           <select
             value={statusFilter}
             onChange={(e) => setStatusFilter(e.target.value)}
-            className="staffora-input py-1 px-2.5 text-xs w-auto font-mono"
+            className="staffora-input py-1.5 px-3 text-xs w-auto font-medium"
           >
             <option value="">All Statuses</option>
             <option value="Present">Present</option>
@@ -240,14 +240,14 @@ export const AttendancePage = () => {
 
       {/* Clock In / Out Live Desk (For logged-in employee) */}
       {user?.employee && (
-        <div className="midnight-card-elevated p-4 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+        <div className="bg-white rounded-xl border border-[#E7E2D9] p-4 flex flex-col sm:flex-row sm:items-center justify-between gap-4 shadow-sm">
           <div className="flex items-center gap-3">
-            <div className="w-9 h-9 rounded bg-[#0B0B0D] border border-white/10 text-[#FF6B3D] flex items-center justify-center">
-              <span className="material-symbols-outlined text-lg">schedule</span>
+            <div className="w-10 h-10 rounded-lg bg-[#E8F4F1] text-[#0F5C4A] flex items-center justify-center">
+              <span className="material-symbols-outlined text-xl">schedule</span>
             </div>
             <div>
-              <span className="text-[10px] font-mono uppercase text-[#6F6C69] block">Punch Desk</span>
-              <span className="text-sm font-bold text-[#F5F2EA] font-sans">
+              <span className="text-xs font-mono uppercase text-[#6B665C] block font-medium">Punch Desk</span>
+              <span className="text-sm font-semibold text-[#1C1B19]">
                 {todayRecord?.checkIn
                   ? `Clocked In at ${new Date(todayRecord.checkIn).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}`
                   : 'Ready to Clock In for Current Shift'}
@@ -277,7 +277,7 @@ export const AttendancePage = () => {
                 Clock Out
               </Button>
             ) : (
-              <span className="font-mono text-xs text-[#39D98A] font-semibold">
+              <span className="font-mono text-xs text-[#0F5C4A] font-semibold bg-[#E8F4F1] px-3 py-1.5 rounded-md border border-[#0F5C4A]/20">
                 ✓ Shift Completed ({todayRecord.workedHours || 8}h logged)
               </span>
             )}
@@ -290,7 +290,7 @@ export const AttendancePage = () => {
         {loading ? (
           <LoadingSpinner message="Scanning attendance punches..." />
         ) : attendances.length === 0 ? (
-          <div className="p-10 text-center text-[#6F6C69] font-mono text-xs">
+          <div className="p-10 text-center text-[#6B665C] text-xs">
             No attendance records found for this date.
           </div>
         ) : (
@@ -323,27 +323,27 @@ export const AttendancePage = () => {
                 return (
                   <tr key={att._id}>
                     <td>
-                      <div className="font-semibold text-[#F5F2EA]">{empName}</div>
-                      <div className="text-[10px] font-mono text-[#6F6C69]">
+                      <div className="font-medium text-[#1C1B19]">{empName}</div>
+                      <div className="text-[11px] font-mono text-[#6B665C]">
                         {att.employee?.employeeId || att.employee?.jobPosition || 'Staff'}
                       </div>
                     </td>
 
-                    <td className="font-mono text-xs text-[#A6A3A0]">{att.date}</td>
-                    <td className="font-mono text-xs text-[#F5F2EA]">{checkInTime}</td>
-                    <td className="font-mono text-xs text-[#F5F2EA]">{checkOutTime}</td>
+                    <td className="font-mono text-xs text-[#6B665C]">{att.date}</td>
+                    <td className="font-mono text-xs text-[#1C1B19]">{checkInTime}</td>
+                    <td className="font-mono text-xs text-[#1C1B19]">{checkOutTime}</td>
 
-                    <td className="text-center font-mono font-bold text-xs text-[#FF8A65]">
+                    <td className="text-center font-mono font-bold text-xs text-[#0F5C4A]">
                       {att.workedHours ? `${att.workedHours}h` : '—'}
                     </td>
 
-                    <td className="font-mono">{getStatusBadge(att.status)}</td>
+                    <td>{getStatusBadge(att.status)}</td>
 
                     <td className="text-right">
                       {canCorrect && (
                         <button
                           onClick={() => handleOpenCorrection(att)}
-                          className="px-2 py-1 bg-[#17171B] hover:bg-[#1E1E24] text-[#A6A3A0] hover:text-[#F5F2EA] border border-white/10 rounded text-[11px] font-mono"
+                          className="px-2.5 py-1 bg-white hover:bg-[#FAF9F6] text-[#0F5C4A] border border-[#E7E2D9] rounded-md text-xs font-medium transition-colors"
                         >
                           Adjust
                         </button>
@@ -364,7 +364,7 @@ export const AttendancePage = () => {
         title={editingRecord ? 'Adjust Attendance Record' : 'Manual Shift Log'}
         maxWidth="max-w-md"
       >
-        <form onSubmit={handleSaveCorrection} className="space-y-3 font-mono text-xs">
+        <form onSubmit={handleSaveCorrection} className="space-y-3 text-xs">
           {!editingRecord && (
             <div>
               <label className="staffora-label">Employee</label>
@@ -390,7 +390,7 @@ export const AttendancePage = () => {
               required
               value={correctionForm.date}
               onChange={(e) => setCorrectionForm({ ...correctionForm, date: e.target.value })}
-              className="staffora-input"
+              className="staffora-input font-mono"
             />
           </div>
 
@@ -401,7 +401,7 @@ export const AttendancePage = () => {
                 type="time"
                 value={correctionForm.checkIn}
                 onChange={(e) => setCorrectionForm({ ...correctionForm, checkIn: e.target.value })}
-                className="staffora-input"
+                className="staffora-input font-mono"
               />
             </div>
             <div>
@@ -410,7 +410,7 @@ export const AttendancePage = () => {
                 type="time"
                 value={correctionForm.checkOut}
                 onChange={(e) => setCorrectionForm({ ...correctionForm, checkOut: e.target.value })}
-                className="staffora-input"
+                className="staffora-input font-mono"
               />
             </div>
           </div>
@@ -440,7 +440,7 @@ export const AttendancePage = () => {
             />
           </div>
 
-          <div className="flex justify-end gap-2 pt-3 border-t border-white/10">
+          <div className="flex justify-end gap-2 pt-3 border-t border-[#E7E2D9]">
             <Button variant="secondary" type="button" onClick={() => setShowCorrectionModal(false)}>
               Cancel
             </Button>

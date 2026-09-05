@@ -25,6 +25,34 @@ const getDashboardMetrics = async (req, res, next) => {
   }
 };
 
+/**
+ * Get dedicated attendance overview KPI aggregation
+ * GET /api/dashboard/attendance-overview
+ */
+const getAttendanceOverview = async (req, res, next) => {
+  try {
+    const { periodStart, periodEnd, department, employeeType } = req.query;
+
+    const metrics = await getPayrollDashboardMetrics({
+      periodStart,
+      periodEnd,
+      department,
+      employeeType
+    });
+
+    return successResponse(res, {
+      message: 'Attendance overview metrics',
+      data: {
+        attendance: metrics.attendance,
+        headcount: metrics.headcount
+      }
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
 module.exports = {
-  getDashboardMetrics
+  getDashboardMetrics,
+  getAttendanceOverview
 };

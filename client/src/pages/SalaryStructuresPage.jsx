@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
-import { salaryApi } from '../api/salaryApi';
+import { salaryStructureApi } from '../api/salaryStructureApi';
+import { salaryRuleApi } from '../api/salaryRuleApi';
 import { Badge } from '../components/common/Badge';
 import { Button } from '../components/common/Button';
 import { Modal } from '../components/common/Modal';
@@ -12,13 +13,15 @@ export const SalaryStructuresPage = () => {
   const [rules, setRules] = useState([]);
   const [loading, setLoading] = useState(true);
 
+  // Modal
   const [showModal, setShowModal] = useState(false);
   const [editingStructure, setEditingStructure] = useState(null);
+
+  // Form
   const [formData, setFormData] = useState({
     name: '',
     code: '',
     description: '',
-    active: true,
     rules: []
   });
 
@@ -29,14 +32,13 @@ export const SalaryStructuresPage = () => {
     setLoading(true);
     try {
       const [sRes, rRes] = await Promise.all([
-        salaryApi.getStructures(),
-        salaryApi.getRules()
+        salaryStructureApi.getAll(),
+        salaryRuleApi.getAll()
       ]);
-
       if (sRes.success) setStructures(sRes.data);
       if (rRes.success) setRules(rRes.data);
     } catch (err) {
-      showToast('Failed to load salary structures', 'error');
+      showToast('Failed to load salary structure configs', 'error');
     } finally {
       setLoading(false);
     }
@@ -47,55 +49,46 @@ export const SalaryStructuresPage = () => {
   }, []);
 
   const handleOpenModal = (struct = null) => {
+    setEditingStructure(struct);
     if (struct) {
-      setEditingStructure(struct);
       setFormData({
         name: struct.name,
         code: struct.code,
         description: struct.description || '',
-        active: struct.active !== undefined ? struct.active : true,
-        rules: struct.rules?.map((r) => r._id || r) || []
+        rules: struct.rules?.map((r) => (typeof r === 'object' ? r._id : r)) || []
       });
     } else {
-      setEditingStructure(null);
       setFormData({
         name: '',
         code: '',
         description: '',
-        active: true,
-        rules: rules.map((r) => r._id)
+        rules: rules.map((r) => r._id) // default all
       });
     }
     setShowModal(true);
   };
 
   const handleToggleRule = (ruleId) => {
-    setFormData((prev) => {
-      const current = prev.rules;
-      const updated = current.includes(ruleId)
-        ? current.filter((id) => id !== ruleId)
-        : [...current, ruleId];
-      return { ...prev, rules: updated };
-    });
+    setFormData((prev) => ({
+      ...prev,
+      rules: prev.rules.includes(ruleId)
+        ? prev.rules.filter((id) => id !== ruleId)
+        : [...prev.rules, ruleId]
+    }));
   };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    if (!formData.name.trim() || !formData.code.trim()) {
-      showToast('Name and Code are required', 'warning');
-      return;
-    }
-
     try {
       if (editingStructure) {
-        const res = await salaryApi.updateStructure(editingStructure._id, formData);
+        const res = await salaryStructureApi.update(editingStructure._id, formData);
         if (res.success) {
           showToast('Salary structure updated', 'success');
           setShowModal(false);
           fetchData();
         }
       } else {
-        const res = await salaryApi.createStructure(formData);
+        const res = await salaryStructureApi.create(formData);
         if (res.success) {
           showToast('Salary structure created', 'success');
           setShowModal(false);
@@ -103,14 +96,14 @@ export const SalaryStructuresPage = () => {
         }
       }
     } catch (err) {
-      showToast(err.response?.data?.message || 'Action failed', 'error');
+      showToast(err.response?.data?.message || 'Failed to save salary structure', 'error');
     }
   };
 
   const handleDelete = async (id) => {
     if (!window.confirm('Delete this salary structure profile?')) return;
     try {
-      const res = await salaryApi.deleteStructure(id);
+      const res = await salaryStructureApi.delete(id);
       if (res.success) {
         showToast('Structure deleted', 'success');
         fetchData();
@@ -123,19 +116,19 @@ export const SalaryStructuresPage = () => {
   const canManage = hasRole('Admin', 'HR Payroll Manager');
 
   return (
-    <div className="p-5 max-w-[1600px] w-full mx-auto flex flex-col gap-5">
+    <div className="p-5 max-w-[1600px] w-full mx-auto flex flex-col gap-5 font-body">
       {/* Top Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-4 border-b border-white/10">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-4 border-b border-[#E7E2D9]">
         <div>
           <div className="flex items-center gap-2 mb-1">
-            <span className="font-mono text-[10px] uppercase tracking-widest text-[#FF6B3D] font-semibold">
+            <span className="font-mono text-xs text-[#0F5C4A] font-semibold">
               Payroll Config
             </span>
           </div>
-          <h1 className="text-xl md:text-2xl font-bold text-[#F5F2EA] tracking-tight font-display">
+          <h1 className="text-2xl md:text-3xl font-heading font-medium text-[#1C1B19]">
             Salary Structures ({structures.length})
           </h1>
-          <p className="text-xs text-[#A6A3A0] mt-0.5">
+          <p className="text-xs text-[#6B665C] mt-0.5">
             Grouped compensation profiles, rule bundles, and contractual pay packages.
           </p>
         </div>
@@ -156,23 +149,23 @@ export const SalaryStructuresPage = () => {
       {loading ? (
         <LoadingSpinner message="Querying salary structure packages..." />
       ) : structures.length === 0 ? (
-        <div className="p-10 text-center text-[#6F6C69] font-mono text-xs">
+        <div className="p-10 text-center text-[#6B665C] text-xs">
           No salary structures configured.
         </div>
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           {structures.map((s) => (
-            <div key={s._id} className="midnight-card p-5 flex flex-col justify-between gap-4">
+            <div key={s._id} className="bg-white rounded-xl border border-[#E7E2D9] p-5 flex flex-col justify-between gap-4 shadow-sm">
               <div>
                 <div className="flex items-start justify-between">
                   <div>
                     <div className="flex items-center gap-2">
-                      <h3 className="font-bold text-sm text-[#F5F2EA] font-sans">{s.name}</h3>
-                      <span className="font-mono text-[10px] text-[#6F6C69] bg-[#17171B] border border-white/10 px-1.5 py-0.2 rounded">
+                      <h3 className="font-semibold text-sm text-[#1C1B19]">{s.name}</h3>
+                      <span className="font-mono text-[11px] text-[#6B665C] bg-[#FAF9F6] border border-[#E7E2D9] px-2 py-0.5 rounded">
                         {s.code}
                       </span>
                     </div>
-                    <p className="text-xs text-[#A6A3A0] mt-1">{s.description || 'Standard compensation tier'}</p>
+                    <p className="text-xs text-[#6B665C] mt-0.5">{s.description || 'Standard compensation tier'}</p>
                   </div>
 
                   <Badge variant={s.active ? 'success' : 'default'}>
@@ -180,29 +173,42 @@ export const SalaryStructuresPage = () => {
                   </Badge>
                 </div>
 
-                {/* Attached Rules List */}
-                <div className="mt-4 pt-3 border-t border-white/10 space-y-2">
-                  <span className="text-[10px] font-mono text-[#6F6C69] uppercase tracking-wider block">
-                    Attached Rule Bundle ({s.rules?.length || 0} Rules)
-                  </span>
-                  <div className="flex flex-wrap gap-1.5 font-mono">
-                    {s.rules?.map((r) => {
-                      const rName = typeof r === 'object' ? r.code || r.name : 'RULE';
-                      return (
-                        <span
-                          key={r._id || r}
-                          className="px-2 py-0.5 rounded bg-[#17171B] border border-white/10 text-[11px] text-[#A6A3A0]"
-                        >
-                          {rName}
-                        </span>
-                      );
-                    })}
+                {/* Attached Rules & Employees Metrics */}
+                <div className="mt-4 pt-3 border-t border-[#E7E2D9] space-y-2.5">
+                  <div className="grid grid-cols-2 gap-2 text-xs">
+                    <div className="p-2.5 rounded-lg bg-[#FAF9F6] border border-[#E7E2D9] flex items-center justify-between">
+                      <span className="text-[11px] text-[#6B665C]">Rules Linked</span>
+                      <span className="font-bold text-[#1C1B19] font-mono">{s.rulesCount || s.rules?.length || 0} Rules</span>
+                    </div>
+                    <div className="p-2.5 rounded-lg bg-[#FAF9F6] border border-[#E7E2D9] flex items-center justify-between">
+                      <span className="text-[11px] text-[#6B665C]">Active Staff</span>
+                      <span className="font-bold text-[#0F5C4A] font-mono">{s.employeeCount || 0} Assigned</span>
+                    </div>
+                  </div>
+
+                  <div>
+                    <span className="text-xs text-[#6B665C] font-semibold block mb-1">
+                      Rule Sequence Bundle:
+                    </span>
+                    <div className="flex flex-wrap gap-1.5 font-mono">
+                      {s.rules?.map((r) => {
+                        const rName = typeof r === 'object' ? r.code || r.name : 'RULE';
+                        return (
+                          <span
+                            key={r._id || r}
+                            className="px-2 py-0.5 rounded-md bg-[#FAF9F6] border border-[#E7E2D9] text-[11px] text-[#6B665C]"
+                          >
+                            {rName}
+                          </span>
+                        );
+                      })}
+                    </div>
                   </div>
                 </div>
               </div>
 
               {canManage && (
-                <div className="flex justify-end gap-2 pt-3 border-t border-white/10">
+                <div className="flex justify-end gap-2 pt-3 border-t border-[#E7E2D9]">
                   <Button
                     variant="secondary"
                     size="sm"
@@ -233,7 +239,7 @@ export const SalaryStructuresPage = () => {
         title={editingStructure ? 'Edit Salary Structure' : 'Create Salary Structure'}
         maxWidth="max-w-xl"
       >
-        <form onSubmit={handleSubmit} className="space-y-3 font-mono text-xs">
+        <form onSubmit={handleSubmit} className="space-y-3 text-xs">
           <div className="grid grid-cols-2 gap-3">
             <div>
               <label className="staffora-label">Structure Name *</label>
@@ -253,7 +259,7 @@ export const SalaryStructuresPage = () => {
                 required
                 value={formData.code}
                 onChange={(e) => setFormData({ ...formData, code: e.target.value.toUpperCase() })}
-                className="staffora-input"
+                className="staffora-input font-mono"
                 placeholder="e.g. EXEC_TIER"
               />
             </div>
@@ -272,15 +278,15 @@ export const SalaryStructuresPage = () => {
 
           <div className="space-y-1.5">
             <label className="staffora-label">Select Active Salary Rules to Bundle</label>
-            <div className="max-h-48 overflow-y-auto border border-white/10 rounded divide-y divide-white/5 bg-[#111114]">
+            <div className="max-h-48 overflow-y-auto border border-[#E7E2D9] rounded-lg divide-y divide-[#E7E2D9] bg-white">
               {rules.map((rule) => {
                 const isChecked = formData.rules.includes(rule._id);
                 return (
                   <div
                     key={rule._id}
                     onClick={() => handleToggleRule(rule._id)}
-                    className={`p-2 flex items-center justify-between cursor-pointer ${
-                      isChecked ? 'bg-[#17171B]' : 'hover:bg-[#1E1E24]'
+                    className={`p-2.5 flex items-center justify-between cursor-pointer ${
+                      isChecked ? 'bg-[#E8F4F1]/50' : 'hover:bg-[#FAF9F6]'
                     }`}
                   >
                     <div className="flex items-center gap-2">
@@ -288,11 +294,11 @@ export const SalaryStructuresPage = () => {
                         type="checkbox"
                         checked={isChecked}
                         onChange={() => {}}
-                        className="rounded text-[#FF6B3D] focus:ring-0 h-3.5 w-3.5 bg-[#0B0B0D] border-white/20"
+                        className="rounded text-[#0F5C4A] focus:ring-0 h-4 w-4 bg-white border-[#E7E2D9]"
                       />
-                      <span className="text-xs text-[#F5F2EA] font-semibold">{rule.name}</span>
+                      <span className="text-xs text-[#1C1B19] font-medium">{rule.name}</span>
                     </div>
-                    <span className="text-[10px] text-[#6F6C69]">
+                    <span className="text-xs font-mono text-[#6B665C]">
                       [{rule.code}] • Seq: {rule.sequence}
                     </span>
                   </div>
@@ -301,7 +307,7 @@ export const SalaryStructuresPage = () => {
             </div>
           </div>
 
-          <div className="flex justify-end gap-2 pt-3 border-t border-white/10">
+          <div className="flex justify-end gap-2 pt-3 border-t border-[#E7E2D9]">
             <Button variant="secondary" type="button" onClick={() => setShowModal(false)}>
               Cancel
             </Button>

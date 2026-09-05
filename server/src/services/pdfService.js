@@ -31,7 +31,7 @@ const generatePayslipPDF = async (payslipId) => {
       doc.on('error', (err) => reject(err));
 
       // Header
-      doc.fillColor('#1E293B').fontSize(20).font('Helvetica-Bold').text('PeoplePay360 – HR & Payroll', { align: 'center' });
+      doc.fillColor('#1E293B').fontSize(20).font('Helvetica-Bold').text('Staffora – HR & Payroll', { align: 'center' });
       doc.fontSize(10).font('Helvetica').fillColor('#64748B').text('Operations Platform | Official Salary Slip', { align: 'center' });
       doc.moveDown(1);
 
@@ -119,7 +119,7 @@ const generatePayslipPDF = async (payslipId) => {
 
       // Footer
       doc.fontSize(8).font('Helvetica').fillColor('#94A3B8').text(
-        'This is a system-generated document from PeoplePay360 HR & Payroll. No physical signature required.',
+        'This is a system-generated document from Staffora HR & Payroll. No physical signature required.',
         40,
         750,
         { align: 'center', width: 515 }

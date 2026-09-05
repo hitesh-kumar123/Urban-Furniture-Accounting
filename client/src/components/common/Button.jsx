@@ -16,18 +16,18 @@ export const Button = ({
   const base = 'inline-flex items-center justify-center gap-1.5 rounded font-medium transition-all duration-150 active:scale-[0.98] disabled:opacity-40 disabled:pointer-events-none focus:outline-none cursor-pointer select-none';
 
   const variants = {
-    primary: 'bg-[#FF6B3D] text-[#0B0B0D] hover:bg-[#FF8A65] font-semibold shadow-xs',
-    secondary: 'bg-[#17171B] text-[#F5F2EA] border border-white/10 hover:bg-[#1E1E24] hover:border-white/20',
-    outline: 'bg-transparent text-[#A6A3A0] border border-white/10 hover:bg-[#17171B] hover:text-[#F5F2EA]',
-    ghost: 'text-[#A6A3A0] hover:bg-[#17171B] hover:text-[#F5F2EA]',
-    danger: 'bg-[#FF5C5C]/10 text-[#FF5C5C] border border-[#FF5C5C]/20 hover:bg-[#FF5C5C]/20',
-    success: 'bg-[#39D98A]/10 text-[#39D98A] border border-[#39D98A]/20 hover:bg-[#39D98A]/20'
+    primary: 'bg-[#0F5C4A] text-white hover:bg-[#0B4739] font-medium border border-transparent shadow-xs',
+    secondary: 'bg-white text-[#1C1B19] border border-[#E7E2D9] hover:bg-[#F5F2EB] hover:border-[#D3CDC2]',
+    outline: 'bg-transparent text-[#6B665C] border border-[#E7E2D9] hover:bg-[#F0ECE1] hover:text-[#1C1B19]',
+    ghost: 'text-[#6B665C] hover:bg-[#F0ECE1] hover:text-[#1C1B19]',
+    danger: 'bg-[#FDF1EE] text-[#B5482E] border border-[#F3C9BF] hover:bg-[#F9DDD6]',
+    success: 'bg-[#E8F4F1] text-[#0F5C4A] border border-[#C5E4DC] hover:bg-[#D7EDE6]'
   };
 
   const sizes = {
     sm: 'text-xs px-2.5 py-1.5 font-medium',
-    md: 'text-xs px-3 py-1.5 font-semibold',
-    lg: 'text-sm px-4 py-2 font-semibold'
+    md: 'text-xs px-3 py-1.5 font-medium',
+    lg: 'text-sm px-4 py-2 font-medium'
   };
 
   return (

@@ -1,4 +1,6 @@
 import api from './client';
+import { salaryStructureApi } from './salaryStructureApi';
+import { salaryRuleApi } from './salaryRuleApi';
 
 export const salaryApi = {
   // Structures
@@ -43,5 +45,14 @@ export const salaryApi = {
   deleteRule: async (id) => {
     const res = await api.delete(`/salary-rules/${id}`);
     return res.data;
+  },
+
+  // Aliases for polymorphic calls
+  getAll: async (params = {}) => {
+    const res = await api.get('/salary-rules', { params });
+    return res.data;
   }
 };
+
+export { salaryStructureApi, salaryRuleApi };
+export default salaryApi;

@@ -32,22 +32,22 @@ const sendSinglePayslipEmail = async (payslipId) => {
     const periodStr = `${new Date(payrollPeriod.start).toISOString().split('T')[0]} to ${new Date(payrollPeriod.end).toISOString().split('T')[0]}`;
     
     const mailOptions = {
-      from: `PeoplePay360 Payroll <${config.smtp.from}>`,
+      from: `Staffora Payroll <${config.smtp.from}>`,
       to: employee.email,
-      subject: `Payslip for Period ${periodStr} - PeoplePay360`,
-      text: `Hello ${employee.firstName},\n\nPlease find attached your salary payslip for the period ${periodStr}.\n\nNet Amount Payable: $${payslip.net.toFixed(2)}\n\nBest regards,\nPeoplePay360 HR & Payroll Team`,
+      subject: `Payslip for Period ${periodStr} - Staffora`,
+      text: `Hello ${employee.firstName},\n\nPlease find attached your salary payslip for the period ${periodStr}.\n\nNet Amount Payable: ₹${payslip.net.toFixed(2)}\n\nBest regards,\nStaffora HR & Payroll Team`,
       html: `
         <div style="font-family: Arial, sans-serif; line-height: 1.6; color: #333;">
-          <h2 style="color: #0284c7;">PeoplePay360 HR & Payroll</h2>
+          <h2 style="color: #0F5C4A;">Staffora HR &amp; Payroll</h2>
           <p>Dear <strong>${employee.firstName} ${employee.lastName}</strong>,</p>
           <p>Your payslip for the period <strong>${periodStr}</strong> has been generated and finalized.</p>
-          <div style="background-color: #f8fafc; padding: 16px; border-left: 4px solid #0284c7; margin: 20px 0;">
-            <p style="margin: 0; font-size: 14px;"><strong>Gross Earnings:</strong> $${payslip.gross.toFixed(2)}</p>
-            <p style="margin: 0; font-size: 14px;"><strong>Total Deductions:</strong> -$${payslip.deductions.toFixed(2)}</p>
-            <p style="margin: 5px 0 0 0; font-size: 16px; color: #0f172a;"><strong>Net Payable:</strong> $${payslip.net.toFixed(2)}</p>
+          <div style="background-color: #f8fafc; padding: 16px; border-left: 4px solid #0F5C4A; margin: 20px 0;">
+            <p style="margin: 0; font-size: 14px;"><strong>Gross Earnings:</strong> ₹${payslip.gross.toFixed(2)}</p>
+            <p style="margin: 0; font-size: 14px;"><strong>Total Deductions:</strong> -₹${payslip.deductions.toFixed(2)}</p>
+            <p style="margin: 5px 0 0 0; font-size: 16px; color: #0f172a;"><strong>Net Payable:</strong> ₹${payslip.net.toFixed(2)}</p>
           </div>
           <p>Please find your detailed payslip attached as a PDF file.</p>
-          <p>Regards,<br/><strong>PeoplePay360 Operations</strong></p>
+          <p>Regards,<br/><strong>Staffora Operations</strong></p>
         </div>
       `,
       attachments: [

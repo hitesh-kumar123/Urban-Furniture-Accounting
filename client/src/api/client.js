@@ -10,7 +10,7 @@ const api = axios.create({
 // Request interceptor: attach Bearer token if present
 api.interceptors.request.use(
   (config) => {
-    const token = localStorage.getItem('peoplepay360_token');
+    const token = localStorage.getItem('staffora_token') || localStorage.getItem('peoplepay360_token');
     if (token) {
       config.headers.Authorization = `Bearer ${token}`;
     }
@@ -26,6 +26,8 @@ api.interceptors.response.use(
     if (error.response?.status === 401) {
       // Don't auto-redirect if already on login page
       if (!window.location.pathname.includes('/login')) {
+        localStorage.removeItem('staffora_token');
+        localStorage.removeItem('staffora_user');
         localStorage.removeItem('peoplepay360_token');
         localStorage.removeItem('peoplepay360_user');
         window.location.href = '/login?expired=true';

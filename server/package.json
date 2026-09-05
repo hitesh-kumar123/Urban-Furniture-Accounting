@@ -1,7 +1,7 @@
 {
-  "name": "peoplepay360-backend",
+  "name": "staffora-backend",
   "version": "1.0.0",
-  "description": "PeoplePay360 – Integrated Human Resource and Payroll Operations Platform Backend",
+  "description": "Staffora – Integrated Human Resource and Payroll Operations Platform Backend",
   "main": "src/server.js",
   "scripts": {
     "start": "node src/server.js",

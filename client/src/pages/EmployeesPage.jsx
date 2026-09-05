@@ -211,7 +211,7 @@ export const EmployeesPage = () => {
       return STATUSES.map((st) => ({
         id: st,
         title: st,
-        color: st === 'Active' ? '#39D98A' : st === 'Probation' ? '#F5B942' : '#FF5C5C',
+        color: st === 'Active' ? '#0F5C4A' : st === 'Probation' ? '#8A6D3B' : '#B5482E',
         items: employees.filter((e) => (e.employeeStatus || 'Active') === st)
       }));
     }
@@ -219,7 +219,7 @@ export const EmployeesPage = () => {
     const groups = DEPARTMENTS.map((dept) => ({
       id: dept,
       title: dept,
-      color: dept === 'Engineering' ? '#FF6B3D' : dept === 'Product' ? '#58B7FF' : dept === 'Design' ? '#D66BFF' : '#39D98A',
+      color: dept === 'Engineering' ? '#0F5C4A' : dept === 'Product' ? '#8A6D3B' : dept === 'Design' ? '#6B665C' : '#0F5C4A',
       items: employees.filter((e) => (e.department || 'General') === dept)
     }));
 
@@ -228,7 +228,7 @@ export const EmployeesPage = () => {
       groups.push({
         id: 'Other',
         title: 'Other Departments',
-        color: '#A6A3A0',
+        color: '#918C82',
         items: otherEmps
       });
     }
@@ -292,30 +292,30 @@ export const EmployeesPage = () => {
   };
 
   return (
-    <div className="p-5 max-w-[1600px] w-full mx-auto flex flex-col gap-5">
+    <div className="p-5 max-w-[1600px] w-full mx-auto flex flex-col gap-5 font-body">
       {/* Top Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-4 border-b border-white/10">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-4 border-b border-[#E7E2D9]">
         <div>
           <div className="flex items-center gap-2 mb-1">
-            <span className="font-mono text-[10px] uppercase tracking-widest text-[#FF6B3D] font-semibold">
+            <span className="font-mono text-xs text-[#0F5C4A] font-semibold">
               People Operations
             </span>
           </div>
-          <h1 className="text-xl md:text-2xl font-bold text-[#F5F2EA] tracking-tight font-display">
+          <h1 className="text-2xl md:text-3xl font-heading font-medium text-[#1C1B19]">
             Employee Directory ({employees.length})
           </h1>
-          <p className="text-xs text-[#A6A3A0] mt-0.5">
+          <p className="text-xs text-[#6B665C] mt-0.5">
             Talent roster, contract terms, attendance logs, and digital payslip history.
           </p>
         </div>
 
         <div className="flex items-center gap-2.5">
-          {/* View Mode Switcher: List vs Kanban (Odoo Spec A1 & B1) */}
-          <div className="flex items-center bg-[#111114] p-0.5 rounded border border-white/10">
+          {/* View Mode Switcher: List vs Kanban */}
+          <div className="flex items-center bg-[#FAF9F6] p-0.5 rounded-lg border border-[#E7E2D9]">
             <button
               onClick={() => setViewMode('list')}
-              className={`p-1.5 rounded transition-colors ${
-                viewMode === 'list' ? 'bg-[#17171B] text-[#FF8A65]' : 'text-[#6F6C69] hover:text-[#A6A3A0]'
+              className={`p-1.5 rounded-md transition-colors ${
+                viewMode === 'list' ? 'bg-white text-[#0F5C4A] shadow-sm' : 'text-[#6B665C] hover:text-[#1C1B19]'
               }`}
               title="List View"
             >
@@ -323,8 +323,8 @@ export const EmployeesPage = () => {
             </button>
             <button
               onClick={() => setViewMode('kanban')}
-              className={`p-1.5 rounded transition-colors ${
-                viewMode === 'kanban' ? 'bg-[#17171B] text-[#FF8A65]' : 'text-[#6F6C69] hover:text-[#A6A3A0]'
+              className={`p-1.5 rounded-md transition-colors ${
+                viewMode === 'kanban' ? 'bg-white text-[#0F5C4A] shadow-sm' : 'text-[#6B665C] hover:text-[#1C1B19]'
               }`}
               title="Kanban Cards View"
             >
@@ -335,7 +335,7 @@ export const EmployeesPage = () => {
           <select
             value={deptFilter}
             onChange={(e) => setDeptFilter(e.target.value)}
-            className="staffora-input py-1 px-2.5 text-xs w-auto font-mono"
+            className="staffora-input py-1.5 px-3 text-xs w-auto font-medium"
           >
             <option value="">All Departments</option>
             <option value="Engineering">Engineering</option>
@@ -348,7 +348,7 @@ export const EmployeesPage = () => {
           <select
             value={statusFilter}
             onChange={(e) => setStatusFilter(e.target.value)}
-            className="staffora-input py-1 px-2.5 text-xs w-auto font-mono"
+            className="staffora-input py-1.5 px-3 text-xs w-auto font-medium"
           >
             <option value="">All Statuses</option>
             <option value="Active">Active</option>
@@ -375,7 +375,7 @@ export const EmployeesPage = () => {
         {/* Left Column: High-Density Table */}
         <div className={`${selectedEmployee ? 'lg:col-span-7' : 'lg:col-span-12'} flex flex-col gap-3`}>
           <div className="relative">
-            <span className="material-symbols-outlined absolute left-2.5 top-1/2 -translate-y-1/2 text-[#6F6C69] text-base">
+            <span className="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-[#6B665C] text-base">
               search
             </span>
             <input
@@ -383,7 +383,7 @@ export const EmployeesPage = () => {
               value={search}
               onChange={(e) => setSearch(e.target.value)}
               placeholder="Search by name, ID, job title..."
-              className="staffora-input pl-8 font-mono text-xs"
+              className="staffora-input pl-9 text-xs"
             />
           </div>
 
@@ -391,38 +391,38 @@ export const EmployeesPage = () => {
             loading ? (
               <LoadingSpinner message="Querying employee records..." />
             ) : employees.length === 0 ? (
-              <div className="p-8 text-center text-[#6F6C69] font-mono text-xs midnight-card">
+              <div className="p-8 text-center text-[#6B665C] text-xs bg-white rounded-xl border border-[#E7E2D9]">
                 No matching employees found.
               </div>
             ) : (
               <div className="space-y-3">
                 {/* Kanban Group By Controls */}
-                <div className="flex items-center justify-between bg-[#111114] p-2.5 rounded border border-white/10 text-xs font-mono">
+                <div className="flex items-center justify-between bg-white p-3 rounded-xl border border-[#E7E2D9] text-xs">
                   <div className="flex items-center gap-2">
-                    <span className="text-[#6F6C69]">Kanban Group By:</span>
+                    <span className="text-[#6B665C]">Group by:</span>
                     <button
                       onClick={() => setKanbanGroupBy('department')}
-                      className={`px-2.5 py-1 rounded transition-colors ${
+                      className={`px-3 py-1 rounded-md transition-colors ${
                         kanbanGroupBy === 'department'
-                          ? 'bg-[#17171B] text-[#FF8A65] font-bold border border-white/10'
-                          : 'text-[#A6A3A0] hover:text-[#F5F2EA]'
+                          ? 'bg-[#E8F4F1] text-[#0F5C4A] font-semibold border border-[#0F5C4A]/20'
+                          : 'text-[#6B665C] hover:text-[#1C1B19]'
                       }`}
                     >
                       Department
                     </button>
                     <button
                       onClick={() => setKanbanGroupBy('status')}
-                      className={`px-2.5 py-1 rounded transition-colors ${
+                      className={`px-3 py-1 rounded-md transition-colors ${
                         kanbanGroupBy === 'status'
-                          ? 'bg-[#17171B] text-[#FF8A65] font-bold border border-white/10'
-                          : 'text-[#A6A3A0] hover:text-[#F5F2EA]'
+                          ? 'bg-[#E8F4F1] text-[#0F5C4A] font-semibold border border-[#0F5C4A]/20'
+                          : 'text-[#6B665C] hover:text-[#1C1B19]'
                       }`}
                     >
                       Status
                     </button>
                   </div>
 
-                  <span className="text-[#6F6C69] text-[11px]">
+                  <span className="text-[#918C82] text-xs">
                     {employees.length} cards across {getKanbanColumns().length} lanes
                   </span>
                 </div>
@@ -437,67 +437,59 @@ export const EmployeesPage = () => {
                         onDragOver={(e) => handleDragOver(e, col.id)}
                         onDragLeave={handleDragLeave}
                         onDrop={(e) => handleDrop(e, col.id)}
-                        className={`rounded-lg p-3 flex flex-col gap-2.5 shadow-lg transition-all ${
+                        className={`rounded-xl p-3 flex flex-col gap-2.5 shadow-sm transition-all ${
                           isDragOver
-                            ? 'bg-[#1C1A18] border-2 border-dashed border-[#FF6B3D] ring-2 ring-[#FF6B3D]/20'
-                            : 'bg-[#111114] border border-white/10'
+                            ? 'bg-[#E8F4F1] border-2 border-dashed border-[#0F5C4A]'
+                            : 'bg-[#FAF9F6] border border-[#E7E2D9]'
                         }`}
                       >
                         {/* Column Header */}
-                        <div className="flex items-center justify-between pb-2 border-b border-white/5">
+                        <div className="flex items-center justify-between pb-2 border-b border-[#E7E2D9]">
                           <div className="flex items-center gap-2">
                             <span
                               className="w-2.5 h-2.5 rounded-full"
                               style={{ backgroundColor: col.color }}
                             ></span>
-                            <span className="font-bold text-xs text-[#F5F2EA] font-display">
+                            <span className="text-xs font-semibold text-[#1C1B19]">
                               {col.title}
                             </span>
                           </div>
-                          <div className="flex items-center gap-1.5">
-                            {isDragOver && (
-                              <span className="text-[10px] font-mono text-[#FF8A65] font-bold animate-pulse">
-                                Drop Here
-                              </span>
-                            )}
-                            <span className="font-mono text-[10px] font-bold px-2 py-0.5 rounded bg-[#17171B] text-[#A6A3A0] border border-white/5">
-                              {col.items.length}
-                            </span>
-                          </div>
+                          <span className="text-xs font-mono font-semibold px-2 py-0.5 rounded bg-white text-[#6B665C] border border-[#E7E2D9]">
+                            {col.items.length}
+                          </span>
                         </div>
 
-                        {/* Cards Container */}
-                        <div className="flex flex-col gap-2.5 min-h-[120px]">
+                        {/* Column Items */}
+                        <div className="flex flex-col gap-2 min-h-[120px]">
                           {col.items.length === 0 ? (
-                            <div className="p-4 text-center text-[#6F6C69] font-mono text-[11px] border border-dashed border-white/5 rounded my-auto">
-                              Drag &amp; drop cards here
+                            <div className="h-24 flex items-center justify-center border-2 border-dashed border-[#E7E2D9] rounded-lg text-[11px] text-[#918C82]">
+                              Drop employees here
                             </div>
                           ) : (
                             col.items.map((emp) => {
                               const isSelected = selectedEmployee?._id === emp._id;
-                              const isBeingDragged = draggedEmpId === emp._id;
                               return (
                                 <div
                                   key={emp._id}
-                                  draggable={hasRole('Admin', 'HR Manager', 'HR Payroll Manager')}
+                                  draggable
                                   onDragStart={(e) => handleDragStart(e, emp._id)}
                                   onClick={() => selectEmployee(emp)}
-                                  className={`midnight-card p-3 flex flex-col gap-2 transition-all cursor-grab active:cursor-grabbing hover:border-[#FF6B3D]/40 ${
-                                    isBeingDragged
-                                      ? 'opacity-30 border-dashed border-[#FF6B3D]'
-                                      : ''
-                                  } ${isSelected ? 'border-[#FF6B3D] bg-[#17171B]' : ''}`}
+                                  className={`p-3 rounded-lg border bg-white cursor-pointer transition-all shadow-sm ${
+                                    isSelected
+                                      ? 'border-[#0F5C4A] ring-1 ring-[#0F5C4A]'
+                                      : 'border-[#E7E2D9] hover:border-[#0F5C4A]/40'
+                                  }`}
                                 >
-                                  <div className="flex items-start justify-between gap-1.5">
-                                    <div className="flex items-center gap-2">
-                                      <div className="w-7 h-7 rounded bg-[#1E1E24] border border-white/10 text-[#FF6B3D] flex items-center justify-center font-bold text-[10px] font-mono shrink-0">
+                                  <div className="flex items-start justify-between gap-2 mb-2">
+                                    <div className="flex items-center gap-2 min-w-0">
+                                      <div className="w-7 h-7 rounded-full bg-[#E8F4F1] text-[#0F5C4A] flex items-center justify-center font-bold text-xs shrink-0">
                                         {emp.firstName?.[0]}{emp.lastName?.[0]}
                                       </div>
                                       <div className="min-w-0">
-                                        <span className="font-bold text-[#F5F2EA] text-xs block truncate">
+                                        <span className="font-semibold text-xs text-[#1C1B19] block truncate">
                                           {emp.firstName} {emp.lastName}
                                         </span>
-                                        <span className="text-[10px] font-mono text-[#6F6C69] block truncate">
+                                        <span className="text-[10px] font-mono text-[#6B665C] block truncate">
                                           {emp.employeeId}
                                         </span>
                                       </div>
@@ -515,23 +507,17 @@ export const EmployeesPage = () => {
                                       >
                                         {emp.employeeStatus}
                                       </Badge>
-                                      <span
-                                        className="material-symbols-outlined text-xs text-[#6F6C69] hover:text-[#A6A3A0] cursor-grab"
-                                        title="Drag card to move"
-                                      >
-                                        drag_indicator
-                                      </span>
                                     </div>
                                   </div>
 
-                                  <div className="text-[11px] font-mono text-[#A6A3A0] space-y-0.5 pt-1.5 border-t border-white/5">
-                                    <div className="text-[#F5F2EA] font-sans font-medium truncate">{emp.jobPosition}</div>
-                                    <div className="text-[10px] text-[#6F6C69]">{emp.department} • {emp.employeeType}</div>
+                                  <div className="text-xs text-[#6B665C] space-y-0.5 pt-1.5 border-t border-[#E7E2D9]">
+                                    <div className="text-[#1C1B19] font-medium truncate">{emp.jobPosition}</div>
+                                    <div className="text-[11px] text-[#6B665C]">{emp.department} • {emp.employeeType}</div>
                                   </div>
 
-                                  <div className="flex items-center justify-between pt-1.5 border-t border-white/5 text-[10px] font-mono">
-                                    <span className="text-[#FF8A65] flex items-center gap-1">
-                                      <span className="material-symbols-outlined text-[13px]">badge</span>
+                                  <div className="flex items-center justify-between pt-1.5 border-t border-[#E7E2D9] text-xs">
+                                    <span className="text-[#0F5C4A] font-medium flex items-center gap-1">
+                                      <span className="material-symbols-outlined text-sm">badge</span>
                                       Hub 360°
                                     </span>
 
@@ -539,19 +525,19 @@ export const EmployeesPage = () => {
                                       {hasRole('Admin', 'HR Manager', 'HR Payroll Manager') && (
                                         <button
                                           onClick={() => handleOpenEdit(emp)}
-                                          className="p-1 hover:bg-[#1E1E24] rounded text-[#A6A3A0] hover:text-[#F5F2EA]"
+                                          className="p-1 hover:bg-[#FAF9F6] rounded text-[#6B665C] hover:text-[#1C1B19]"
                                           title="Edit"
                                         >
-                                          <span className="material-symbols-outlined text-[13px]">edit</span>
+                                          <span className="material-symbols-outlined text-sm">edit</span>
                                         </button>
                                       )}
                                       {hasRole('Admin', 'HR Manager') && (
                                         <button
                                           onClick={() => handleDelete(emp._id)}
-                                          className="p-1 hover:bg-[#FF5C5C]/10 rounded text-[#FF5C5C]"
+                                          className="p-1 hover:bg-[#FDF1EE] rounded text-[#B5482E]"
                                           title="Delete"
                                         >
-                                          <span className="material-symbols-outlined text-[13px]">delete</span>
+                                          <span className="material-symbols-outlined text-sm">delete</span>
                                         </button>
                                       )}
                                     </div>
@@ -572,7 +558,7 @@ export const EmployeesPage = () => {
               {loading ? (
                 <LoadingSpinner message="Querying employee records..." />
               ) : employees.length === 0 ? (
-                <div className="p-8 text-center text-[#6F6C69] font-mono text-xs">
+                <div className="p-8 text-center text-[#6B665C] text-xs">
                   No matching employees found.
                 </div>
               ) : (
@@ -593,19 +579,19 @@ export const EmployeesPage = () => {
                           key={emp._id}
                           onClick={() => selectEmployee(emp)}
                           className={`cursor-pointer ${
-                            isSelected ? 'bg-[#17171B] text-[#F5F2EA]' : ''
+                            isSelected ? 'bg-[#E8F4F1]/40' : ''
                           }`}
                         >
                           <td>
-                            <div className="flex items-center gap-2">
-                              <div className="w-6 h-6 rounded bg-[#1E1E24] border border-white/10 text-[#FF8A65] flex items-center justify-center font-bold text-[10px] font-mono shrink-0">
+                            <div className="flex items-center gap-2.5">
+                              <div className="w-7 h-7 rounded-full bg-[#E8F4F1] text-[#0F5C4A] flex items-center justify-center font-bold text-xs font-mono shrink-0">
                                 {emp.firstName?.[0]}{emp.lastName?.[0]}
                               </div>
                               <div className="min-w-0">
-                                <span className="font-semibold text-[#F5F2EA] text-xs block truncate">
+                                <span className="font-medium text-[#1C1B19] text-xs block truncate">
                                   {emp.firstName} {emp.lastName}
                                 </span>
-                                <span className="text-[10px] font-mono text-[#6F6C69] block truncate">
+                                <span className="text-[11px] font-mono text-[#6B665C] block truncate">
                                   {emp.employeeId}
                                 </span>
                               </div>
@@ -613,11 +599,11 @@ export const EmployeesPage = () => {
                           </td>
 
                           <td className="text-xs">
-                            <span className="text-[#F5F2EA] block truncate">{emp.jobPosition}</span>
-                            <span className="text-[10px] text-[#6F6C69] block font-mono truncate">{emp.department}</span>
+                            <span className="text-[#1C1B19] block truncate font-medium">{emp.jobPosition}</span>
+                            <span className="text-[11px] text-[#6B665C] block truncate">{emp.department}</span>
                           </td>
 
-                          <td className="font-mono">
+                          <td>
                             <Badge
                               variant={
                                 emp.employeeStatus === 'Active'
@@ -636,19 +622,19 @@ export const EmployeesPage = () => {
                               {hasRole('Admin', 'HR Manager', 'HR Payroll Manager') && (
                                 <button
                                   onClick={() => handleOpenEdit(emp)}
-                                  className="p-1 hover:bg-[#1E1E24] rounded text-[#A6A3A0] hover:text-[#F5F2EA]"
+                                  className="p-1 hover:bg-[#FAF9F6] rounded text-[#6B665C] hover:text-[#1C1B19]"
                                   title="Edit"
                                 >
-                                  <span className="material-symbols-outlined text-[15px]">edit</span>
+                                  <span className="material-symbols-outlined text-[16px]">edit</span>
                                 </button>
                               )}
                               {hasRole('Admin', 'HR Manager') && (
                                 <button
                                   onClick={() => handleDelete(emp._id)}
-                                  className="p-1 hover:bg-[#FF5C5C]/10 rounded text-[#FF5C5C]"
+                                  className="p-1 hover:bg-[#FDF1EE] rounded text-[#B5482E]"
                                   title="Delete"
                                 >
-                                  <span className="material-symbols-outlined text-[15px]">delete</span>
+                                  <span className="material-symbols-outlined text-[16px]">delete</span>
                                 </button>
                               )}
                             </div>
@@ -665,21 +651,21 @@ export const EmployeesPage = () => {
 
         {/* Right Column: Employee Command Hub */}
         {selectedEmployee && (
-          <div className="lg:col-span-5 midnight-card-elevated p-4 flex flex-col gap-4">
+          <div className="lg:col-span-5 bg-white rounded-xl border border-[#E7E2D9] p-5 flex flex-col gap-4 shadow-sm">
             {/* Header */}
-            <div className="flex items-start justify-between pb-3 border-b border-white/10">
+            <div className="flex items-start justify-between pb-3 border-b border-[#E7E2D9]">
               <div className="flex items-center gap-2.5">
-                <div className="w-10 h-10 rounded bg-[#0B0B0D] border border-white/10 text-[#FF8A65] flex items-center justify-center font-bold text-sm font-mono shrink-0">
+                <div className="w-10 h-10 rounded-full bg-[#E8F4F1] text-[#0F5C4A] flex items-center justify-center font-bold text-sm font-mono shrink-0">
                   {selectedEmployee.firstName?.[0]}{selectedEmployee.lastName?.[0]}
                 </div>
                 <div>
-                  <h2 className="text-sm font-bold text-[#F5F2EA] font-display">
+                  <h2 className="text-base font-heading font-medium text-[#1C1B19]">
                     {selectedEmployee.firstName} {selectedEmployee.lastName}
                   </h2>
-                  <span className="text-[11px] font-mono text-[#FF8A65] block">
+                  <span className="text-xs font-mono text-[#0F5C4A] block">
                     {selectedEmployee.jobPosition} • {selectedEmployee.employeeId}
                   </span>
-                  <span className="text-[10px] font-mono text-[#6F6C69]">
+                  <span className="text-xs text-[#6B665C]">
                     {selectedEmployee.department}
                   </span>
                 </div>
@@ -691,7 +677,7 @@ export const EmployeesPage = () => {
                 </Badge>
                 <button
                   onClick={() => setSelectedEmployee(null)}
-                  className="w-7 h-7 rounded bg-[#0B0B0D] hover:bg-[#1E1E24] text-[#A6A3A0] hover:text-[#F5F2EA] border border-white/10 flex items-center justify-center transition-colors cursor-pointer"
+                  className="w-7 h-7 rounded-lg bg-[#FAF9F6] hover:bg-[#FDF1EE] text-[#6B665C] hover:text-[#B5482E] border border-[#E7E2D9] flex items-center justify-center transition-colors cursor-pointer"
                   title="Close 360° Hub"
                 >
                   <span className="material-symbols-outlined text-sm">close</span>
@@ -700,7 +686,7 @@ export const EmployeesPage = () => {
             </div>
 
             {/* Hub Tabs */}
-            <div className="flex items-center bg-[#0B0B0D] p-0.5 rounded border border-white/10 font-mono text-[11px]">
+            <div className="flex items-center bg-[#FAF9F6] p-1 rounded-lg border border-[#E7E2D9] text-xs">
               {[
                 { id: 'profile', label: 'Profile' },
                 { id: 'contracts', label: 'Contract' },
@@ -711,10 +697,10 @@ export const EmployeesPage = () => {
                 <button
                   key={tab.id}
                   onClick={() => setHubTab(tab.id)}
-                  className={`flex-1 py-1 rounded text-center transition-colors ${
+                  className={`flex-1 py-1 rounded-md text-center transition-colors ${
                     hubTab === tab.id
-                      ? 'bg-[#17171B] text-[#FF8A65] font-semibold'
-                      : 'text-[#6F6C69] hover:text-[#A6A3A0]'
+                      ? 'bg-white text-[#0F5C4A] font-semibold shadow-sm'
+                      : 'text-[#6B665C] hover:text-[#1C1B19]'
                   }`}
                 >
                   {tab.label}
@@ -726,27 +712,27 @@ export const EmployeesPage = () => {
             {hubLoading ? (
               <LoadingSpinner message="Fetching employee data..." />
             ) : hubTab === 'profile' ? (
-              <div className="space-y-2.5 text-xs font-mono">
-                <div className="p-3 bg-[#111114] rounded border border-white/5 space-y-1.5">
-                  <span className="text-[10px] text-[#6F6C69] uppercase font-bold block">Contact Information</span>
-                  <div className="flex justify-between"><span className="text-[#6F6C69]">Email:</span><span className="text-[#F5F2EA]">{selectedEmployee.email}</span></div>
-                  <div className="flex justify-between"><span className="text-[#6F6C69]">Phone:</span><span className="text-[#F5F2EA]">{selectedEmployee.phone || '—'}</span></div>
-                  <div className="flex justify-between"><span className="text-[#6F6C69]">Type:</span><span className="text-[#F5F2EA]">{selectedEmployee.employeeType}</span></div>
-                  <div className="flex justify-between"><span className="text-[#6F6C69]">Joined:</span><span className="text-[#F5F2EA]">{new Date(selectedEmployee.joiningDate).toLocaleDateString()}</span></div>
+              <div className="space-y-2.5 text-xs">
+                <div className="p-3.5 bg-[#FAF9F6] rounded-lg border border-[#E7E2D9] space-y-2">
+                  <span className="text-xs text-[#6B665C] font-semibold block">Contact Information</span>
+                  <div className="flex justify-between"><span className="text-[#6B665C]">Email:</span><span className="text-[#1C1B19] font-medium">{selectedEmployee.email}</span></div>
+                  <div className="flex justify-between"><span className="text-[#6B665C]">Phone:</span><span className="text-[#1C1B19]">{selectedEmployee.phone || '—'}</span></div>
+                  <div className="flex justify-between"><span className="text-[#6B665C]">Type:</span><span className="text-[#1C1B19]">{selectedEmployee.employeeType}</span></div>
+                  <div className="flex justify-between"><span className="text-[#6B665C]">Joined:</span><span className="text-[#1C1B19]">{new Date(selectedEmployee.joiningDate).toLocaleDateString()}</span></div>
                 </div>
               </div>
             ) : hubTab === 'contracts' ? (
-              <div className="space-y-2 font-mono text-xs">
+              <div className="space-y-2 text-xs">
                 {hubData.contracts.length === 0 ? (
-                  <p className="text-[#6F6C69] p-4 text-center">No contracts linked.</p>
+                  <p className="text-[#6B665C] p-4 text-center">No contracts linked.</p>
                 ) : (
                   hubData.contracts.map((c) => (
-                    <div key={c._id} className="p-3 bg-[#111114] rounded border border-white/5 space-y-1">
-                      <div className="flex justify-between font-bold text-[#F5F2EA]">
+                    <div key={c._id} className="p-3 bg-[#FAF9F6] rounded-lg border border-[#E7E2D9] space-y-1">
+                      <div className="flex justify-between font-medium text-[#1C1B19]">
                         <span>{c.name}</span>
-                        <span className="text-[#39D98A]">₹{Number(c.wage || 0).toLocaleString('en-IN')}/mo</span>
+                        <span className="text-[#8A6D3B] font-mono font-semibold">₹{Number(c.wage || 0).toLocaleString('en-IN')}/mo</span>
                       </div>
-                      <div className="text-[10px] text-[#6F6C69]">
+                      <div className="text-[11px] text-[#6B665C]">
                         Structure: {c.salaryStructure?.name || 'Standard'} • Status: {c.state}
                       </div>
                     </div>
@@ -754,31 +740,31 @@ export const EmployeesPage = () => {
                 )}
               </div>
             ) : hubTab === 'attendance' ? (
-              <div className="space-y-2 font-mono text-xs">
+              <div className="space-y-2 text-xs">
                 {hubData.attendance.length === 0 ? (
-                  <p className="text-[#6F6C69] p-4 text-center">No attendance logs.</p>
+                  <p className="text-[#6B665C] p-4 text-center">No attendance logs.</p>
                 ) : (
                   hubData.attendance.slice(0, 5).map((a) => (
-                    <div key={a._id} className="p-2.5 bg-[#111114] rounded border border-white/5 flex justify-between items-center">
+                    <div key={a._id} className="p-2.5 bg-[#FAF9F6] rounded-lg border border-[#E7E2D9] flex justify-between items-center">
                       <div>
-                        <span className="text-[#F5F2EA] block">{a.date}</span>
-                        <span className="text-[10px] text-[#6F6C69]">{a.status}</span>
+                        <span className="text-[#1C1B19] font-medium block">{a.date}</span>
+                        <span className="text-[11px] text-[#6B665C]">{a.status}</span>
                       </div>
-                      <span className="text-xs font-bold text-[#FF8A65]">{a.workedHours || 8}h</span>
+                      <span className="text-xs font-bold text-[#0F5C4A] font-mono">{a.workedHours || 8}h</span>
                     </div>
                   ))
                 )}
               </div>
             ) : hubTab === 'timeOff' ? (
-              <div className="space-y-2 font-mono text-xs">
+              <div className="space-y-2 text-xs">
                 {hubData.timeOffRequests.length === 0 ? (
-                  <p className="text-[#6F6C69] p-4 text-center">No leave requests.</p>
+                  <p className="text-[#6B665C] p-4 text-center">No leave requests.</p>
                 ) : (
                   hubData.timeOffRequests.map((r) => (
-                    <div key={r._id} className="p-2.5 bg-[#111114] rounded border border-white/5 flex justify-between items-center">
+                    <div key={r._id} className="p-2.5 bg-[#FAF9F6] rounded-lg border border-[#E7E2D9] flex justify-between items-center">
                       <div>
-                        <span className="text-[#F5F2EA] block">{r.timeOffType?.name || 'Leave'}</span>
-                        <span className="text-[10px] text-[#6F6C69]">{r.startDate?.split('T')[0]} to {r.endDate?.split('T')[0]}</span>
+                        <span className="text-[#1C1B19] font-medium block">{r.timeOffType?.name || 'Leave'}</span>
+                        <span className="text-[11px] text-[#6B665C]">{r.startDate?.split('T')[0]} to {r.endDate?.split('T')[0]}</span>
                       </div>
                       <Badge variant={r.status === 'Approved' ? 'success' : r.status === 'Pending' ? 'warning' : 'danger'}>
                         {r.status}
@@ -788,17 +774,17 @@ export const EmployeesPage = () => {
                 )}
               </div>
             ) : (
-              <div className="space-y-2 font-mono text-xs">
+              <div className="space-y-2 text-xs">
                 {hubData.payslips.length === 0 ? (
-                  <p className="text-[#6F6C69] p-4 text-center">No payslips generated.</p>
+                  <p className="text-[#6B665C] p-4 text-center">No payslips generated.</p>
                 ) : (
                   hubData.payslips.map((ps) => (
-                    <div key={ps._id} className="p-2.5 bg-[#111114] rounded border border-white/5 flex justify-between items-center">
+                    <div key={ps._id} className="p-2.5 bg-[#FAF9F6] rounded-lg border border-[#E7E2D9] flex justify-between items-center">
                       <div>
-                        <span className="text-[#F5F2EA] block">{ps.payrun?.name || 'Payrun'}</span>
-                        <span className="text-[10px] text-[#6F6C69]">Gross: ₹{Number(ps.grossSalary || ps.gross || 0).toLocaleString('en-IN')}</span>
+                        <span className="text-[#1C1B19] font-medium block">{ps.payrun?.name || 'Payrun'}</span>
+                        <span className="text-[11px] text-[#6B665C]">Gross: ₹{Number(ps.grossSalary || ps.gross || 0).toLocaleString('en-IN')}</span>
                       </div>
-                      <span className="text-xs font-bold text-[#39D98A]">₹{Number(ps.netSalary || ps.net || 0).toLocaleString('en-IN')}</span>
+                      <span className="text-xs font-bold text-[#8A6D3B] font-mono">₹{Number(ps.netSalary || ps.net || 0).toLocaleString('en-IN')}</span>
                     </div>
                   ))
                 )}
@@ -815,7 +801,7 @@ export const EmployeesPage = () => {
         title={editingEmployee ? 'Edit Employee Record' : 'Create New Employee Record'}
         maxWidth="max-w-xl"
       >
-        <form onSubmit={handleSubmitForm} className="space-y-3 font-mono text-xs">
+        <form onSubmit={handleSubmitForm} className="space-y-3 text-xs">
           <div className="grid grid-cols-2 gap-3">
             <div>
               <label className="staffora-label">Employee Code *</label>
@@ -824,7 +810,7 @@ export const EmployeesPage = () => {
                 required
                 value={formData.employeeId}
                 onChange={(e) => setFormData({ ...formData, employeeId: e.target.value })}
-                className="staffora-input"
+                className="staffora-input font-mono"
               />
             </div>
             <div>
@@ -875,7 +861,7 @@ export const EmployeesPage = () => {
                 required
                 value={formData.email}
                 onChange={(e) => setFormData({ ...formData, email: e.target.value })}
-                className="staffora-input"
+                className="staffora-input font-mono"
               />
             </div>
             <div>
@@ -884,7 +870,7 @@ export const EmployeesPage = () => {
                 type="text"
                 value={formData.phone}
                 onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
-                className="staffora-input"
+                className="staffora-input font-mono"
               />
             </div>
           </div>
@@ -915,7 +901,7 @@ export const EmployeesPage = () => {
             </div>
           </div>
 
-          <div className="flex justify-end gap-2 pt-3 border-t border-white/10">
+          <div className="flex justify-end gap-2 pt-3 border-t border-[#E7E2D9]">
             <Button variant="secondary" type="button" onClick={() => setShowCreateModal(false)}>
               Cancel
             </Button>

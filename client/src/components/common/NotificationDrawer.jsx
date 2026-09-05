@@ -11,7 +11,7 @@ export const NotificationDrawer = ({ isOpen, onClose, onUnreadCountChange }) => 
   const [loading, setLoading] = useState(false);
   const [readIds, setReadIds] = useState(() => {
     try {
-      return JSON.parse(localStorage.getItem('peoplepay360_read_notifications') || '[]');
+      return JSON.parse(localStorage.getItem('staffora_read_notifications') || localStorage.getItem('peoplepay360_read_notifications') || '[]');
     } catch (e) {
       return [];
     }
@@ -76,8 +76,8 @@ export const NotificationDrawer = ({ isOpen, onClose, onUnreadCountChange }) => 
     const allIds = notifications.map((n) => n.id);
     const updated = Array.from(new Set([...readIds, ...allIds]));
     setReadIds(updated);
-    localStorage.setItem('peoplepay360_read_notifications', JSON.stringify(updated));
-    showToast({ title: 'Notifications Cleared', message: 'All notifications marked as read.', type: 'info' });
+    localStorage.setItem('staffora_read_notifications', JSON.stringify(updated));
+    showToast('All notifications marked as read.', 'info');
   };
 
   const markSingleAsRead = (id, path) => {
@@ -101,51 +101,51 @@ export const NotificationDrawer = ({ isOpen, onClose, onUnreadCountChange }) => 
   if (!isOpen) return null;
 
   return (
-    <div className="absolute right-0 top-full mt-2 w-80 sm:w-96 bg-[#17171B] border border-white/10 rounded-lg shadow-2xl p-3 z-50 flex flex-col gap-2 font-sans">
-      <div className="flex items-center justify-between pb-2 border-b border-white/10">
+    <div className="absolute right-0 top-full mt-2 w-80 sm:w-96 bg-white border border-[#E7E2D9] rounded-xl shadow-xl p-4 z-50 flex flex-col gap-3 font-body">
+      <div className="flex items-center justify-between pb-2 border-b border-[#E7E2D9]">
         <div className="flex items-center gap-2">
-          <span className="material-symbols-outlined text-[#FF6B3D] text-lg">notifications</span>
-          <h4 className="text-xs font-bold text-[#F5F2EA]">System Notifications</h4>
+          <span className="material-symbols-outlined text-[#0F5C4A] text-lg">notifications</span>
+          <h4 className="text-sm font-semibold text-[#1C1B19]">System Notifications</h4>
         </div>
         <div className="flex items-center gap-2">
           {unreadNotifications.length > 0 && (
             <button
               onClick={markAllAsRead}
-              className="text-[10px] text-[#FF8A65] hover:text-[#FF6B3D] font-mono font-semibold transition-colors"
+              className="text-xs text-[#0F5C4A] hover:underline font-medium transition-colors"
             >
               Clear All
             </button>
           )}
-          <span className="text-[10px] font-semibold bg-[#FF6B3D]/10 text-[#FF8A65] border border-[#FF6B3D]/25 px-1.5 py-0.5 rounded font-mono">
+          <span className="text-[11px] font-medium bg-[#E8F4F1] text-[#0F5C4A] border border-[#0F5C4A]/25 px-2 py-0.5 rounded-full font-mono">
             {unreadNotifications.length} Unread
           </span>
         </div>
       </div>
 
       {notificationPermission !== 'granted' && (
-        <div className="p-2 bg-[#FF6B3D]/10 border border-[#FF6B3D]/25 rounded flex items-center justify-between gap-2">
-          <div className="flex items-center gap-1.5 text-[11px] text-[#F5F2EA]">
-            <span className="material-symbols-outlined text-[#FF8A65] text-sm">desktop_windows</span>
-            <span>Enable Slack-style desktop popups</span>
+        <div className="p-2.5 bg-[#FAF4E8] border border-[#8A6D3B]/30 rounded-lg flex items-center justify-between gap-2">
+          <div className="flex items-center gap-1.5 text-xs text-[#1C1B19]">
+            <span className="material-symbols-outlined text-[#8A6D3B] text-sm">desktop_windows</span>
+            <span>Enable desktop alerts</span>
           </div>
           <button
             onClick={requestBrowserPermission}
-            className="px-2 py-0.5 bg-[#FF6B3D] hover:bg-[#FF8A65] text-[#0B0B0D] font-bold text-[10px] rounded transition-colors"
+            className="px-2.5 py-1 bg-[#0F5C4A] hover:bg-[#0F5C4A]/90 text-white font-medium text-xs rounded transition-colors"
           >
             Allow
           </button>
         </div>
       )}
 
-      <div className="space-y-1.5 max-h-72 overflow-y-auto">
+      <div className="space-y-2 max-h-72 overflow-y-auto">
         {loading ? (
-          <div className="py-8 text-center text-xs text-[#6F6C69]">
+          <div className="py-8 text-center text-xs text-[#6B665C]">
             Scanning live operational updates...
           </div>
         ) : notifications.length === 0 ? (
-          <div className="py-6 text-center text-xs text-[#6F6C69] flex flex-col items-center gap-1">
-            <span className="material-symbols-outlined text-xl text-[#39D98A]">verified</span>
-            <span className="text-[#F5F2EA] font-semibold">All Clear</span>
+          <div className="py-6 text-center text-xs text-[#6B665C] flex flex-col items-center gap-1">
+            <span className="material-symbols-outlined text-xl text-[#0F5C4A]">verified</span>
+            <span className="text-[#1C1B19] font-medium">All Clear</span>
             <span>No pending actions or alerts.</span>
           </div>
         ) : (
@@ -155,38 +155,38 @@ export const NotificationDrawer = ({ isOpen, onClose, onUnreadCountChange }) => 
               <div
                 key={n.id}
                 onClick={() => markSingleAsRead(n.id, n.path)}
-                className={`p-2.5 rounded border transition-colors cursor-pointer ${
+                className={`p-3 rounded-lg border transition-colors cursor-pointer ${
                   isRead
-                    ? 'bg-[#111114]/40 border-white/5 opacity-60 hover:opacity-100 hover:bg-[#111114]'
-                    : 'bg-[#111114] hover:bg-[#1E1E24] border-white/10 hover:border-[#FF6B3D]/30'
+                    ? 'bg-[#FAF9F6] border-[#E7E2D9] opacity-60 hover:opacity-100'
+                    : 'bg-[#FAF9F6] hover:bg-white border-[#E7E2D9] hover:border-[#0F5C4A]/40'
                 }`}
               >
                 <div className="flex items-start gap-2.5">
                   <div
-                    className={`w-6 h-6 rounded flex items-center justify-center text-xs shrink-0 ${
+                    className={`w-7 h-7 rounded-lg flex items-center justify-center text-xs shrink-0 ${
                       n.type === 'warning'
-                        ? 'bg-[#F5B942]/10 text-[#F5B942]'
+                        ? 'bg-[#FAF4E8] text-[#8A6D3B]'
                         : n.type === 'info'
-                        ? 'bg-[#58B7FF]/10 text-[#58B7FF]'
-                        : 'bg-[#39D98A]/10 text-[#39D98A]'
+                        ? 'bg-[#E8F4F1] text-[#0F5C4A]'
+                        : 'bg-[#E8F4F1] text-[#0F5C4A]'
                     }`}
                   >
                     <span className="material-symbols-outlined text-sm">{n.icon}</span>
                   </div>
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center justify-between gap-1">
-                      <h5 className={`text-xs font-semibold truncate ${isRead ? 'text-[#A6A3A0]' : 'text-[#F5F2EA]'}`}>
+                      <h5 className={`text-xs font-semibold truncate ${isRead ? 'text-[#6B665C]' : 'text-[#1C1B19]'}`}>
                         {n.title}
                       </h5>
-                      <span className="text-[10px] text-[#6F6C69] shrink-0 font-mono">{n.time}</span>
+                      <span className="text-[11px] text-[#918C82] shrink-0 font-mono">{n.time}</span>
                     </div>
-                    <p className="text-[11px] text-[#A6A3A0] mt-0.5 leading-tight">{n.desc}</p>
-                    <div className="flex items-center justify-between mt-1.5 pt-1 border-t border-white/5">
-                      <span className="text-[9px] uppercase font-mono tracking-wider text-[#6F6C69]">
+                    <p className="text-xs text-[#6B665C] mt-0.5 leading-tight">{n.desc}</p>
+                    <div className="flex items-center justify-between mt-2 pt-1 border-t border-[#E7E2D9]">
+                      <span className="text-[10px] uppercase font-mono text-[#918C82]">
                         {n.badge}
                       </span>
-                      <span className="text-[10px] text-[#FF8A65] font-semibold flex items-center gap-0.5">
-                        Open <span className="material-symbols-outlined text-[10px]">arrow_forward</span>
+                      <span className="text-xs text-[#0F5C4A] font-medium flex items-center gap-0.5">
+                        Open
                       </span>
                     </div>
                   </div>
@@ -197,11 +197,11 @@ export const NotificationDrawer = ({ isOpen, onClose, onUnreadCountChange }) => 
         )}
       </div>
 
-      <div className="pt-2 border-t border-white/10 flex justify-between items-center text-[10px] text-[#6F6C69]">
-        <button onClick={onClose} className="hover:text-[#F5F2EA]">
+      <div className="pt-2 border-t border-[#E7E2D9] flex justify-between items-center text-xs text-[#6B665C]">
+        <button onClick={onClose} className="hover:text-[#1C1B19]">
           Close
         </button>
-        <span className="font-mono">Staffora OS</span>
+        <span className="font-mono text-[10px]">Staffora</span>
       </div>
     </div>
   );

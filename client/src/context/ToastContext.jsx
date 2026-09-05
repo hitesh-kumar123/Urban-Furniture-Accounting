@@ -65,7 +65,7 @@ export const ToastProvider = ({ children }) => {
   // Multi-tab BroadcastChannel listener with tab instance deduplication
   useEffect(() => {
     if (typeof window === 'undefined' || !('BroadcastChannel' in window)) return;
-    const channel = new BroadcastChannel('peoplepay360_channel');
+    const channel = new BroadcastChannel('staffora_channel');
 
     channel.onmessage = (event) => {
       const data = event.data;
@@ -131,7 +131,7 @@ export const ToastProvider = ({ children }) => {
     // 5. Broadcast to other open browser tabs
     if (shouldBroadcast && typeof window !== 'undefined' && 'BroadcastChannel' in window) {
       try {
-        const channel = new BroadcastChannel('peoplepay360_channel');
+        const channel = new BroadcastChannel('staffora_channel');
         channel.postMessage({
           type: 'POPUP_NOTIFICATION',
           originTab: TAB_INSTANCE_ID,

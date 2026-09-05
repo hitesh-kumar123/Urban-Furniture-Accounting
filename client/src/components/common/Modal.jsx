@@ -18,25 +18,25 @@ export const Modal = ({ isOpen, onClose, title, children, maxWidth = 'max-w-2xl'
   if (!isOpen) return null;
 
   return (
-    <div className="fixed inset-0 z-50 overflow-y-auto flex items-center justify-center p-4 bg-black/80">
+    <div className="fixed inset-0 z-50 overflow-y-auto flex items-center justify-center p-4 bg-[#1C1B19]/45 backdrop-blur-xs">
       <div
-        className={`w-full ${maxWidth} bg-[#17171B] rounded-lg border border-white/10 shadow-2xl overflow-hidden`}
+        className={`w-full ${maxWidth} bg-white rounded-lg border border-[#E7E2D9] shadow-xl overflow-hidden`}
       >
         {/* Header */}
-        <div className="px-5 py-3.5 bg-[#111114] border-b border-white/10 flex items-center justify-between">
-          <h3 className="text-sm font-bold text-[#F5F2EA]">
+        <div className="px-5 py-3.5 bg-[#FAF9F6] border-b border-[#E7E2D9] flex items-center justify-between">
+          <h3 className="text-base font-semibold text-[#1C1B19] font-heading">
             {title}
           </h3>
           <button
             onClick={onClose}
-            className="p-1 rounded text-[#6F6C69] hover:bg-[#1E1E24] hover:text-[#F5F2EA] transition-colors"
+            className="p-1 rounded text-[#6B665C] hover:bg-[#F0ECE1] hover:text-[#1C1B19] transition-colors"
           >
             <span className="material-symbols-outlined text-base">close</span>
           </button>
         </div>
 
         {/* Content */}
-        <div className="p-5 max-h-[80vh] overflow-y-auto">{children}</div>
+        <div className="p-5 max-h-[80vh] overflow-y-auto bg-white">{children}</div>
       </div>
     </div>
   );

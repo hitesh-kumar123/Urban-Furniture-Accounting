@@ -209,24 +209,24 @@ export const DashboardPage = () => {
     const isClockedIn = !!(employeeData.attendanceToday && !employeeData.attendanceToday.checkOut);
 
     return (
-      <div className="p-5 max-w-[1400px] w-full mx-auto flex flex-col gap-6">
+      <div className="p-5 max-w-[1400px] w-full mx-auto flex flex-col gap-6 font-body">
         {/* Welcome Header */}
-        <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 pb-4 border-b border-white/10">
+        <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 pb-4 border-b border-[#E7E2D9]">
           <div>
             <div className="flex items-center gap-2 mb-1">
-              <span className="font-mono text-[10px] uppercase tracking-widest text-[#FF6B3D] font-semibold">
+              <span className="font-mono text-xs text-[#0F5C4A] font-semibold">
                 Employee Self-Service Hub
               </span>
-              <span className="text-[#6F6C69]">•</span>
-              <span className="font-mono text-[10px] text-[#A6A3A0] uppercase">
+              <span className="text-[#918C82]">•</span>
+              <span className="font-mono text-xs text-[#6B665C]">
                 {new Date().toLocaleDateString(undefined, { weekday: 'long', month: 'short', day: 'numeric', year: 'numeric' })}
               </span>
             </div>
-            <h1 className="text-xl md:text-2xl font-bold text-[#F5F2EA] tracking-tight font-display">
+            <h1 className="text-2xl md:text-3xl font-heading font-medium text-[#1C1B19]">
               {getGreeting()}, {user?.name}.
             </h1>
-            <p className="text-xs text-[#A6A3A0] mt-0.5">
-              Role: <span className="text-[#F5F2EA] font-semibold">{user?.role}</span> • Employee ID: <span className="font-mono text-[#FF8A65]">{user?.employee?.employeeId || 'EMP-SELF'}</span>
+            <p className="text-xs text-[#6B665C] mt-0.5">
+              Role: <span className="text-[#1C1B19] font-medium">{user?.role}</span> • Employee ID: <span className="font-mono font-medium text-[#0F5C4A]">{user?.employee?.employeeId || 'EMP-SELF'}</span>
             </p>
           </div>
 
@@ -261,9 +261,9 @@ export const DashboardPage = () => {
         {/* 3 Core Interactive Bento Cards */}
         <div className="grid grid-cols-1 md:grid-cols-3 gap-5">
           {/* Card 1: Shift Attendance Desk */}
-          <div className="midnight-card p-5 flex flex-col justify-between gap-4">
+          <div className="bg-white rounded-xl border border-[#E7E2D9] p-5 flex flex-col justify-between gap-4 shadow-sm">
             <div className="flex items-center justify-between">
-              <span className="text-[10px] font-mono font-semibold uppercase tracking-wider text-[#6F6C69]">
+              <span className="text-xs font-mono font-medium text-[#6B665C]">
                 Shift Punch Clock
               </span>
               <Badge variant={isClockedIn ? 'success' : 'neutral'}>
@@ -272,10 +272,10 @@ export const DashboardPage = () => {
             </div>
 
             <div className="space-y-1 my-2">
-              <div className="text-2xl font-bold text-[#F5F2EA] font-mono">
+              <div className="text-3xl font-semibold text-[#1C1B19] font-mono">
                 {new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
               </div>
-              <p className="text-xs text-[#A6A3A0]">
+              <p className="text-xs text-[#6B665C]">
                 {isClockedIn
                   ? `Clocked in at ${new Date(employeeData.attendanceToday.checkIn).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}`
                   : 'Ready to start your working shift'}
@@ -294,34 +294,34 @@ export const DashboardPage = () => {
           </div>
 
           {/* Card 2: Active Compensation & Contract */}
-          <div className="midnight-card p-5 flex flex-col justify-between gap-4">
+          <div className="bg-white rounded-xl border border-[#E7E2D9] p-5 flex flex-col justify-between gap-4 shadow-sm">
             <div className="flex items-center justify-between">
-              <span className="text-[10px] font-mono font-semibold uppercase tracking-wider text-[#6F6C69]">
+              <span className="text-xs font-mono font-medium text-[#6B665C]">
                 Active Contract
               </span>
               <Badge variant="info">Active</Badge>
             </div>
 
             <div className="space-y-1.5 my-1">
-              <span className="text-[10px] font-mono text-[#6F6C69] uppercase">Monthly Base Wage</span>
-              <div className="text-2xl font-black text-[#F5F2EA] font-mono">
+              <span className="text-xs font-mono text-[#6B665C]">Monthly Base Wage</span>
+              <div className="text-3xl font-semibold text-[#8A6D3B] font-mono">
                 {formatINR(employeeData.activeContract?.wage || user?.employee?.wage || 0)}
               </div>
-              <p className="text-xs text-[#A6A3A0]">
-                Structure: <span className="text-[#F5F2EA] font-medium">{employeeData.activeContract?.salaryStructure?.name || 'Standard Monthly'}</span>
+              <p className="text-xs text-[#6B665C]">
+                Structure: <span className="text-[#1C1B19] font-medium">{employeeData.activeContract?.salaryStructure?.name || 'Standard Monthly'}</span>
               </p>
             </div>
 
-            <div className="pt-2 border-t border-white/5 flex items-center justify-between text-xs font-mono text-[#6F6C69]">
+            <div className="pt-2 border-t border-[#E7E2D9] flex items-center justify-between text-xs font-mono text-[#6B665C]">
               <span>Department</span>
-              <span className="text-[#A6A3A0]">{user?.employee?.department || 'Engineering'}</span>
+              <span className="text-[#1C1B19] font-medium">{user?.employee?.department || 'Engineering'}</span>
             </div>
           </div>
 
           {/* Card 3: Latest Issued Payslip */}
-          <div className="midnight-card p-5 flex flex-col justify-between gap-4">
+          <div className="bg-white rounded-xl border border-[#E7E2D9] p-5 flex flex-col justify-between gap-4 shadow-sm">
             <div className="flex items-center justify-between">
-              <span className="text-[10px] font-mono font-semibold uppercase tracking-wider text-[#6F6C69]">
+              <span className="text-xs font-mono font-medium text-[#6B665C]">
                 Latest Payslip
               </span>
               <Badge variant="success">Paid</Badge>
@@ -329,16 +329,16 @@ export const DashboardPage = () => {
 
             {employeeData.recentPayslips.length > 0 ? (
               <div className="space-y-1.5 my-1">
-                <span className="text-[10px] font-mono text-[#6F6C69] uppercase">Net Salary Take-Home</span>
-                <div className="text-2xl font-black text-[#39D98A] font-mono">
+                <span className="text-xs font-mono text-[#6B665C]">Net Take-Home Salary</span>
+                <div className="text-3xl font-semibold text-[#0F5C4A] font-mono">
                   {formatINR(employeeData.recentPayslips[0].net)}
                 </div>
-                <p className="text-xs text-[#A6A3A0]">
+                <p className="text-xs text-[#6B665C]">
                   Period: {new Date(employeeData.recentPayslips[0].payrollPeriod?.start).toLocaleDateString()} - {new Date(employeeData.recentPayslips[0].payrollPeriod?.end).toLocaleDateString()}
                 </p>
               </div>
             ) : (
-              <div className="py-3 text-xs text-[#6F6C69]">
+              <div className="py-3 text-xs text-[#6B665C]">
                 No payslips published yet for this cycle.
               </div>
             )}
@@ -363,18 +363,18 @@ export const DashboardPage = () => {
         </div>
 
         {/* Leave Entitlement Progress Meters */}
-        <div className="midnight-card p-5 flex flex-col gap-4">
-          <div className="flex items-center justify-between pb-3 border-b border-white/10">
+        <div className="bg-white rounded-xl border border-[#E7E2D9] p-5 flex flex-col gap-4 shadow-sm">
+          <div className="flex items-center justify-between pb-3 border-b border-[#E7E2D9]">
             <div>
-              <span className="text-[10px] font-mono font-semibold uppercase tracking-wider text-[#6F6C69] block">
+              <span className="text-xs font-mono font-medium text-[#6B665C] block">
                 Statutory Entitlements
               </span>
-              <h3 className="text-sm font-bold text-[#F5F2EA] font-display">
+              <h3 className="text-base font-heading font-medium text-[#1C1B19]">
                 Annual Time Off Balances
               </h3>
             </div>
-            <Link to="/time-off" className="text-xs text-[#FF6B3D] hover:underline font-mono">
-              View All Requests →
+            <Link to="/time-off" className="text-xs text-[#0F5C4A] hover:underline font-medium">
+              View all requests
             </Link>
           </div>
 
@@ -383,15 +383,15 @@ export const DashboardPage = () => {
               employeeData.leaveBalances.map((bal, idx) => {
                 const percent = bal.allocated > 0 ? Math.min(100, Math.round((bal.used / bal.allocated) * 100)) : 0;
                 return (
-                  <div key={idx} className="p-3.5 rounded bg-[#111114] border border-white/5 flex flex-col gap-2">
+                  <div key={idx} className="p-3.5 rounded-lg bg-[#FAF9F6] border border-[#E7E2D9] flex flex-col gap-2">
                     <div className="flex items-center justify-between">
-                      <span className="text-xs font-semibold text-[#F5F2EA]">{bal.leaveType?.name || 'Leave'}</span>
-                      <span className="text-xs font-mono font-bold text-[#FF8A65]">{bal.remaining}d left</span>
+                      <span className="text-xs font-semibold text-[#1C1B19]">{bal.leaveType?.name || 'Leave'}</span>
+                      <span className="text-xs font-mono font-bold text-[#0F5C4A]">{bal.remaining}d left</span>
                     </div>
-                    <div className="w-full bg-[#1E1E24] rounded-full h-1.5 overflow-hidden">
-                      <div className="bg-[#FF6B3D] h-full rounded-full transition-all" style={{ width: `${percent}%` }}></div>
+                    <div className="w-full bg-[#E7E2D9] rounded-full h-1.5 overflow-hidden">
+                      <div className="bg-[#0F5C4A] h-full rounded-full transition-all" style={{ width: `${percent}%` }}></div>
                     </div>
-                    <div className="flex items-center justify-between text-[10px] font-mono text-[#6F6C69]">
+                    <div className="flex items-center justify-between text-[11px] font-mono text-[#6B665C]">
                       <span>Used: {bal.used}d</span>
                       <span>Total: {bal.allocated}d</span>
                     </div>
@@ -399,7 +399,7 @@ export const DashboardPage = () => {
                 );
               })
             ) : (
-              <div className="col-span-4 py-4 text-center text-xs text-[#6F6C69]">
+              <div className="col-span-4 py-4 text-center text-xs text-[#6B665C]">
                 Annual leave balance allocations are managed by HR.
               </div>
             )}
@@ -414,11 +414,11 @@ export const DashboardPage = () => {
             title="Quick Leave Application"
             maxWidth="max-w-md"
           >
-            <form onSubmit={handleQuickLeaveSubmit} className="space-y-3 font-mono text-xs">
-              <div className="p-3 bg-[#111114] border border-white/10 rounded flex items-center justify-between">
+            <form onSubmit={handleQuickLeaveSubmit} className="space-y-3 text-xs">
+              <div className="p-3 bg-[#FAF9F6] border border-[#E7E2D9] rounded-lg flex items-center justify-between">
                 <div>
-                  <span className="text-[10px] uppercase text-[#6F6C69] font-bold block">Applying As</span>
-                  <span className="text-xs font-semibold text-[#F5F2EA]">{user?.name}</span>
+                  <span className="text-[10px] text-[#6B665C] font-medium block">Applying as</span>
+                  <span className="text-xs font-semibold text-[#1C1B19]">{user?.name}</span>
                 </div>
                 <Badge variant="info">{user?.employee?.employeeId || 'MY ACCOUNT'}</Badge>
               </div>
@@ -447,7 +447,7 @@ export const DashboardPage = () => {
                     required
                     value={quickLeaveForm.startDate}
                     onChange={(e) => setQuickLeaveForm({ ...quickLeaveForm, startDate: e.target.value })}
-                    className="staffora-input"
+                    className="staffora-input font-mono"
                   />
                 </div>
                 <div>
@@ -457,7 +457,7 @@ export const DashboardPage = () => {
                     required
                     value={quickLeaveForm.endDate}
                     onChange={(e) => setQuickLeaveForm({ ...quickLeaveForm, endDate: e.target.value })}
-                    className="staffora-input"
+                    className="staffora-input font-mono"
                   />
                 </div>
               </div>
@@ -473,7 +473,7 @@ export const DashboardPage = () => {
                 />
               </div>
 
-              <div className="flex justify-end gap-2 pt-3 border-t border-white/10">
+              <div className="flex justify-end gap-2 pt-3 border-t border-[#E7E2D9]">
                 <Button variant="secondary" type="button" onClick={() => setShowQuickLeaveModal(false)}>
                   Cancel
                 </Button>
@@ -509,8 +509,25 @@ export const DashboardPage = () => {
 
   const rawMonthlyTrends = payroll.monthlyTrends || [];
 
+  const formatMonthName = (raw) => {
+    if (!raw) return '';
+    if (typeof raw === 'string' && /^\d{4}-\d{2}$/.test(raw)) {
+      const [year, month] = raw.split('-');
+      const d = new Date(parseInt(year, 10), parseInt(month, 10) - 1, 1);
+      if (!isNaN(d.getTime())) {
+        return d.toLocaleDateString('en-US', { month: 'short', year: 'numeric' });
+      }
+    }
+    const d = new Date(raw);
+    if (!isNaN(d.getTime())) {
+      return d.toLocaleDateString('en-US', { month: 'short', year: 'numeric' });
+    }
+    return String(raw);
+  };
+
   const monthlyTrends = rawMonthlyTrends.map((m) => ({
-    month: typeof m.month === 'string' ? (m.month.length > 5 ? m.month.slice(5) : m.month) : String(m.month || 'M'),
+    rawMonth: m.month,
+    month: formatMonthName(m.month),
     netSalary: Number(m.netSalary ?? m.totalNet ?? 0),
     headcount: Number(m.headcount ?? m.payslipCount ?? 0)
   }));
@@ -522,33 +539,33 @@ export const DashboardPage = () => {
   const pendingAttentionCount = (leave?.pending || 0) + (alerts?.missingBankInfoEmployees || 0);
 
   return (
-    <div className="p-5 max-w-[1600px] w-full mx-auto flex flex-col gap-5">
+    <div className="p-5 max-w-[1600px] w-full mx-auto flex flex-col gap-5 font-body">
       {/* 1. Operations Context Header */}
-      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 pb-4 border-b border-white/10">
+      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 pb-4 border-b border-[#E7E2D9]">
         <div>
           <div className="flex items-center gap-2 mb-1">
-            <span className="font-mono text-[10px] uppercase tracking-widest text-[#FF6B3D] font-semibold">
+            <span className="font-mono text-xs text-[#0F5C4A] font-semibold">
               Workforce Operations
             </span>
-            <span className="text-[#6F6C69]">•</span>
-            <span className="font-mono text-[10px] text-[#A6A3A0] uppercase">
+            <span className="text-[#918C82]">•</span>
+            <span className="font-mono text-xs text-[#6B665C]">
               {currentMonthName} Pay Cycle
             </span>
           </div>
-          <h1 className="text-xl md:text-2xl font-bold text-[#F5F2EA] tracking-tight font-display">
+          <h1 className="text-2xl md:text-3xl font-heading font-medium text-[#1C1B19]">
             {getGreeting()}, {user?.name?.split(' ')[0] || 'Manager'}.
           </h1>
-          <p className="text-xs text-[#A6A3A0] mt-0.5">
+          <p className="text-xs text-[#6B665C] mt-0.5">
             {headcount.total || 0} active employees across {Object.keys(headcount.byDepartment || {}).length || 0} departments • {pendingAttentionCount > 0 ? `${pendingAttentionCount} items require operational review` : 'All records compliant'}.
           </p>
         </div>
 
         {/* Action Controls */}
-        <div className="flex items-center gap-2.5">
+        <div className="flex items-center gap-2.5 flex-wrap">
           <select
             value={departmentFilter}
             onChange={(e) => setDepartmentFilter(e.target.value)}
-            className="staffora-input py-1 px-2.5 text-xs w-auto font-mono"
+            className="staffora-input py-1.5 px-3 text-xs w-auto font-medium"
           >
             <option value="">All Departments</option>
             <option value="Engineering">Engineering</option>
@@ -556,6 +573,18 @@ export const DashboardPage = () => {
             <option value="Design">Design</option>
             <option value="Marketing">Marketing</option>
             <option value="Human Resources">Human Resources</option>
+          </select>
+
+          <select
+            value={employeeTypeFilter}
+            onChange={(e) => setEmployeeTypeFilter(e.target.value)}
+            className="staffora-input py-1.5 px-3 text-xs w-auto font-medium"
+          >
+            <option value="">All Employee Types</option>
+            <option value="Full-Time">Full-Time</option>
+            <option value="Part-Time">Part-Time</option>
+            <option value="Contract">Contract</option>
+            <option value="Intern">Intern</option>
           </select>
 
           <Button
@@ -581,78 +610,149 @@ export const DashboardPage = () => {
       </div>
 
       {/* 2. Hero Primary Payroll Metric */}
-      <div className="midnight-card-elevated p-6 flex flex-col lg:flex-row lg:items-center justify-between gap-6">
+      <div className="bg-white rounded-xl border border-[#E7E2D9] p-6 flex flex-col lg:flex-row lg:items-center justify-between gap-6 shadow-sm">
         <div className="space-y-1">
-          <span className="text-[10px] font-mono uppercase tracking-widest text-[#6F6C69] font-bold block">
+          <span className="text-xs font-mono text-[#6B665C] font-medium block">
             Primary Net Payout Liability — {currentMonthName}
           </span>
-          <div className="text-4xl md:text-5xl font-black text-[#F5F2EA] tracking-tight font-mono-val">
+          <div className="text-4xl md:text-5xl font-bold text-[#8A6D3B] tracking-tight font-mono">
             {formatINR(payroll.totalNetPaid || 0)}
           </div>
           <div className="flex items-center gap-3 pt-2 text-xs flex-wrap font-mono">
             <span className={`inline-flex items-center gap-1 font-semibold px-2 py-0.5 rounded border text-[11px] ${
               payroll.totalNetPaid > 0
-                ? 'bg-[#39D98A]/10 text-[#39D98A] border-[#39D98A]/20'
-                : 'bg-[#6F6C69]/10 text-[#A6A3A0] border-white/10'
+                ? 'bg-[#E8F4F1] text-[#0F5C4A] border-[#0F5C4A]/20'
+                : 'bg-[#FAF9F6] text-[#6B665C] border-[#E7E2D9]'
             }`}>
               {payroll.totalNetPaid > 0 ? 'Active Cycle Settled' : 'Cycle Pending'}
             </span>
-            <span className="text-[#A6A3A0]">
+            <span className="text-[#6B665C]">
               Gross: {formatINR(payroll.totalGross || 0, { decimals: 0 })}
             </span>
-            <span className="text-[#6F6C69]">•</span>
-            <span className="text-[#FF5C5C]">
+            <span className="text-[#918C82]">•</span>
+            <span className="text-[#B5482E]">
               Deductions: -{formatINR(payroll.totalDeductions || 0, { decimals: 0 })}
             </span>
           </div>
         </div>
 
-        <div className="flex items-center gap-4 border-t lg:border-t-0 lg:border-l border-white/10 pt-4 lg:pt-0 lg:pl-6 text-xs font-mono">
+        <div className="flex items-center gap-6 border-t lg:border-t-0 lg:border-l border-[#E7E2D9] pt-4 lg:pt-0 lg:pl-6 text-xs font-mono">
           <div>
-            <span className="text-[10px] text-[#6F6C69] uppercase tracking-wider block">Payslips Settled</span>
-            <span className="text-xl font-bold text-[#F5F2EA]">{payroll.payslipsGenerated || 0} / {headcount.total || 0}</span>
+            <span className="text-xs text-[#6B665C] block">Payslips Settled</span>
+            <span className="text-xl font-bold text-[#1C1B19]">{payroll.payslipsGenerated || 0} / {headcount.total || 0}</span>
           </div>
-          <div className="w-px h-8 bg-white/10"></div>
+          <div className="w-px h-8 bg-[#E7E2D9]"></div>
           <div>
-            <span className="text-[10px] text-[#6F6C69] uppercase tracking-wider block">Average Salary</span>
-            <span className="text-xl font-bold text-[#F5F2EA]">{formatINR(payroll.averageSalary || 0, { decimals: 0 })}</span>
+            <span className="text-xs text-[#6B665C] block">Average Salary</span>
+            <span className="text-xl font-bold text-[#1C1B19]">{formatINR(payroll.averageSalary || 0, { decimals: 0 })}</span>
           </div>
         </div>
       </div>
 
-      {/* 3. Asymmetric Section: Trajectory Analytics + Operational Attention */}
+      {/* 2.5 Attendance Overview KPI Section */}
+      <div className="space-y-2.5">
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-2">
+            <span className="material-symbols-outlined text-[#0F5C4A] text-base">schedule</span>
+            <h3 className="text-sm font-heading font-medium text-[#1C1B19]">
+              Attendance Overview &amp; Shift Health
+            </h3>
+          </div>
+          <span className="text-xs text-[#6B665C]">
+            {employeeTypeFilter ? `${employeeTypeFilter} Staff` : 'All Active Staff'} • {attendance?.totalWorkedHours ? `${Math.round(attendance.totalWorkedHours)} hrs total` : 'Live Shift Sync'}
+          </span>
+        </div>
+
+        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3">
+          <div className="bg-white rounded-lg border border-[#E7E2D9] p-3.5 space-y-1 shadow-sm">
+            <span className="text-xs text-[#6B665C] block font-medium">Present</span>
+            <div className="text-xl font-bold text-[#0F5C4A] flex items-center gap-1.5 font-mono">
+              <span className="w-2 h-2 rounded-full bg-[#0F5C4A]"></span>
+              {attendance?.present || 0}
+            </div>
+            <span className="text-[11px] text-[#6B665C]">On Shift</span>
+          </div>
+
+          <div className="bg-white rounded-lg border border-[#E7E2D9] p-3.5 space-y-1 shadow-sm">
+            <span className="text-xs text-[#6B665C] block font-medium">Late Arrivals</span>
+            <div className="text-xl font-bold text-[#8A6D3B] flex items-center gap-1.5 font-mono">
+              <span className="w-2 h-2 rounded-full bg-[#8A6D3B]"></span>
+              {attendance?.late || 0}
+            </div>
+            <span className="text-[11px] text-[#6B665C]">Shift Delays</span>
+          </div>
+
+          <div className="bg-white rounded-lg border border-[#E7E2D9] p-3.5 space-y-1 shadow-sm">
+            <span className="text-xs text-[#6B665C] block font-medium">Absences</span>
+            <div className="text-xl font-bold text-[#B5482E] flex items-center gap-1.5 font-mono">
+              <span className="w-2 h-2 rounded-full bg-[#B5482E]"></span>
+              {attendance?.absent || 0}
+            </div>
+            <span className="text-[11px] text-[#6B665C]">Unscheduled</span>
+          </div>
+
+          <div className="bg-white rounded-lg border border-[#E7E2D9] p-3.5 space-y-1 shadow-sm">
+            <span className="text-xs text-[#6B665C] block font-medium">Overtime Logs</span>
+            <div className="text-xl font-bold text-[#0F5C4A] flex items-center gap-1.5 font-mono">
+              <span className="w-2 h-2 rounded-full bg-[#0F5C4A]"></span>
+              {attendance?.overtime || 0}
+            </div>
+            <span className="text-[11px] text-[#6B665C]">Extended Hours</span>
+          </div>
+
+          <div className="bg-white rounded-lg border border-[#E7E2D9] p-3.5 space-y-1 shadow-sm">
+            <span className="text-xs text-[#6B665C] block font-medium">Missing Check-Outs</span>
+            <div className="text-xl font-bold text-[#B5482E] flex items-center gap-1.5 font-mono">
+              <span className="w-2 h-2 rounded-full bg-[#B5482E]"></span>
+              {attendance?.missingCheckout || 0}
+            </div>
+            <span className="text-[11px] text-[#6B665C]">Open Punches</span>
+          </div>
+
+          <div className="bg-white rounded-lg border border-[#E7E2D9] p-3.5 space-y-1 shadow-sm">
+            <span className="text-xs text-[#6B665C] block font-medium">Total Worked</span>
+            <div className="text-xl font-bold text-[#1C1B19] flex items-center gap-1.5 font-mono">
+              <span className="material-symbols-outlined text-sm text-[#6B665C]">timelapse</span>
+              {Math.round(attendance?.totalWorkedHours || 0)}h
+            </div>
+            <span className="text-[11px] text-[#6B665C]">Aggregated Shift</span>
+          </div>
+        </div>
+      </div>
+
+      {/* 3. Section: Trajectory Analytics + Operational Attention */}
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-5 items-start">
         {/* Chart Column */}
-        <div className="lg:col-span-8 midnight-card p-5 flex flex-col justify-between">
+        <div className="lg:col-span-8 bg-white rounded-xl border border-[#E7E2D9] p-5 flex flex-col justify-between shadow-sm">
           <div>
-            <div className="flex items-center justify-between pb-3 border-b border-white/10">
+            <div className="flex items-center justify-between pb-3 border-b border-[#E7E2D9]">
               <div>
-                <span className="text-[10px] font-mono font-semibold uppercase tracking-wider text-[#6F6C69] block">
+                <span className="text-xs font-mono text-[#6B665C] font-medium block">
                   Historical Trajectory
                 </span>
-                <h3 className="text-sm font-bold text-[#F5F2EA] font-display">
+                <h3 className="text-base font-heading font-medium text-[#1C1B19]">
                   Monthly Net Payroll &amp; Headcount
                 </h3>
               </div>
 
               {/* Mode Toggle */}
-              <div className="flex items-center bg-[#0B0B0D] p-0.5 rounded border border-white/10">
+              <div className="flex items-center bg-[#FAF9F6] p-0.5 rounded-lg border border-[#E7E2D9]">
                 <button
                   onClick={() => setChartMode('cost')}
-                  className={`px-2.5 py-1 rounded text-xs font-mono transition-colors ${
+                  className={`px-3 py-1 rounded-md text-xs font-medium transition-colors ${
                     chartMode === 'cost'
-                      ? 'bg-[#17171B] text-[#FF8A65] font-semibold'
-                      : 'text-[#6F6C69] hover:text-[#A6A3A0]'
+                      ? 'bg-white text-[#1C1B19] font-semibold shadow-sm'
+                      : 'text-[#6B665C] hover:text-[#1C1B19]'
                   }`}
                 >
                   Cost (₹)
                 </button>
                 <button
                   onClick={() => setChartMode('headcount')}
-                  className={`px-2.5 py-1 rounded text-xs font-mono transition-colors ${
+                  className={`px-3 py-1 rounded-md text-xs font-medium transition-colors ${
                     chartMode === 'headcount'
-                      ? 'bg-[#17171B] text-[#FF8A65] font-semibold'
-                      : 'text-[#6F6C69] hover:text-[#A6A3A0]'
+                      ? 'bg-white text-[#1C1B19] font-semibold shadow-sm'
+                      : 'text-[#6B665C] hover:text-[#1C1B19]'
                   }`}
                 >
                   Staff ({headcount.total || 0})
@@ -660,82 +760,110 @@ export const DashboardPage = () => {
               </div>
             </div>
 
-            {/* Custom Bar Visualizer */}
+            {/* Clean Enterprise Bar Chart */}
             {monthlyTrends.length === 0 ? (
-              <div className="h-52 flex flex-col items-center justify-center text-center p-6 bg-[#111114] border border-dashed border-white/10 rounded-lg mt-4">
-                <span className="material-symbols-outlined text-3xl text-[#6F6C69] mb-1.5">bar_chart</span>
-                <p className="text-xs font-semibold text-[#F5F2EA]">No Historical Payruns Yet</p>
-                <p className="text-[11px] text-[#6F6C69] max-w-xs mt-0.5">
+              <div className="h-56 flex flex-col items-center justify-center text-center p-6 bg-[#FAF9F6] border border-dashed border-[#E7E2D9] rounded-lg mt-4">
+                <span className="material-symbols-outlined text-3xl text-[#918C82] mb-1.5">bar_chart</span>
+                <p className="text-xs font-semibold text-[#1C1B19]">No Historical Payruns Yet</p>
+                <p className="text-xs text-[#6B665C] max-w-xs mt-0.5">
                   Generate and compute your monthly payrun batches to track real-time net salary trajectory.
                 </p>
                 {hasRole('Admin', 'HR Payroll User', 'HR Payroll Manager') && (
                   <button
                     onClick={() => navigate('/payruns')}
-                    className="mt-3 px-3 py-1 bg-[#FF6B3D] hover:bg-[#FF8A65] text-[#0B0B0D] font-bold text-xs rounded transition-colors"
+                    className="mt-3 px-3.5 py-1.5 bg-[#0F5C4A] hover:bg-[#0B4739] text-white font-medium text-xs rounded-md transition-colors shadow-sm"
                   >
                     Run First Payrun
                   </button>
                 )}
               </div>
             ) : (
-              <div className="h-52 flex items-end justify-between gap-3 pt-8 px-2 relative">
-                {monthlyTrends.map((item, idx) => {
-                  const currentVal = chartMode === 'cost' ? item.netSalary : item.headcount * 60000;
-                  const heightPercent = Math.min(100, Math.max(16, Math.round((currentVal / maxVal) * 100)));
-                  const isHovered = hoveredBar === idx;
+              <div className="mt-4 relative h-56 flex flex-col justify-between">
+                {/* Subtle Horizontal Background Grid Lines */}
+                <div className="absolute inset-0 flex flex-col justify-between pointer-events-none pb-7 pt-2">
+                  <div className="w-full border-b border-dashed border-[#E7E2D9] flex justify-start">
+                    <span className="text-[10px] font-mono text-[#918C82] -mt-2 bg-white pr-1.5">
+                      {chartMode === 'cost' ? formatINR(maxVal, { compact: true }) : `${Math.round(maxVal / 60000)} Staff`}
+                    </span>
+                  </div>
+                  <div className="w-full border-b border-dashed border-[#E7E2D9] flex justify-start">
+                    <span className="text-[10px] font-mono text-[#918C82] -mt-2 bg-white pr-1.5">
+                      {chartMode === 'cost' ? formatINR(maxVal * 0.66, { compact: true }) : `${Math.round((maxVal * 0.66) / 60000)} Staff`}
+                    </span>
+                  </div>
+                  <div className="w-full border-b border-dashed border-[#E7E2D9] flex justify-start">
+                    <span className="text-[10px] font-mono text-[#918C82] -mt-2 bg-white pr-1.5">
+                      {chartMode === 'cost' ? formatINR(maxVal * 0.33, { compact: true }) : `${Math.round((maxVal * 0.33) / 60000)} Staff`}
+                    </span>
+                  </div>
+                  <div className="w-full border-b border-[#E7E2D9]"></div>
+                </div>
 
-                  return (
-                    <div
-                      key={item.month + idx}
-                      className="flex-1 flex flex-col items-center gap-2 group cursor-pointer relative h-full justify-end"
-                      onMouseEnter={() => setHoveredBar(idx)}
-                      onMouseLeave={() => setHoveredBar(null)}
-                    >
-                      {isHovered && (
-                        <div className="absolute -top-12 z-20 bg-[#17171B] border border-white/20 px-2.5 py-1 rounded shadow-xl pointer-events-none text-center whitespace-nowrap">
-                          <span className="text-[10px] font-mono text-[#6F6C69] block">{item.month}</span>
-                          <span className="text-xs font-bold font-mono text-[#F5F2EA]">
-                            {chartMode === 'cost' ? formatINR(item.netSalary, { compact: true }) : `${item.headcount} Staff`}
-                          </span>
+                {/* Bars Visualization Container */}
+                <div className="relative z-10 h-full flex items-end justify-around gap-6 px-10 pb-7">
+                  {monthlyTrends.map((item, idx) => {
+                    const currentVal = chartMode === 'cost' ? item.netSalary : item.headcount * 60000;
+                    const heightPercent = Math.min(100, Math.max(12, Math.round((currentVal / maxVal) * 100)));
+                    const isHovered = hoveredBar === idx;
+
+                    return (
+                      <div
+                        key={item.month + idx}
+                        className="flex flex-col items-center group cursor-pointer relative h-full justify-end"
+                        onMouseEnter={() => setHoveredBar(idx)}
+                        onMouseLeave={() => setHoveredBar(null)}
+                      >
+                        {/* Interactive Tooltip with exact ₹ amount and readable month */}
+                        {isHovered && (
+                          <div className="absolute -top-14 z-30 bg-white border border-[#E7E2D9] px-3 py-1.5 rounded-lg shadow-md pointer-events-none text-center whitespace-nowrap">
+                            <span className="text-[10px] font-mono text-[#6B665C] block font-medium">{item.month}</span>
+                            <span className="text-xs font-bold font-mono text-[#0F5C4A]">
+                              {chartMode === 'cost'
+                                ? `₹${Number(item.netSalary).toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`
+                                : `${item.headcount} Active Employees`}
+                            </span>
+                          </div>
+                        )}
+
+                        {/* Slim Emerald Bar with clean border */}
+                        <div className="w-7 bg-[#FAF9F6] rounded-t-md flex flex-col justify-end overflow-hidden h-full border border-[#E7E2D9] group-hover:border-[#0F5C4A] transition-colors">
+                          <div
+                            className="w-full bg-[#0F5C4A] transition-all duration-300 rounded-t-sm group-hover:bg-[#0B4739]"
+                            style={{ height: `${heightPercent}%` }}
+                          ></div>
                         </div>
-                      )}
 
-                      <div className="w-full max-w-[32px] bg-[#17171B] rounded-t flex flex-col justify-end overflow-hidden h-full border border-white/5 group-hover:border-[#FF6B3D]/50 transition-colors">
-                        <div
-                          className="w-full bg-[#FF6B3D] transition-all duration-300 rounded-t group-hover:bg-[#FF8A65]"
-                          style={{ height: `${heightPercent}%` }}
-                        ></div>
+                        {/* Readable Month X-Axis Label */}
+                        <span className="absolute -bottom-6 text-xs font-mono font-medium text-[#6B665C] group-hover:text-[#1C1B19] transition-colors whitespace-nowrap">
+                          {item.month}
+                        </span>
                       </div>
-
-                      <span className="text-[10px] font-mono text-[#6F6C69] group-hover:text-[#F5F2EA] transition-colors">
-                        {item.month}
-                      </span>
-                    </div>
-                  );
-                })}
+                    );
+                  })}
+                </div>
               </div>
             )}
           </div>
         </div>
 
         {/* Operational Attention Column */}
-        <div className="lg:col-span-4 midnight-card p-5 flex flex-col gap-4">
-          <div className="pb-3 border-b border-white/10">
-            <span className="text-[10px] font-mono font-semibold uppercase tracking-wider text-[#6F6C69] block">
+        <div className="lg:col-span-4 bg-white rounded-xl border border-[#E7E2D9] p-5 flex flex-col gap-4 shadow-sm">
+          <div className="pb-3 border-b border-[#E7E2D9]">
+            <span className="text-xs font-mono text-[#6B665C] font-medium block">
               Governance &amp; Audit
             </span>
-            <h3 className="text-sm font-bold text-[#F5F2EA] font-display">
+            <h3 className="text-base font-heading font-medium text-[#1C1B19]">
               Action Items
             </h3>
           </div>
 
           <div className="flex flex-col gap-3">
-            <div className="p-3 rounded bg-[#111114] border border-white/5 flex items-center justify-between">
+            <div className="p-3.5 rounded-lg bg-[#FAF9F6] border border-[#E7E2D9] flex items-center justify-between">
               <div className="flex items-center gap-3">
-                <span className="material-symbols-outlined text-[#FF6B3D] text-lg">event_busy</span>
+                <span className="material-symbols-outlined text-[#0F5C4A] text-xl">event_busy</span>
                 <div>
-                  <span className="text-xs font-semibold text-[#F5F2EA] block">Pending Leaves</span>
-                  <span className="text-[10px] text-[#6F6C69]">{leave?.pending || 0} requests awaiting review</span>
+                  <span className="text-xs font-semibold text-[#1C1B19] block">Pending Leaves</span>
+                  <span className="text-[11px] text-[#6B665C]">{leave?.pending || 0} requests awaiting review</span>
                 </div>
               </div>
               <Button size="sm" variant="secondary" onClick={() => navigate('/time-off')}>
@@ -743,12 +871,12 @@ export const DashboardPage = () => {
               </Button>
             </div>
 
-            <div className="p-3 rounded bg-[#111114] border border-white/5 flex items-center justify-between">
+            <div className="p-3.5 rounded-lg bg-[#FAF9F6] border border-[#E7E2D9] flex items-center justify-between">
               <div className="flex items-center gap-3">
-                <span className="material-symbols-outlined text-[#39D98A] text-lg">schedule</span>
+                <span className="material-symbols-outlined text-[#0F5C4A] text-xl">schedule</span>
                 <div>
-                  <span className="text-xs font-semibold text-[#F5F2EA] block">Attendance Health</span>
-                  <span className="text-[10px] text-[#6F6C69]">{attendance?.present || 0} present today</span>
+                  <span className="text-xs font-semibold text-[#1C1B19] block">Attendance Health</span>
+                  <span className="text-[11px] text-[#6B665C]">{attendance?.present || 0} present today</span>
                 </div>
               </div>
               <Button size="sm" variant="secondary" onClick={() => navigate('/attendance')}>
@@ -769,89 +897,89 @@ export const DashboardPage = () => {
         >
           <div className="flex flex-col gap-4 text-xs font-mono">
             {/* Memo Official Header */}
-            <div className="p-4 bg-[#111114] rounded-lg border border-white/10 space-y-2">
-              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-white/10 pb-3">
+            <div className="p-4 bg-[#FAF9F6] rounded-lg border border-[#E7E2D9] space-y-2">
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-[#E7E2D9] pb-3">
                 <div>
-                  <span className="text-[10px] text-[#FF6B3D] uppercase font-bold tracking-widest block">
+                  <span className="text-[10px] text-[#0F5C4A] uppercase font-bold tracking-wider block">
                     Confidential • Executive Disbursal Audit
                   </span>
-                  <h2 className="text-base font-bold text-[#F5F2EA] font-display">
-                    PeoplePay360 Operations — Payroll Ledger Snapshot
+                  <h2 className="text-base font-bold text-[#1C1B19] font-heading">
+                    Staffora Operations — Payroll Ledger Snapshot
                   </h2>
                 </div>
                 <div className="text-right">
-                  <Badge variant="success">AUDIT COMPLIANT</Badge>
-                  <span className="text-[10px] text-[#6F6C69] block mt-1">Ref: MEMO-2026-Q3</span>
+                  <Badge variant="success">Audit Compliant</Badge>
+                  <span className="text-[10px] text-[#6B665C] block mt-1">Ref: MEMO-2026-Q3</span>
                 </div>
               </div>
 
-              <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 text-[11px] pt-1 text-[#A6A3A0]">
+              <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 text-xs pt-1 text-[#6B665C]">
                 <div>
-                  <span className="text-[9px] text-[#6F6C69] uppercase block">Audit Period</span>
-                  <span className="text-[#F5F2EA] font-semibold">{currentMonthName}</span>
+                  <span className="text-[10px] text-[#918C82] uppercase block">Audit Period</span>
+                  <span className="text-[#1C1B19] font-semibold">{currentMonthName}</span>
                 </div>
                 <div>
-                  <span className="text-[9px] text-[#6F6C69] uppercase block">Audited By</span>
-                  <span className="text-[#F5F2EA] font-semibold">{user?.name} ({user?.role})</span>
+                  <span className="text-[10px] text-[#918C82] uppercase block">Audited By</span>
+                  <span className="text-[#1C1B19] font-semibold">{user?.name} ({user?.role})</span>
                 </div>
                 <div>
-                  <span className="text-[9px] text-[#6F6C69] uppercase block">Headcount</span>
-                  <span className="text-[#F5F2EA] font-semibold">{headcount.total} Active Staff</span>
+                  <span className="text-[10px] text-[#918C82] uppercase block">Headcount</span>
+                  <span className="text-[#1C1B19] font-semibold">{headcount.total} Active Staff</span>
                 </div>
                 <div>
-                  <span className="text-[9px] text-[#6F6C69] uppercase block">Payslips Settled</span>
-                  <span className="text-[#39D98A] font-semibold">{payroll.payslipsGenerated} / {headcount.total}</span>
+                  <span className="text-[10px] text-[#918C82] uppercase block">Payslips Settled</span>
+                  <span className="text-[#0F5C4A] font-semibold">{payroll.payslipsGenerated} / {headcount.total}</span>
                 </div>
               </div>
             </div>
 
             {/* Financial Ledger KPIs */}
             <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 text-center">
-              <div className="p-3 bg-[#17171B] rounded border border-white/5">
-                <span className="text-[9px] text-[#6F6C69] uppercase block font-bold">Gross Payout Liability</span>
-                <span className="text-base font-black text-[#F5F2EA] font-mono-val mt-0.5 block">
+              <div className="p-3 bg-white rounded-lg border border-[#E7E2D9]">
+                <span className="text-[10px] text-[#6B665C] uppercase block font-semibold">Gross Payout Liability</span>
+                <span className="text-base font-bold text-[#1C1B19] mt-0.5 block">
                   {formatINR(payroll.totalGross || 0)}
                 </span>
-                <span className="text-[10px] text-[#A6A3A0]">Base + All Allowances</span>
+                <span className="text-[10px] text-[#918C82]">Base + All Allowances</span>
               </div>
 
-              <div className="p-3 bg-[#17171B] rounded border border-white/5">
-                <span className="text-[9px] text-[#6F6C69] uppercase block font-bold">Total Statutory Deductions</span>
-                <span className="text-base font-black text-[#FF5C5C] font-mono-val mt-0.5 block">
+              <div className="p-3 bg-white rounded-lg border border-[#E7E2D9]">
+                <span className="text-[10px] text-[#6B665C] uppercase block font-semibold">Total Deductions</span>
+                <span className="text-base font-bold text-[#B5482E] mt-0.5 block">
                   -{formatINR(payroll.totalDeductions || 0)}
                 </span>
-                <span className="text-[10px] text-[#A6A3A0]">EPF, PT &amp; Income Tax (TDS)</span>
+                <span className="text-[10px] text-[#918C82]">EPF, PT &amp; Income Tax</span>
               </div>
 
-              <div className="p-3 bg-[#17171B] rounded border border-[#39D98A]/30 bg-[#39D98A]/5">
-                <span className="text-[9px] text-[#39D98A] uppercase block font-bold">Net Disbursed Amount</span>
-                <span className="text-base font-black text-[#39D98A] font-mono-val mt-0.5 block">
+              <div className="p-3 bg-[#FAF4E8] rounded-lg border border-[#8A6D3B]/30">
+                <span className="text-[10px] text-[#8A6D3B] uppercase block font-semibold">Net Disbursed</span>
+                <span className="text-base font-bold text-[#8A6D3B] mt-0.5 block">
                   {formatINR(payroll.totalNetPaid || 0)}
                 </span>
-                <span className="text-[10px] text-[#A6A3A0]">Bank Transfer Liability</span>
+                <span className="text-[10px] text-[#8A6D3B]">Bank Transfer Liability</span>
               </div>
             </div>
 
             {/* Department Breakdown Table */}
             <div className="space-y-1.5">
-              <span className="text-[10px] uppercase text-[#6F6C69] font-bold block">
+              <span className="text-xs uppercase text-[#6B665C] font-semibold block">
                 Departmental Cost Distribution
               </span>
-              <div className="border border-white/10 rounded divide-y divide-white/5 bg-[#111114] max-h-48 overflow-y-auto">
+              <div className="border border-[#E7E2D9] rounded-lg divide-y divide-[#E7E2D9] bg-white max-h-48 overflow-y-auto">
                 {(payroll.salaryCostByDepartment || []).length === 0 ? (
-                  <div className="p-3 text-center text-[#6F6C69]">No departmental records.</div>
+                  <div className="p-3 text-center text-[#6B665C]">No departmental records.</div>
                 ) : (
                   (payroll.salaryCostByDepartment || []).map((dept) => {
                     const pct = payroll.totalGross > 0 ? Math.round((dept.totalCost / payroll.totalGross) * 100) : 0;
                     return (
                       <div key={dept.department} className="p-2.5 flex items-center justify-between text-xs">
                         <div>
-                          <span className="text-[#F5F2EA] font-semibold">{dept.department}</span>
-                          <span className="text-[10px] text-[#6F6C69] ml-2">({dept.employeeCount || 1} employees)</span>
+                          <span className="text-[#1C1B19] font-medium">{dept.department}</span>
+                          <span className="text-[11px] text-[#6B665C] ml-2">({dept.employeeCount || 1} employees)</span>
                         </div>
                         <div className="flex items-center gap-4">
-                          <span className="text-[11px] text-[#6F6C69] font-mono">{pct}% of Gross</span>
-                          <span className="font-bold text-[#F5F2EA] font-mono">{formatINR(dept.totalCost)}</span>
+                          <span className="text-xs text-[#6B665C] font-mono">{pct}% of Gross</span>
+                          <span className="font-bold text-[#1C1B19] font-mono">{formatINR(dept.totalCost)}</span>
                         </div>
                       </div>
                     );
@@ -861,13 +989,13 @@ export const DashboardPage = () => {
             </div>
 
             {/* Statutory Compliance Note */}
-            <div className="p-2.5 bg-[#0B0B0D] rounded border border-white/5 text-[10px] text-[#6F6C69] flex items-center justify-between">
+            <div className="p-2.5 bg-[#FAF9F6] rounded-lg border border-[#E7E2D9] text-xs text-[#6B665C] flex items-center justify-between">
               <span>Audited under Indian Statutory Rules (PF Act, 1952 • Income Tax Act, 1961 • ESI Act)</span>
-              <span className="text-[#39D98A] font-semibold">100% Tax Compliant</span>
+              <span className="text-[#0F5C4A] font-semibold">100% Tax Compliant</span>
             </div>
 
             {/* Action Buttons */}
-            <div className="flex justify-between items-center pt-3 border-t border-white/10">
+            <div className="flex justify-between items-center pt-3 border-t border-[#E7E2D9]">
               <Button variant="secondary" onClick={() => setShowExportModal(false)}>
                 Close
               </Button>

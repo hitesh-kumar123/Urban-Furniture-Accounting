@@ -7,7 +7,7 @@ export const Layout = () => {
   const [collapsed, setCollapsed] = useState(false);
 
   return (
-    <div className="min-h-screen bg-[#0B0B0D] text-[#F5F2EA] flex">
+    <div className="min-h-screen bg-[#F7F5F1] text-[#1C1B19] flex">
       {/* Sidebar Navigation */}
       <Sidebar collapsed={collapsed} setCollapsed={setCollapsed} />
 
@@ -18,7 +18,7 @@ export const Layout = () => {
         }`}
       >
         <Header collapsed={collapsed} />
-        <main className="flex-1 pt-12 bg-[#0B0B0D] min-h-screen">
+        <main className="flex-1 pt-12 bg-[#F7F5F1] min-h-screen">
           <Outlet />
         </main>
       </div>

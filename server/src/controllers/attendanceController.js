@@ -100,9 +100,14 @@ const getAttendanceById = async (req, res, next) => {
 const createAttendance = async (req, res, next) => {
   try {
     let targetEmployee = req.body.employee;
+    const hrRoles = ['Admin', 'HR Manager', 'HR Payroll Manager', 'HR Payroll User'];
+    const isHrOrAdmin = hrRoles.includes(req.user.role);
 
-    // If logged in as employee, force self employee id
-    if (req.user.role === 'Employee') {
+    // If logged in as employee, force self employee id and prevent manual creation overrides
+    if (!isHrOrAdmin) {
+      if (req.body.isManualCorrection) {
+        return next(new AppError('Forbidden: Manual attendance creation is restricted to HR and Admin roles', 403));
+      }
       const emp = await ensureEmployeeForUser(req.user);
       targetEmployee = emp ? emp._id : req.user.employee;
       if (!targetEmployee) {
@@ -115,7 +120,6 @@ const createAttendance = async (req, res, next) => {
     }
 
     const date = req.body.date ? new Date(req.body.date) : new Date();
-    // Normalize date to start of day
     date.setUTCHours(0, 0, 0, 0);
 
     const existing = await Attendance.findOne({ employee: targetEmployee, date });
@@ -126,7 +130,8 @@ const createAttendance = async (req, res, next) => {
     const attendance = new Attendance({
       ...req.body,
       employee: targetEmployee,
-      date
+      date,
+      isManualCorrection: isHrOrAdmin ? !!req.body.isManualCorrection : false
     });
 
     await attendance.save();
@@ -154,12 +159,28 @@ const updateAttendance = async (req, res, next) => {
       return next(new AppError('Attendance record not found', 404));
     }
 
+    const hrRoles = ['Admin', 'HR Manager', 'HR Payroll Manager', 'HR Payroll User'];
+    const isHrOrAdmin = hrRoles.includes(req.user.role);
+
     // Employees can only clock out their own record if checkOut is missing
-    if (req.user.role === 'Employee') {
+    if (!isHrOrAdmin) {
       if (record.employee.toString() !== req.user.employee?.toString()) {
         return next(new AppError('Forbidden: You can only update your own attendance', 403));
       }
-      // Employee clock-out
+
+      // If employee is attempting manual correction or field alterations
+      if (
+        req.body.isManualCorrection !== undefined ||
+        req.body.status ||
+        req.body.workedHours !== undefined ||
+        req.body.date ||
+        req.body.checkIn ||
+        req.body.remarks
+      ) {
+        return next(new AppError('Forbidden: Attendance correction and manual adjustments are restricted to HR and Admin roles', 403));
+      }
+
+      // Employee standard clock-out
       if (req.body.checkOut) {
         record.checkOut = new Date(req.body.checkOut);
         record.status = 'Present';

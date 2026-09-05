@@ -6,13 +6,13 @@ const AuthContext = createContext(null);
 
 export const AuthProvider = ({ children }) => {
   const [user, setUser] = useState(null);
-  const [token, setToken] = useState(localStorage.getItem('peoplepay360_token') || null);
+  const [token, setToken] = useState(() => localStorage.getItem('staffora_token') || localStorage.getItem('peoplepay360_token') || null);
   const [loading, setLoading] = useState(true);
   const { showToast } = useToast();
 
   useEffect(() => {
     const initAuth = async () => {
-      const storedToken = localStorage.getItem('peoplepay360_token');
+      const storedToken = localStorage.getItem('staffora_token') || localStorage.getItem('peoplepay360_token');
       if (storedToken) {
         try {
           const res = await authApi.getMe();
@@ -20,6 +20,8 @@ export const AuthProvider = ({ children }) => {
             setUser(res.data);
           }
         } catch (err) {
+          localStorage.removeItem('staffora_token');
+          localStorage.removeItem('staffora_user');
           localStorage.removeItem('peoplepay360_token');
           localStorage.removeItem('peoplepay360_user');
           setToken(null);
@@ -36,8 +38,8 @@ export const AuthProvider = ({ children }) => {
     try {
       const res = await authApi.login(email, password);
       if (res.success && res.data?.token) {
-        localStorage.setItem('peoplepay360_token', res.data.token);
-        localStorage.setItem('peoplepay360_user', JSON.stringify(res.data.user));
+        localStorage.setItem('staffora_token', res.data.token);
+        localStorage.setItem('staffora_user', JSON.stringify(res.data.user));
         setToken(res.data.token);
         setUser(res.data.user);
         showToast(`Logged in as ${res.data.user.name} (${res.data.user.role})`, 'success');
@@ -55,8 +57,8 @@ export const AuthProvider = ({ children }) => {
     try {
       const res = await authApi.register(data);
       if (res.success && res.data?.token) {
-        localStorage.setItem('peoplepay360_token', res.data.token);
-        localStorage.setItem('peoplepay360_user', JSON.stringify(res.data.user));
+        localStorage.setItem('staffora_token', res.data.token);
+        localStorage.setItem('staffora_user', JSON.stringify(res.data.user));
         setToken(res.data.token);
         setUser(res.data.user);
         showToast('Registration successful!', 'success');
@@ -71,6 +73,8 @@ export const AuthProvider = ({ children }) => {
   };
 
   const logout = () => {
+    localStorage.removeItem('staffora_token');
+    localStorage.removeItem('staffora_user');
     localStorage.removeItem('peoplepay360_token');
     localStorage.removeItem('peoplepay360_user');
     setToken(null);

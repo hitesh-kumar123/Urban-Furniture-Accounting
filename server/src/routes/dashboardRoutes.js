@@ -12,4 +12,10 @@ router.get(
   dashboardController.getDashboardMetrics
 );
 
+router.get(
+  '/attendance-overview',
+  authorizeRoles('HR Manager', 'HR Payroll User', 'HR Payroll Manager', 'Admin'),
+  dashboardController.getAttendanceOverview
+);
+
 module.exports = router;

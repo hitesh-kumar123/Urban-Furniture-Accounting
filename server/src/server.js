@@ -7,13 +7,13 @@ const startServer = async () => {
     await connectDB();
 
     const server = app.listen(config.port, () => {
-      console.log(`[PeoplePay360] Server running on http://localhost:${config.port} in ${config.env} mode`);
+      console.log(`[Staffora] Server running on http://localhost:${config.port} in ${config.env} mode`);
     });
 
     const shutdown = async () => {
-      console.log('\n[PeoplePay360] Gracefully shutting down...');
+      console.log('\n[Staffora] Gracefully shutting down...');
       server.close(() => {
-        console.log('[PeoplePay360] HTTP server closed.');
+        console.log('[Staffora] HTTP server closed.');
         process.exit(0);
       });
     };
@@ -21,7 +21,7 @@ const startServer = async () => {
     process.on('SIGTERM', shutdown);
     process.on('SIGINT', shutdown);
   } catch (error) {
-    console.error(`[PeoplePay360] Startup error: ${error.message}`);
+    console.error(`[Staffora] Startup error: ${error.message}`);
     process.exit(1);
   }
 };

@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { payrunApi } from '../api/payrunApi';
-import { salaryApi } from '../api/salaryApi';
+import { salaryStructureApi } from '../api/salaryStructureApi';
 import { Badge } from '../components/common/Badge';
 import { Button } from '../components/common/Button';
 import { Modal } from '../components/common/Modal';
@@ -14,40 +14,33 @@ export const PayrunsPage = () => {
   const [structures, setStructures] = useState([]);
   const [loading, setLoading] = useState(true);
   const [statusFilter, setStatusFilter] = useState('');
-
-  // Wizard Modal
+  
+  // 2-Step Creation Wizard States
   const [showWizard, setShowWizard] = useState(false);
   const [wizardStep, setWizardStep] = useState(1);
   const [wizardData, setWizardData] = useState({
-    name: `Payrun — ${new Date().toLocaleString('default', { month: 'long', year: 'numeric' })}`,
+    name: '',
     salaryStructureId: '',
-    periodStart: new Date(new Date().getFullYear(), new Date().getMonth(), 1).toISOString().split('T')[0],
-    periodEnd: new Date(new Date().getFullYear(), new Date().getMonth() + 1, 0).toISOString().split('T')[0]
+    periodStart: '',
+    periodEnd: ''
   });
-
   const [eligibleEmployees, setEligibleEmployees] = useState([]);
   const [selectedEmpIds, setSelectedEmpIds] = useState([]);
   const [fetchingEligible, setFetchingEligible] = useState(false);
   const [submitting, setSubmitting] = useState(false);
 
-  const navigate = useNavigate();
   const { hasRole } = useAuth();
   const { showToast } = useToast();
+  const navigate = useNavigate();
 
   const fetchPayruns = async () => {
     setLoading(true);
     try {
-      const [pRes, sRes] = await Promise.all([
-        payrunApi.getAll({ status: statusFilter || undefined }),
-        salaryApi.getStructures()
-      ]);
-
-      if (pRes.success) setPayruns(pRes.data);
-      if (sRes.success) {
-        setStructures(sRes.data);
-        if (sRes.data.length > 0 && !wizardData.salaryStructureId) {
-          setWizardData((prev) => ({ ...prev, salaryStructureId: sRes.data[0]._id }));
-        }
+      const res = await payrunApi.getAll({
+        status: statusFilter || undefined
+      });
+      if (res.success) {
+        setPayruns(res.data);
       }
     } catch (err) {
       showToast('Failed to load payruns', 'error');
@@ -56,76 +49,109 @@ export const PayrunsPage = () => {
     }
   };
 
+  const fetchStructures = async () => {
+    try {
+      const res = await salaryStructureApi.getAll();
+      if (res.success) {
+        setStructures(res.data);
+        if (res.data.length > 0 && !wizardData.salaryStructureId) {
+          setWizardData((prev) => ({ ...prev, salaryStructureId: res.data[0]._id }));
+        }
+      }
+    } catch (e) {
+      console.error(e);
+    }
+  };
+
   useEffect(() => {
     fetchPayruns();
+    fetchStructures();
   }, [statusFilter]);
+
+  // Set default dates for Wizard (Current month)
+  useEffect(() => {
+    const now = new Date();
+    const y = now.getFullYear();
+    const m = now.getMonth();
+    const firstDay = new Date(y, m, 1).toISOString().split('T')[0];
+    const lastDay = new Date(y, m + 1, 0).toISOString().split('T')[0];
+    const monthName = now.toLocaleString('default', { month: 'long', year: 'numeric' });
+
+    setWizardData((prev) => ({
+      ...prev,
+      name: `${monthName} Regular Payrun`,
+      periodStart: firstDay,
+      periodEnd: lastDay
+    }));
+  }, []);
 
   const handleProceedToStep2 = async (e) => {
     e.preventDefault();
-    if (!wizardData.salaryStructureId) {
-      showToast('Please select a Salary Structure', 'warning');
+    if (!wizardData.name || !wizardData.salaryStructureId || !wizardData.periodStart || !wizardData.periodEnd) {
+      showToast('Please fill all required period fields', 'warning');
       return;
     }
+
     setFetchingEligible(true);
     try {
-      const res = await payrunApi.getEligibleEmployees(
-        wizardData.salaryStructureId,
-        wizardData.periodStart,
-        wizardData.periodEnd
-      );
+      const res = await payrunApi.getEligibleEmployees({
+        salaryStructureId: wizardData.salaryStructureId,
+        periodStart: wizardData.periodStart,
+        periodEnd: wizardData.periodEnd
+      });
+
       if (res.success) {
-        const rawList = res.data || [];
-        const empIds = rawList.map((item) => item.employee?._id || item._id).filter(Boolean);
-        setEligibleEmployees(rawList);
-        setSelectedEmpIds(empIds);
+        setEligibleEmployees(res.data);
+        // Pre-select all matching employees
+        const allIds = res.data.map((item) => item.employee?._id || item._id);
+        setSelectedEmpIds(allIds);
         setWizardStep(2);
       }
     } catch (err) {
-      showToast(err.response?.data?.message || 'Failed to fetch eligible employees', 'error');
+      showToast(err.response?.data?.message || 'Failed to scan eligible employees', 'error');
     } finally {
       setFetchingEligible(false);
     }
   };
 
-  const handleToggleEmployee = (id) => {
-    if (!id) return;
+  const handleToggleEmployee = (empId) => {
     setSelectedEmpIds((prev) =>
-      prev.includes(id) ? prev.filter((item) => item !== id) : [...prev, id]
+      prev.includes(empId) ? prev.filter((id) => id !== empId) : [...prev, empId]
     );
   };
 
   const handleToggleAllEmployees = () => {
-    const allIds = eligibleEmployees.map((item) => item.employee?._id || item._id).filter(Boolean);
-    if (selectedEmpIds.length === allIds.length) {
+    if (selectedEmpIds.length === eligibleEmployees.length) {
       setSelectedEmpIds([]);
     } else {
-      setSelectedEmpIds(allIds);
+      setSelectedEmpIds(eligibleEmployees.map((item) => item.employee?._id || item._id));
     }
   };
 
   const handleCreatePayrun = async () => {
     if (selectedEmpIds.length === 0) {
-      showToast('Please select at least one employee for the payrun', 'warning');
+      showToast('Select at least 1 employee for this payrun', 'warning');
       return;
     }
+
     setSubmitting(true);
     try {
-      const payload = {
+      const res = await payrunApi.create({
         name: wizardData.name,
         salaryStructure: wizardData.salaryStructureId,
         periodStart: wizardData.periodStart,
         periodEnd: wizardData.periodEnd,
         selectedEmployees: selectedEmpIds
-      };
+      });
 
-      const res = await payrunApi.create(payload);
       if (res.success) {
         showToast('Payrun initialized successfully', 'success');
         setShowWizard(false);
+        setWizardStep(1);
         navigate(`/payruns/${res.data._id}`);
       }
     } catch (err) {
-      showToast(err.response?.data?.message || 'Failed to create payrun', 'error');
+      showToast(err.response?.data?.message || 'Failed to initialize payrun batch', 'error');
     } finally {
       setSubmitting(false);
     }
@@ -156,19 +182,19 @@ export const PayrunsPage = () => {
     .reduce((acc, p) => acc + (p.totals?.totalNet || 0), 0);
 
   return (
-    <div className="p-5 max-w-[1600px] w-full mx-auto flex flex-col gap-5">
+    <div className="p-5 max-w-[1600px] w-full mx-auto flex flex-col gap-5 font-body">
       {/* Top Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-4 border-b border-white/10">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-4 border-b border-[#E7E2D9]">
         <div>
           <div className="flex items-center gap-2 mb-1">
-            <span className="font-mono text-[10px] uppercase tracking-widest text-[#FF6B3D] font-semibold">
+            <span className="font-mono text-xs text-[#0F5C4A] font-semibold">
               Payroll Engine
             </span>
           </div>
-          <h1 className="text-xl md:text-2xl font-bold text-[#F5F2EA] tracking-tight font-display">
+          <h1 className="text-2xl md:text-3xl font-heading font-medium text-[#1C1B19]">
             Payrun Batches &amp; Processing
           </h1>
-          <p className="text-xs text-[#A6A3A0] mt-0.5">
+          <p className="text-xs text-[#6B665C] mt-0.5">
             Deterministic calculation engine, tax and deduction rules, and payslip disbursement ledger.
           </p>
         </div>
@@ -177,7 +203,7 @@ export const PayrunsPage = () => {
           <select
             value={statusFilter}
             onChange={(e) => setStatusFilter(e.target.value)}
-            className="staffora-input py-1 px-2.5 text-xs w-auto font-mono"
+            className="staffora-input py-1.5 px-3 text-xs w-auto font-medium"
           >
             <option value="">All Statuses</option>
             <option value="Draft">Draft</option>
@@ -204,24 +230,24 @@ export const PayrunsPage = () => {
       </div>
 
       {/* Metric Strip */}
-      <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 font-mono">
-        <div className="midnight-card p-3.5">
-          <span className="text-[10px] text-[#6F6C69] uppercase block">Total Payruns</span>
-          <div className="text-xl font-bold text-[#F5F2EA] mt-1">{payruns.length}</div>
+      <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+        <div className="bg-white rounded-xl border border-[#E7E2D9] p-4 shadow-sm">
+          <span className="text-xs text-[#6B665C] uppercase block font-medium">Total Payruns</span>
+          <div className="text-2xl font-bold text-[#1C1B19] font-mono mt-1">{payruns.length}</div>
         </div>
-        <div className="midnight-card p-3.5">
-          <span className="text-[10px] text-[#6F6C69] uppercase block">Net Disbursed</span>
-          <div className="text-xl font-bold text-[#39D98A] mt-1">₹{totalDisbursed.toLocaleString('en-IN')}</div>
+        <div className="bg-[#FAF4E8] rounded-xl border border-[#8A6D3B]/30 p-4 shadow-sm">
+          <span className="text-xs text-[#8A6D3B] uppercase block font-semibold">Net Disbursed</span>
+          <div className="text-2xl font-bold text-[#8A6D3B] font-mono mt-1">₹{totalDisbursed.toLocaleString('en-IN')}</div>
         </div>
-        <div className="midnight-card p-3.5">
-          <span className="text-[10px] text-[#6F6C69] uppercase block">Pending Validation</span>
-          <div className="text-xl font-bold text-[#F5B942] mt-1">
+        <div className="bg-white rounded-xl border border-[#E7E2D9] p-4 shadow-sm">
+          <span className="text-xs text-[#6B665C] uppercase block font-medium">Pending Validation</span>
+          <div className="text-2xl font-bold text-[#8A6D3B] font-mono mt-1">
             {payruns.filter((p) => p.status === 'Computed').length}
           </div>
         </div>
-        <div className="midnight-card p-3.5">
-          <span className="text-[10px] text-[#6F6C69] uppercase block">Salary Structures</span>
-          <div className="text-xl font-bold text-[#58B7FF] mt-1">{structures.length}</div>
+        <div className="bg-white rounded-xl border border-[#E7E2D9] p-4 shadow-sm">
+          <span className="text-xs text-[#6B665C] uppercase block font-medium">Salary Structures</span>
+          <div className="text-2xl font-bold text-[#0F5C4A] font-mono mt-1">{structures.length}</div>
         </div>
       </div>
 
@@ -230,7 +256,7 @@ export const PayrunsPage = () => {
         {loading ? (
           <LoadingSpinner message="Scanning payrun batches..." />
         ) : payruns.length === 0 ? (
-          <div className="p-12 text-center text-[#6F6C69] font-mono text-xs">
+          <div className="p-12 text-center text-[#6B665C] text-xs">
             No payruns found. Click "New Payrun" to initialize a batch.
           </div>
         ) : (
@@ -265,25 +291,25 @@ export const PayrunsPage = () => {
                     className="cursor-pointer"
                   >
                     <td>
-                      <div className="font-semibold text-[#F5F2EA]">{p.name}</div>
-                      <div className="text-[10px] font-mono text-[#6F6C69]">
+                      <div className="font-medium text-[#1C1B19]">{p.name}</div>
+                      <div className="text-[11px] font-mono text-[#6B665C]">
                         ID: {p._id.slice(-6)}
                       </div>
                     </td>
 
-                    <td className="text-xs text-[#A6A3A0]">
+                    <td className="text-xs text-[#6B665C]">
                       {p.salaryStructure?.name || 'Standard Structure'}
                     </td>
 
-                    <td className="font-mono text-xs text-[#A6A3A0]">
+                    <td className="font-mono text-xs text-[#6B665C]">
                       {pStart} — {pEnd}
                     </td>
 
-                    <td className="text-center font-mono text-xs">
+                    <td className="text-center font-mono text-xs text-[#1C1B19]">
                       {p.selectedEmployees?.length || p.totals?.employeeCount || 0}
                     </td>
 
-                    <td className="text-right font-mono font-bold text-[#F5F2EA]">
+                    <td className="text-right font-mono font-bold text-[#8A6D3B]">
                       ₹{(p.totals?.totalNet || 0).toLocaleString('en-IN')}
                     </td>
 
@@ -294,9 +320,8 @@ export const PayrunsPage = () => {
                         variant="secondary"
                         size="sm"
                         onClick={() => navigate(`/payruns/${p._id}`)}
-                        className="text-xs font-mono"
                       >
-                        Open Engine →
+                        Open Engine
                       </Button>
                     </td>
                   </tr>
@@ -315,7 +340,7 @@ export const PayrunsPage = () => {
         maxWidth="max-w-xl"
       >
         {wizardStep === 1 ? (
-          <form onSubmit={handleProceedToStep2} className="space-y-4">
+          <form onSubmit={handleProceedToStep2} className="space-y-4 text-xs">
             <div>
               <label className="staffora-label">Payrun Batch Name</label>
               <input
@@ -333,7 +358,7 @@ export const PayrunsPage = () => {
                 required
                 value={wizardData.salaryStructureId}
                 onChange={(e) => setWizardData({ ...wizardData, salaryStructureId: e.target.value })}
-                className="staffora-input font-mono text-xs"
+                className="staffora-input text-xs"
               >
                 {structures.map((s) => (
                   <option key={s._id} value={s._id}>
@@ -366,36 +391,36 @@ export const PayrunsPage = () => {
               </div>
             </div>
 
-            <div className="flex justify-end gap-2 pt-3 border-t border-white/10">
+            <div className="flex justify-end gap-2 pt-3 border-t border-[#E7E2D9]">
               <Button variant="secondary" type="button" onClick={() => setShowWizard(false)}>
                 Cancel
               </Button>
               <Button variant="primary" type="submit" disabled={fetchingEligible}>
-                {fetchingEligible ? 'Scanning Contracts...' : 'Next: Select Employees →'}
+                {fetchingEligible ? 'Scanning Contracts...' : 'Next: Select Employees'}
               </Button>
             </div>
           </form>
         ) : (
-          <div className="space-y-4">
-            <div className="flex items-center justify-between font-mono text-xs">
-              <span className="text-[#A6A3A0]">
+          <div className="space-y-4 text-xs">
+            <div className="flex items-center justify-between text-xs">
+              <span className="text-[#6B665C]">
                 {eligibleEmployees.length} matching active employee contracts.
               </span>
               <button
                 type="button"
                 onClick={handleToggleAllEmployees}
-                className="text-[#FF8A65] hover:underline"
+                className="text-[#0F5C4A] font-medium hover:underline"
               >
                 {selectedEmpIds.length === eligibleEmployees.length ? 'Deselect All' : 'Select All'}
               </button>
             </div>
 
             {eligibleEmployees.length === 0 ? (
-              <div className="p-6 text-center text-[#6F6C69] font-mono text-xs border border-dashed border-white/10 rounded">
+              <div className="p-6 text-center text-[#6B665C] border border-dashed border-[#E7E2D9] rounded-lg">
                 No active employee contracts found matching this salary structure for this date range.
               </div>
             ) : (
-              <div className="max-h-60 overflow-y-auto border border-white/10 rounded divide-y divide-white/5 bg-[#111114]">
+              <div className="max-h-60 overflow-y-auto border border-[#E7E2D9] rounded-lg divide-y divide-[#E7E2D9] bg-white">
                 {eligibleEmployees.map((item) => {
                   const emp = item.employee || item;
                   const contract = item.applicableContract;
@@ -406,7 +431,7 @@ export const PayrunsPage = () => {
                       key={empId || item._id}
                       onClick={() => handleToggleEmployee(empId)}
                       className={`p-2.5 flex items-center justify-between cursor-pointer transition-colors ${
-                        isChecked ? 'bg-[#1E1E24]' : 'hover:bg-[#17171B]'
+                        isChecked ? 'bg-[#E8F4F1]/50' : 'hover:bg-[#FAF9F6]'
                       }`}
                     >
                       <div className="flex items-center gap-2.5">
@@ -414,23 +439,23 @@ export const PayrunsPage = () => {
                           type="checkbox"
                           checked={isChecked}
                           onChange={() => {}}
-                          className="rounded text-[#FF6B3D] focus:ring-0 h-3.5 w-3.5 bg-[#0B0B0D] border-white/20"
+                          className="rounded text-[#0F5C4A] focus:ring-0 h-4 w-4 bg-white border-[#E7E2D9]"
                         />
                         <div>
-                          <span className="text-xs font-semibold text-[#F5F2EA] block">
+                          <span className="text-xs font-semibold text-[#1C1B19] block">
                             {emp.firstName} {emp.lastName}
                           </span>
-                          <span className="text-[10px] font-mono text-[#6F6C69]">
+                          <span className="text-[11px] font-mono text-[#6B665C]">
                             {emp.employeeId || 'EMP'} • {emp.department || 'General'} • {emp.jobPosition || 'Staff'} {contract ? `• ₹${Number(contract.wage).toLocaleString('en-IN')}/mo` : ''}
                           </span>
                         </div>
                       </div>
                       {item.matchesSelectedStructure ? (
-                        <span className="text-[10px] font-mono font-bold text-[#39D98A] bg-[#39D98A]/10 border border-[#39D98A]/20 px-2 py-0.5 rounded">
+                        <span className="text-[10px] font-mono font-bold text-[#0F5C4A] bg-[#E8F4F1] border border-[#0F5C4A]/20 px-2 py-0.5 rounded">
                           Matches Structure
                         </span>
                       ) : (
-                        <span className="text-[10px] font-mono text-[#A6A3A0] bg-[#17171B] border border-white/10 px-2 py-0.5 rounded">
+                        <span className="text-[10px] font-mono text-[#6B665C] bg-[#FAF9F6] border border-[#E7E2D9] px-2 py-0.5 rounded">
                           Linked
                         </span>
                       )}
@@ -440,9 +465,9 @@ export const PayrunsPage = () => {
               </div>
             )}
 
-            <div className="flex justify-between items-center pt-3 border-t border-white/10">
+            <div className="flex justify-between items-center pt-3 border-t border-[#E7E2D9]">
               <Button variant="secondary" onClick={() => setWizardStep(1)}>
-                ← Back
+                Back
               </Button>
               <Button
                 variant="primary"

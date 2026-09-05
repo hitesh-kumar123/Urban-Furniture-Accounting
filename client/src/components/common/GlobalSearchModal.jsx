@@ -70,13 +70,13 @@ export const GlobalSearchModal = ({ isOpen, onClose }) => {
   if (!isOpen) return null;
 
   return (
-    <div className="fixed inset-0 z-50 flex items-start justify-center pt-20 px-4 bg-black/80">
+    <div className="fixed inset-0 z-50 flex items-start justify-center pt-20 px-4 bg-black/40 backdrop-blur-sm font-body">
       <div className="fixed inset-0" onClick={onClose} aria-hidden="true" />
 
-      <div className="relative w-full max-w-xl bg-[#17171B] rounded-lg shadow-2xl border border-white/10 overflow-hidden z-10 flex flex-col">
+      <div className="relative w-full max-w-xl bg-white rounded-xl shadow-2xl border border-[#E7E2D9] overflow-hidden z-10 flex flex-col">
         {/* Search Input Bar */}
-        <div className="flex items-center gap-3 px-4 py-3 border-b border-white/10 bg-[#111114]">
-          <span className="material-symbols-outlined text-[#FF6B3D] text-xl">search</span>
+        <div className="flex items-center gap-3 px-4 py-3.5 border-b border-[#E7E2D9] bg-[#FAF9F6]">
+          <span className="material-symbols-outlined text-[#0F5C4A] text-xl">search</span>
           <input
             ref={inputRef}
             type="text"
@@ -86,17 +86,17 @@ export const GlobalSearchModal = ({ isOpen, onClose }) => {
               setSelectedIndex(0);
             }}
             placeholder="Type a command or jump to workspace..."
-            className="flex-1 bg-transparent text-[#F5F2EA] placeholder:text-[#6F6C69] font-medium text-sm focus:outline-none"
+            className="flex-1 bg-transparent text-[#1C1B19] placeholder:text-[#918C82] font-medium text-sm focus:outline-none"
           />
-          <kbd className="font-mono text-[10px] text-[#6F6C69] border border-white/10 bg-[#17171B] px-1.5 py-0.5 rounded">
+          <kbd className="font-mono text-[10px] text-[#6B665C] border border-[#E7E2D9] bg-white px-1.5 py-0.5 rounded shadow-xs">
             ESC
           </kbd>
         </div>
 
         {/* Results List */}
-        <div className="max-h-80 overflow-y-auto p-2 divide-y divide-white/5">
+        <div className="max-h-80 overflow-y-auto p-2 divide-y divide-[#E7E2D9]">
           {filtered.length === 0 ? (
-            <div className="p-8 text-center text-[#6F6C69] text-xs">
+            <div className="p-8 text-center text-[#6B665C] text-xs">
               No matching commands or pages found.
             </div>
           ) : (
@@ -110,21 +110,21 @@ export const GlobalSearchModal = ({ isOpen, onClose }) => {
                     onClose();
                   }}
                   onMouseEnter={() => setSelectedIndex(idx)}
-                  className={`flex items-center justify-between px-3 py-2 rounded cursor-pointer transition-colors ${
-                    isSelected ? 'bg-[#1E1E24] text-[#F5F2EA]' : 'text-[#A6A3A0] hover:bg-[#1E1E24]'
+                  className={`flex items-center justify-between px-3 py-2.5 rounded-lg cursor-pointer transition-colors ${
+                    isSelected ? 'bg-[#E8F4F1] text-[#0F5C4A]' : 'text-[#6B665C] hover:bg-[#FAF9F6] hover:text-[#1C1B19]'
                   }`}
                 >
                   <div className="flex items-center gap-2.5">
                     <span
                       className={`material-symbols-outlined text-[18px] ${
-                        isSelected ? 'text-[#FF6B3D]' : 'text-[#6F6C69]'
+                        isSelected ? 'text-[#0F5C4A]' : 'text-[#6B665C]'
                       }`}
                     >
                       {item.icon}
                     </span>
                     <span className="text-xs font-medium">{item.title}</span>
                   </div>
-                  <span className="text-[10px] uppercase font-mono text-[#6F6C69]">
+                  <span className="text-[10px] uppercase font-mono text-[#918C82]">
                     {item.category}
                   </span>
                 </div>
@@ -134,12 +134,12 @@ export const GlobalSearchModal = ({ isOpen, onClose }) => {
         </div>
 
         {/* Footer */}
-        <div className="px-4 py-2 bg-[#111114] border-t border-white/10 flex items-center justify-between text-[11px] text-[#6F6C69]">
+        <div className="px-4 py-2.5 bg-[#FAF9F6] border-t border-[#E7E2D9] flex items-center justify-between text-xs text-[#6B665C]">
           <div className="flex items-center gap-3">
             <span>↑↓ Navigate</span>
             <span>↵ Select</span>
           </div>
-          <span className="font-mono">Staffora OS</span>
+          <span className="font-mono text-[10px]">Staffora</span>
         </div>
       </div>
     </div>
