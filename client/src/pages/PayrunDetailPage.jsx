@@ -537,69 +537,97 @@ export const PayrunDetailPage = () => {
       </div>
 
       {/* Payslip Formula Trace Inspector Modal */}
-      {selectedPayslip && (
-        <Modal
-          isOpen={showInspectorModal}
-          onClose={() => setShowInspectorModal(false)}
-          title={`Calculation Trace — ${selectedPayslip.employee?.firstName || ''} ${selectedPayslip.employee?.lastName || 'Employee'}`}
-          maxWidth="max-w-2xl"
-        >
-          <div className="space-y-4 font-mono text-xs">
-            <div className="grid grid-cols-3 gap-3 text-center">
-              <div className="p-3 bg-[#111114] rounded border border-white/10">
-                <span className="text-[9px] text-[#6F6C69] uppercase block">Gross Salary</span>
-                <span className="text-sm font-bold text-[#F5F2EA]">
-                  ₹{(selectedPayslip.grossSalary || selectedPayslip.gross || 0).toLocaleString('en-IN')}
-                </span>
-              </div>
-              <div className="p-3 bg-[#111114] rounded border border-white/10">
-                <span className="text-[9px] text-[#6F6C69] uppercase block">Total Deductions</span>
-                <span className="text-sm font-bold text-[#FF5C5C]">
-                  -₹{(selectedPayslip.totalDeductions || selectedPayslip.deductions || 0).toLocaleString('en-IN')}
-                </span>
-              </div>
-              <div className="p-3 bg-[#111114] rounded border border-white/10">
-                <span className="text-[9px] text-[#6F6C69] uppercase block">Net Disbursed</span>
-                <span className="text-sm font-bold text-[#39D98A]">
-                  ₹{(selectedPayslip.netSalary || selectedPayslip.net || 0).toLocaleString('en-IN')}
-                </span>
-              </div>
-            </div>
+      {selectedPayslip && (() => {
+        const items = selectedPayslip.ruleBreakdown || selectedPayslip.lineItems || [];
+        const grossAmt = selectedPayslip.gross !== undefined ? selectedPayslip.gross : (selectedPayslip.grossSalary || 0);
+        const dedAmt = selectedPayslip.deductions !== undefined ? selectedPayslip.deductions : (selectedPayslip.totalDeductions || 0);
+        const netAmt = selectedPayslip.net !== undefined ? selectedPayslip.net : (selectedPayslip.netSalary || 0);
 
-            <div className="space-y-2">
-              <span className="text-[10px] text-[#6F6C69] uppercase font-bold tracking-wider block">
-                Rule-by-Rule Sequential Computation Trace
-              </span>
-              <div className="border border-white/10 rounded divide-y divide-white/5 bg-[#111114] max-h-60 overflow-y-auto">
-                {selectedPayslip.lineItems?.map((li, idx) => (
-                  <div key={idx} className="p-2.5 flex items-center justify-between">
-                    <div>
-                      <span className="font-bold text-[#F5F2EA]">{li.name}</span>
-                      <span className="text-[10px] text-[#6F6C69] ml-2">
-                        [{li.category}]
-                      </span>
+        return (
+          <Modal
+            isOpen={showInspectorModal}
+            onClose={() => setShowInspectorModal(false)}
+            title={`Calculation Trace — ${selectedPayslip.employee?.firstName || ''} ${selectedPayslip.employee?.lastName || 'Employee'}`}
+            maxWidth="max-w-2xl"
+          >
+            <div className="space-y-4 font-mono text-xs">
+              <div className="grid grid-cols-3 gap-3 text-center">
+                <div className="p-3 bg-[#111114] rounded border border-white/10">
+                  <span className="text-[9px] text-[#6F6C69] uppercase block">Gross Salary</span>
+                  <span className="text-sm font-bold text-[#F5F2EA]">
+                    ₹{Number(grossAmt).toLocaleString('en-IN')}
+                  </span>
+                </div>
+                <div className="p-3 bg-[#111114] rounded border border-white/10">
+                  <span className="text-[9px] text-[#6F6C69] uppercase block">Total Deductions</span>
+                  <span className="text-sm font-bold text-[#FF5C5C]">
+                    -₹{Number(dedAmt).toLocaleString('en-IN')}
+                  </span>
+                </div>
+                <div className="p-3 bg-[#111114] rounded border border-white/10">
+                  <span className="text-[9px] text-[#6F6C69] uppercase block">Net Disbursed</span>
+                  <span className="text-sm font-bold text-[#39D98A]">
+                    ₹{Number(netAmt).toLocaleString('en-IN')}
+                  </span>
+                </div>
+              </div>
+
+              <div className="space-y-2">
+                <span className="text-[10px] text-[#6F6C69] uppercase font-bold tracking-wider block">
+                  Rule-by-Rule Sequential Computation Trace ({items.length} Rules)
+                </span>
+                <div className="border border-white/10 rounded divide-y divide-white/5 bg-[#111114] max-h-60 overflow-y-auto">
+                  {items.length === 0 ? (
+                    <div className="p-4 text-center text-[#6F6C69] text-xs">
+                      No trace line items available.
                     </div>
-                    <div className="flex items-center gap-3">
-                      <span className="text-[10px] text-[#A6A3A0]">
-                        {li.rate ? `${li.rate}%` : ''}
-                      </span>
-                      <span className={`font-bold ${li.category === 'Deduction' ? 'text-[#FF5C5C]' : 'text-[#39D98A]'}`}>
-                        {li.category === 'Deduction' ? '-' : '+'}₹{Number(li.amount || 0).toLocaleString('en-IN', { minimumFractionDigits: 2 })}
-                      </span>
-                    </div>
-                  </div>
-                ))}
+                  ) : (
+                    items.map((li, idx) => {
+                      const isDeduction = li.category === 'Deductions' || li.category === 'Deduction';
+                      const isNetOrGross = li.category === 'Gross' || li.category === 'Net';
+
+                      return (
+                        <div key={idx} className="p-2.5 flex items-center justify-between">
+                          <div>
+                            <span className={`font-bold ${isNetOrGross ? 'text-[#F5F2EA]' : 'text-[#D0CDC7]'}`}>
+                              {li.name || li.code}
+                            </span>
+                            <span className="text-[10px] text-[#6F6C69] ml-2">
+                              [{li.category}]
+                            </span>
+                          </div>
+                          <div className="flex items-center gap-3">
+                            <span className="text-[10px] text-[#A6A3A0]">
+                              {li.formulaOrBase || (li.rate ? `${li.rate}%` : '')}
+                            </span>
+                            <span
+                              className={`font-bold ${
+                                isDeduction
+                                  ? 'text-[#FF5C5C]'
+                                  : isNetOrGross
+                                  ? 'text-[#F5F2EA]'
+                                  : 'text-[#39D98A]'
+                              }`}
+                            >
+                              {isDeduction ? '-' : '+'}₹{Number(li.amount || 0).toLocaleString('en-IN', { minimumFractionDigits: 2 })}
+                            </span>
+                          </div>
+                        </div>
+                      );
+                    })
+                  )}
+                </div>
+              </div>
+
+              <div className="flex justify-end pt-3 border-t border-white/10">
+                <Button variant="secondary" onClick={() => setShowInspectorModal(false)}>
+                  Close Trace
+                </Button>
               </div>
             </div>
-
-            <div className="flex justify-end pt-3 border-t border-white/10">
-              <Button variant="secondary" onClick={() => setShowInspectorModal(false)}>
-                Close Trace
-              </Button>
-            </div>
-          </div>
-        </Modal>
-      )}
+          </Modal>
+        );
+      })()}
     </div>
   );
 };

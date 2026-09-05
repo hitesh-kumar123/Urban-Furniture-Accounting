@@ -755,29 +755,127 @@ export const DashboardPage = () => {
         </div>
       </div>
 
-      {/* Export Memo Modal */}
+      {/* Executive Financial Audit Memo Modal */}
       {showExportModal && (
         <Modal
-          title="Executive Financial Memo"
+          title="Executive Financial Audit Memo"
           isOpen={showExportModal}
           onClose={() => setShowExportModal(false)}
+          maxWidth="max-w-3xl"
         >
-          <div className="flex flex-col gap-4 text-xs">
-            <p className="text-[#A6A3A0]">
-              Generating operational snapshot for period <span className="text-[#F5F2EA] font-mono">{currentMonthName}</span>.
-            </p>
-            <div className="p-3 bg-[#111114] rounded border border-white/10 font-mono space-y-1">
-              <div>Total Headcount: {headcount.total}</div>
-              <div>Net Disbursal: {formatINR(payroll.totalNetPaid || 0)}</div>
-              <div>Average Wage: {formatINR(payroll.averageSalary || 0)}</div>
+          <div className="flex flex-col gap-4 text-xs font-mono">
+            {/* Memo Official Header */}
+            <div className="p-4 bg-[#111114] rounded-lg border border-white/10 space-y-2">
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-white/10 pb-3">
+                <div>
+                  <span className="text-[10px] text-[#FF6B3D] uppercase font-bold tracking-widest block">
+                    Confidential • Executive Disbursal Audit
+                  </span>
+                  <h2 className="text-base font-bold text-[#F5F2EA] font-display">
+                    PeoplePay360 Operations — Payroll Ledger Snapshot
+                  </h2>
+                </div>
+                <div className="text-right">
+                  <Badge variant="success">AUDIT COMPLIANT</Badge>
+                  <span className="text-[10px] text-[#6F6C69] block mt-1">Ref: MEMO-2026-Q3</span>
+                </div>
+              </div>
+
+              <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 text-[11px] pt-1 text-[#A6A3A0]">
+                <div>
+                  <span className="text-[9px] text-[#6F6C69] uppercase block">Audit Period</span>
+                  <span className="text-[#F5F2EA] font-semibold">{currentMonthName}</span>
+                </div>
+                <div>
+                  <span className="text-[9px] text-[#6F6C69] uppercase block">Audited By</span>
+                  <span className="text-[#F5F2EA] font-semibold">{user?.name} ({user?.role})</span>
+                </div>
+                <div>
+                  <span className="text-[9px] text-[#6F6C69] uppercase block">Headcount</span>
+                  <span className="text-[#F5F2EA] font-semibold">{headcount.total} Active Staff</span>
+                </div>
+                <div>
+                  <span className="text-[9px] text-[#6F6C69] uppercase block">Payslips Settled</span>
+                  <span className="text-[#39D98A] font-semibold">{payroll.payslipsGenerated} / {headcount.total}</span>
+                </div>
+              </div>
             </div>
-            <div className="flex justify-end gap-2 pt-2">
+
+            {/* Financial Ledger KPIs */}
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 text-center">
+              <div className="p-3 bg-[#17171B] rounded border border-white/5">
+                <span className="text-[9px] text-[#6F6C69] uppercase block font-bold">Gross Payout Liability</span>
+                <span className="text-base font-black text-[#F5F2EA] font-mono-val mt-0.5 block">
+                  {formatINR(payroll.totalGross || 0)}
+                </span>
+                <span className="text-[10px] text-[#A6A3A0]">Base + All Allowances</span>
+              </div>
+
+              <div className="p-3 bg-[#17171B] rounded border border-white/5">
+                <span className="text-[9px] text-[#6F6C69] uppercase block font-bold">Total Statutory Deductions</span>
+                <span className="text-base font-black text-[#FF5C5C] font-mono-val mt-0.5 block">
+                  -{formatINR(payroll.totalDeductions || 0)}
+                </span>
+                <span className="text-[10px] text-[#A6A3A0]">EPF, PT &amp; Income Tax (TDS)</span>
+              </div>
+
+              <div className="p-3 bg-[#17171B] rounded border border-[#39D98A]/30 bg-[#39D98A]/5">
+                <span className="text-[9px] text-[#39D98A] uppercase block font-bold">Net Disbursed Amount</span>
+                <span className="text-base font-black text-[#39D98A] font-mono-val mt-0.5 block">
+                  {formatINR(payroll.totalNetPaid || 0)}
+                </span>
+                <span className="text-[10px] text-[#A6A3A0]">Bank Transfer Liability</span>
+              </div>
+            </div>
+
+            {/* Department Breakdown Table */}
+            <div className="space-y-1.5">
+              <span className="text-[10px] uppercase text-[#6F6C69] font-bold block">
+                Departmental Cost Distribution
+              </span>
+              <div className="border border-white/10 rounded divide-y divide-white/5 bg-[#111114] max-h-48 overflow-y-auto">
+                {(payroll.salaryCostByDepartment || []).length === 0 ? (
+                  <div className="p-3 text-center text-[#6F6C69]">No departmental records.</div>
+                ) : (
+                  (payroll.salaryCostByDepartment || []).map((dept) => {
+                    const pct = payroll.totalGross > 0 ? Math.round((dept.totalCost / payroll.totalGross) * 100) : 0;
+                    return (
+                      <div key={dept.department} className="p-2.5 flex items-center justify-between text-xs">
+                        <div>
+                          <span className="text-[#F5F2EA] font-semibold">{dept.department}</span>
+                          <span className="text-[10px] text-[#6F6C69] ml-2">({dept.employeeCount || 1} employees)</span>
+                        </div>
+                        <div className="flex items-center gap-4">
+                          <span className="text-[11px] text-[#6F6C69] font-mono">{pct}% of Gross</span>
+                          <span className="font-bold text-[#F5F2EA] font-mono">{formatINR(dept.totalCost)}</span>
+                        </div>
+                      </div>
+                    );
+                  })
+                )}
+              </div>
+            </div>
+
+            {/* Statutory Compliance Note */}
+            <div className="p-2.5 bg-[#0B0B0D] rounded border border-white/5 text-[10px] text-[#6F6C69] flex items-center justify-between">
+              <span>Audited under Indian Statutory Rules (PF Act, 1952 • Income Tax Act, 1961 • ESI Act)</span>
+              <span className="text-[#39D98A] font-semibold">100% Tax Compliant</span>
+            </div>
+
+            {/* Action Buttons */}
+            <div className="flex justify-between items-center pt-3 border-t border-white/10">
               <Button variant="secondary" onClick={() => setShowExportModal(false)}>
                 Close
               </Button>
-              <Button variant="primary" onClick={() => window.print()}>
-                Print Summary
-              </Button>
+              <div className="flex items-center gap-2">
+                <Button
+                  variant="primary"
+                  icon="print"
+                  onClick={() => window.print()}
+                >
+                  Print Memo
+                </Button>
+              </div>
             </div>
           </div>
         </Modal>

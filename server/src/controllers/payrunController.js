@@ -35,6 +35,17 @@ const getPayruns = async (req, res, next) => {
   }
 };
 
+const fetchFullPayrun = async (id) => {
+  return await Payrun.findById(id)
+    .populate('salaryStructure')
+    .populate('selectedEmployees', 'firstName lastName email employeeId department jobPosition bankAccount')
+    .populate({
+      path: 'payslips',
+      populate: { path: 'employee', select: 'firstName lastName email employeeId department' }
+    })
+    .populate('createdBy', 'name email');
+};
+
 /**
  * Get payrun by ID
  * GET /api/payruns/:id
@@ -42,14 +53,7 @@ const getPayruns = async (req, res, next) => {
 const getPayrunById = async (req, res, next) => {
   try {
     const { id } = req.params;
-    const payrun = await Payrun.findById(id)
-      .populate('salaryStructure')
-      .populate('selectedEmployees', 'firstName lastName email employeeId department jobPosition bankAccount')
-      .populate({
-        path: 'payslips',
-        populate: { path: 'employee', select: 'firstName lastName email employeeId department' }
-      })
-      .populate('createdBy', 'name email');
+    const payrun = await fetchFullPayrun(id);
 
     if (!payrun) {
       return next(new AppError('Payrun not found', 404));
@@ -96,9 +100,7 @@ const createPayrun = async (req, res, next) => {
       status: 'Draft'
     });
 
-    const populated = await Payrun.findById(payrun._id)
-      .populate('salaryStructure', 'name code')
-      .populate('selectedEmployees', 'firstName lastName email employeeId department');
+    const populated = await fetchFullPayrun(payrun._id);
 
     return successResponse(res, {
       status: 201,
@@ -129,9 +131,11 @@ const updatePayrun = async (req, res, next) => {
     Object.assign(payrun, req.body);
     await payrun.save();
 
+    const populated = await fetchFullPayrun(id);
+
     return successResponse(res, {
       message: 'Payrun updated successfully',
-      data: payrun
+      data: populated
     });
   } catch (error) {
     next(error);
@@ -145,11 +149,12 @@ const updatePayrun = async (req, res, next) => {
 const compute = async (req, res, next) => {
   try {
     const { id } = req.params;
-    const computedPayrun = await computePayrun(id);
+    await computePayrun(id);
+    const populated = await fetchFullPayrun(id);
 
     return successResponse(res, {
       message: 'Payrun computed successfully. Payslips generated.',
-      data: computedPayrun
+      data: populated
     });
   } catch (error) {
     next(error);
@@ -163,11 +168,12 @@ const compute = async (req, res, next) => {
 const validate = async (req, res, next) => {
   try {
     const { id } = req.params;
-    const validatedPayrun = await validatePayrun(id);
+    await validatePayrun(id);
+    const populated = await fetchFullPayrun(id);
 
     return successResponse(res, {
       message: 'Payrun successfully validated and finalized.',
-      data: validatedPayrun
+      data: populated
     });
   } catch (error) {
     next(error);
@@ -181,11 +187,12 @@ const validate = async (req, res, next) => {
 const markPaid = async (req, res, next) => {
   try {
     const { id } = req.params;
-    const paidPayrun = await markPayrunPaid(id);
+    await markPayrunPaid(id);
+    const populated = await fetchFullPayrun(id);
 
     return successResponse(res, {
       message: 'Payrun marked as Paid. Employee payslips updated to Paid status.',
-      data: paidPayrun
+      data: populated
     });
   } catch (error) {
     next(error);
@@ -200,10 +207,11 @@ const sendPayslips = async (req, res, next) => {
   try {
     const { id } = req.params;
     const results = await bulkSendPayrunPayslips(id);
+    const populated = await fetchFullPayrun(id);
 
     return successResponse(res, {
       message: `Payslip email dispatch completed. Sent: ${results.sent}, Failed: ${results.failed}`,
-      data: results
+      data: populated
     });
   } catch (error) {
     next(error);

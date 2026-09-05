@@ -133,15 +133,21 @@ export const PayslipsPage = () => {
                     ? `${ps.employee.firstName || ''} ${ps.employee.lastName || ''}`.trim()
                     : 'Employee'
                   : 'Employee';
-                const pStart = ps.periodStart ? new Date(ps.periodStart).toLocaleDateString() : '';
-                const pEnd = ps.periodEnd ? new Date(ps.periodEnd).toLocaleDateString() : '';
+                const pStartRaw = ps.payrollPeriod?.start || ps.periodStart;
+                const pEndRaw = ps.payrollPeriod?.end || ps.periodEnd;
+                const pStart = pStartRaw ? new Date(pStartRaw).toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' }) : '—';
+                const pEnd = pEndRaw ? new Date(pEndRaw).toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' }) : '—';
+
+                const netAmt = ps.net !== undefined ? ps.net : (ps.netSalary || 0);
+                const grossAmt = ps.gross !== undefined ? ps.gross : (ps.grossSalary || 0);
+                const dedAmt = ps.deductions !== undefined ? ps.deductions : (ps.totalDeductions || 0);
 
                 return (
                   <tr key={ps._id}>
                     <td>
                       <div className="font-semibold text-[#F5F2EA]">{empName}</div>
                       <div className="text-[10px] font-mono text-[#6F6C69]">
-                        {ps.employee?.employeeId || ps.employee?.jobPosition || 'Staff'} • {ps.payrun?.name || 'Payrun'}
+                        {ps.employee?.employeeId || ps.employee?.jobPosition || 'Staff'} • {ps.payrun?.name || 'Payrun Batch'}
                       </div>
                     </td>
 
@@ -150,15 +156,15 @@ export const PayslipsPage = () => {
                     </td>
 
                     <td className="text-right font-mono text-xs text-[#F5F2EA]">
-                      ₹{Number(ps.grossSalary || ps.gross || 0).toLocaleString('en-IN')}
+                      ₹{Number(grossAmt).toLocaleString('en-IN')}
                     </td>
 
                     <td className="text-right font-mono text-xs text-[#FF5C5C]">
-                      -₹{Number(ps.totalDeductions || ps.deductions || 0).toLocaleString('en-IN')}
+                      -₹{Number(dedAmt).toLocaleString('en-IN')}
                     </td>
 
                     <td className="text-right font-mono font-bold text-xs text-[#39D98A]">
-                      ₹{Number(ps.netSalary || ps.net || 0).toLocaleString('en-IN')}
+                      ₹{Number(netAmt).toLocaleString('en-IN')}
                     </td>
 
                     <td className="text-center font-mono">
@@ -206,58 +212,111 @@ export const PayslipsPage = () => {
       </div>
 
       {/* Payslip Clean View Modal */}
-      {selectedPayslip && (
-        <Modal
-          isOpen={showInspectorModal}
-          onClose={() => setShowInspectorModal(false)}
-          title={`Digital Payslip — ${selectedPayslip.employee?.firstName || ''} ${selectedPayslip.employee?.lastName || 'Employee'}`}
-          maxWidth="max-w-xl"
-        >
-          <div className="space-y-4 font-mono text-xs">
-            <div className="bg-[#111114] p-4 rounded border border-white/10 flex justify-between items-center">
-              <div>
-                <span className="text-[10px] text-[#6F6C69] uppercase font-bold block">NET PAYABLE AMOUNT</span>
-                <div className="text-3xl font-bold text-[#39D98A] font-mono-val mt-0.5">
-                  ${Number(selectedPayslip.netSalary || 0).toLocaleString(undefined, { minimumFractionDigits: 2 })}
+      {selectedPayslip && (() => {
+        const netAmt = selectedPayslip.net !== undefined ? selectedPayslip.net : (selectedPayslip.netSalary || 0);
+        const grossAmt = selectedPayslip.gross !== undefined ? selectedPayslip.gross : (selectedPayslip.grossSalary || 0);
+        const dedAmt = selectedPayslip.deductions !== undefined ? selectedPayslip.deductions : (selectedPayslip.totalDeductions || 0);
+        const items = selectedPayslip.ruleBreakdown || selectedPayslip.lineItems || [];
+        const pStartRaw = selectedPayslip.payrollPeriod?.start || selectedPayslip.periodStart;
+        const pEndRaw = selectedPayslip.payrollPeriod?.end || selectedPayslip.periodEnd;
+        const pStart = pStartRaw ? new Date(pStartRaw).toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' }) : '';
+        const pEnd = pEndRaw ? new Date(pEndRaw).toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' }) : '';
+
+        return (
+          <Modal
+            isOpen={showInspectorModal}
+            onClose={() => setShowInspectorModal(false)}
+            title={`Digital Payslip — ${selectedPayslip.employee?.firstName || ''} ${selectedPayslip.employee?.lastName || 'Employee'}`}
+            maxWidth="max-w-xl"
+          >
+            <div className="space-y-4 font-mono text-xs">
+              <div className="bg-[#111114] p-4 rounded border border-white/10 flex justify-between items-center">
+                <div>
+                  <span className="text-[10px] text-[#6F6C69] uppercase font-bold block">NET PAYABLE SALARY</span>
+                  <div className="text-3xl font-bold text-[#39D98A] font-mono-val mt-0.5">
+                    ₹{Number(netAmt).toLocaleString('en-IN', { minimumFractionDigits: 2 })}
+                  </div>
+                  {pStart && pEnd && (
+                    <span className="text-[10px] text-[#A6A3A0] block mt-1">
+                      Period: {pStart} — {pEnd}
+                    </span>
+                  )}
+                </div>
+                <Badge variant={selectedPayslip.status === 'Paid' ? 'success' : 'primary'}>
+                  {selectedPayslip.status}
+                </Badge>
+              </div>
+
+              {/* Summary KPIs */}
+              <div className="grid grid-cols-2 gap-3">
+                <div className="p-2.5 bg-[#111114] rounded border border-white/5">
+                  <span className="text-[9px] uppercase text-[#6F6C69] block">Gross Earnings</span>
+                  <span className="text-sm font-bold text-[#F5F2EA]">₹{Number(grossAmt).toLocaleString('en-IN')}</span>
+                </div>
+                <div className="p-2.5 bg-[#111114] rounded border border-white/5">
+                  <span className="text-[9px] uppercase text-[#6F6C69] block">Total Deductions</span>
+                  <span className="text-sm font-bold text-[#FF5C5C]">-₹{Number(dedAmt).toLocaleString('en-IN')}</span>
                 </div>
               </div>
-              <Badge variant={selectedPayslip.status === 'Paid' ? 'success' : 'primary'}>
-                {selectedPayslip.status}
-              </Badge>
-            </div>
 
-            <div className="space-y-1.5">
-              <span className="text-[10px] uppercase text-[#6F6C69] font-bold block">Itemized Line Items</span>
-              <div className="border border-white/10 rounded divide-y divide-white/5 bg-[#111114]">
-                {selectedPayslip.lineItems?.map((li, idx) => (
-                  <div key={idx} className="p-2.5 flex items-center justify-between">
-                    <div>
-                      <span className="text-[#F5F2EA] font-semibold">{li.name}</span>
-                      <span className="text-[10px] text-[#6F6C69] ml-2 font-mono">[{li.category}]</span>
+              <div className="space-y-1.5">
+                <span className="text-[10px] uppercase text-[#6F6C69] font-bold block">
+                  Itemized Salary Breakdown ({items.length} Rules)
+                </span>
+                <div className="border border-white/10 rounded divide-y divide-white/5 bg-[#111114] max-h-64 overflow-y-auto">
+                  {items.length === 0 ? (
+                    <div className="p-4 text-center text-[#6F6C69] text-xs">
+                      No itemized lines recorded.
                     </div>
-                    <span className={`font-bold ${li.category === 'Deduction' ? 'text-[#FF5C5C]' : 'text-[#39D98A]'}`}>
-                      {li.category === 'Deduction' ? '-' : '+'}${Number(li.amount || 0).toFixed(2)}
-                    </span>
-                  </div>
-                ))}
+                  ) : (
+                    items.map((li, idx) => {
+                      const isDeduction = li.category === 'Deductions' || li.category === 'Deduction';
+                      const isNetOrGross = li.category === 'Gross' || li.category === 'Net';
+
+                      return (
+                        <div key={idx} className="p-2.5 flex items-center justify-between">
+                          <div>
+                            <span className={`font-semibold ${isNetOrGross ? 'text-[#F5F2EA] font-bold' : 'text-[#D0CDC7]'}`}>
+                              {li.name || li.code}
+                            </span>
+                            <span className="text-[10px] text-[#6F6C69] ml-2 font-mono">
+                              [{li.category}]
+                            </span>
+                          </div>
+                          <span
+                            className={`font-bold ${
+                              isDeduction
+                                ? 'text-[#FF5C5C]'
+                                : isNetOrGross
+                                ? 'text-[#F5F2EA]'
+                                : 'text-[#39D98A]'
+                            }`}
+                          >
+                            {isDeduction ? '-' : '+'}₹{Number(li.amount || 0).toLocaleString('en-IN', { minimumFractionDigits: 2 })}
+                          </span>
+                        </div>
+                      );
+                    })
+                  )}
+                </div>
+              </div>
+
+              <div className="flex justify-between items-center pt-3 border-t border-white/10">
+                <Button
+                  variant="primary"
+                  onClick={() => handleDownloadPDF(selectedPayslip)}
+                  icon="download"
+                >
+                  Download PDF
+                </Button>
+                <Button variant="secondary" onClick={() => setShowInspectorModal(false)}>
+                  Close
+                </Button>
               </div>
             </div>
-
-            <div className="flex justify-between items-center pt-3 border-t border-white/10">
-              <Button
-                variant="primary"
-                onClick={() => handleDownloadPDF(selectedPayslip)}
-                icon="download"
-              >
-                Download PDF
-              </Button>
-              <Button variant="secondary" onClick={() => setShowInspectorModal(false)}>
-                Close
-              </Button>
-            </div>
-          </div>
-        </Modal>
-      )}
+          </Modal>
+        );
+      })()}
     </div>
   );
 };

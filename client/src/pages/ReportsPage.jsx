@@ -10,26 +10,28 @@ export const ReportsPage = () => {
   const [data, setData] = useState(null);
   const [payruns, setPayruns] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [departmentFilter, setDepartmentFilter] = useState('');
   const { showToast } = useToast();
 
+  const fetchReports = async () => {
+    setLoading(true);
+    try {
+      const [dashRes, pRes] = await Promise.all([
+        dashboardApi.getPayrollMetrics({ department: departmentFilter || undefined }),
+        payrunApi.getAll()
+      ]);
+      if (dashRes.success) setData(dashRes.data);
+      if (pRes.success) setPayruns(pRes.data);
+    } catch (err) {
+      showToast('Failed to load payroll reporting intelligence', 'error');
+    } finally {
+      setLoading(false);
+    }
+  };
+
   useEffect(() => {
-    const fetchReports = async () => {
-      setLoading(true);
-      try {
-        const [dashRes, pRes] = await Promise.all([
-          dashboardApi.getStats(),
-          payrunApi.getAll()
-        ]);
-        if (dashRes.success) setData(dashRes.data);
-        if (pRes.success) setPayruns(pRes.data);
-      } catch (err) {
-        showToast('Failed to load payroll reporting intelligence', 'error');
-      } finally {
-        setLoading(false);
-      }
-    };
     fetchReports();
-  }, []);
+  }, [departmentFilter]);
 
   const handleExportCSV = () => {
     if (!payruns || payruns.length === 0) {
@@ -37,7 +39,7 @@ export const ReportsPage = () => {
       return;
     }
 
-    const headers = ['Payrun Name', 'Period Start', 'Period End', 'Status', 'Employees', 'Gross', 'Deductions', 'Net'];
+    const headers = ['Payrun Name', 'Period Start', 'Period End', 'Status', 'Employees', 'Gross (INR)', 'Deductions (INR)', 'Net Paid (INR)'];
     const rows = payruns.map((p) => [
       `"${p.name}"`,
       p.periodStart?.split('T')[0],
@@ -53,24 +55,29 @@ export const ReportsPage = () => {
     const encodedUri = encodeURI(csvContent);
     const link = document.createElement('a');
     link.setAttribute('href', encodedUri);
-    link.setAttribute('download', `Staffora_Payroll_Ledger_${new Date().toISOString().split('T')[0]}.csv`);
+    link.setAttribute('download', `PeoplePay360_Payroll_Ledger_${new Date().toISOString().split('T')[0]}.csv`);
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);
     showToast('Payroll ledger CSV exported successfully', 'success');
   };
 
-  if (loading) {
+  if (loading && !data) {
     return (
       <div className="flex justify-center items-center h-96">
-        <LoadingSpinner message="Generating executive reports..." />
+        <LoadingSpinner message="Generating executive intelligence reports..." />
       </div>
     );
   }
 
-  const deptCosts = data?.departmentCosts || [];
-  const monthlyTrends = data?.monthlyTrend || [];
-  const maxNet = Math.max(...monthlyTrends.map((m) => m.netSalary || 0), 10000);
+  const deptCosts = data?.payroll?.salaryCostByDepartment || [];
+  const monthlyTrends = data?.payroll?.monthlyTrends || [];
+  const maxNet = Math.max(...monthlyTrends.map((m) => m.totalNet || m.netSalary || 0), 10000);
+  const maxDeptCost = Math.max(...deptCosts.map((d) => d.totalCost || 0), 10000);
+
+  const totalNetPaid = data?.payroll?.totalNetPaid || 0;
+  const totalHeadcount = data?.headcount?.total || 0;
+  const paidBatchesCount = payruns.filter((p) => p.status === 'Paid' || p.status === 'PayslipsSent').length;
 
   return (
     <div className="p-5 max-w-[1600px] w-full mx-auto flex flex-col gap-5">
@@ -90,26 +97,41 @@ export const ReportsPage = () => {
           </p>
         </div>
 
-        <Button
-          variant="primary"
-          size="sm"
-          onClick={handleExportCSV}
-          icon="file_download"
-        >
-          Export Ledger (CSV)
-        </Button>
+        <div className="flex items-center gap-2.5">
+          <select
+            value={departmentFilter}
+            onChange={(e) => setDepartmentFilter(e.target.value)}
+            className="staffora-input py-1 px-2.5 text-xs w-auto font-mono"
+          >
+            <option value="">All Departments</option>
+            <option value="Engineering">Engineering</option>
+            <option value="Product">Product</option>
+            <option value="Design">Design</option>
+            <option value="Marketing">Marketing</option>
+            <option value="Human Resources">Human Resources</option>
+          </select>
+
+          <Button
+            variant="primary"
+            size="sm"
+            onClick={handleExportCSV}
+            icon="file_download"
+          >
+            Export Ledger (CSV)
+          </Button>
+        </div>
       </div>
 
       {/* KPI Cards */}
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 font-mono">
         <div className="midnight-card p-4 space-y-1">
           <span className="text-[10px] text-[#6F6C69] uppercase font-bold block">
-            Annual Net Payroll Liability
+            Annual Net Payroll Disbursal
           </span>
-          <div className="text-2xl font-bold text-[#F5F2EA]">
-            ₹{(data?.metrics?.totalNetPayroll || 0).toLocaleString('en-IN')}
+          <div className="text-2xl font-bold text-[#39D98A]">
+            ₹{Number(totalNetPaid).toLocaleString('en-IN')}
           </div>
-          <span className="text-[11px] text-[#39D98A]">Aggregated across all settle cycles</span>
+          <span className="text-[11px] text-[#A6A3A0]">Aggregated across all settled cycles</span>
         </div>
 
         <div className="midnight-card p-4 space-y-1">
@@ -117,17 +139,17 @@ export const ReportsPage = () => {
             Total Active Headcount
           </span>
           <div className="text-2xl font-bold text-[#F5F2EA]">
-            {data?.metrics?.totalEmployees || 0} Staff
+            {totalHeadcount} Staff
           </div>
           <span className="text-[11px] text-[#A6A3A0]">Active contractual roster</span>
         </div>
 
         <div className="midnight-card p-4 space-y-1">
           <span className="text-[10px] text-[#6F6C69] uppercase font-bold block">
-            Total Processed Payruns
+            Settled Payrun Batches
           </span>
           <div className="text-2xl font-bold text-[#FF8A65]">
-            {data?.metrics?.totalPayruns || payruns.length} Batches
+            {paidBatchesCount} of {payruns.length} Batches
           </div>
           <span className="text-[11px] text-[#6F6C69]">Historical audited pay periods</span>
         </div>
@@ -153,14 +175,16 @@ export const ReportsPage = () => {
           ) : (
             <div className="h-44 flex items-end justify-between gap-3 pt-4 px-2">
               {monthlyTrends.map((m, idx) => {
-                const heightPercent = Math.min(100, Math.max(16, Math.round(((m.netSalary || 0) / maxNet) * 100)));
+                const val = m.totalNet || m.netSalary || 0;
+                const heightPercent = Math.min(100, Math.max(16, Math.round((val / maxNet) * 100)));
                 return (
                   <div key={idx} className="flex-1 flex flex-col items-center gap-2 font-mono">
-                    <span className="text-[9px] text-[#A6A3A0]">₹{Math.round((m.netSalary || 0) / 1000)}k</span>
+                    <span className="text-[9px] text-[#A6A3A0]">₹{Math.round(val / 1000)}k</span>
                     <div className="w-full bg-[#0B0B0D] rounded h-28 flex items-end p-0.5 border border-white/5">
                       <div
-                        className="w-full rounded-xs bg-[#FF6B3D] transition-all duration-300"
+                        className="w-full rounded-xs bg-[#FF6B3D] hover:bg-[#FF8A65] transition-all duration-300"
                         style={{ height: `${heightPercent}%` }}
+                        title={`${m.month}: ₹${Number(val).toLocaleString('en-IN')}`}
                       />
                     </div>
                     <span className="text-[10px] text-[#6F6C69]">{m.month}</span>
@@ -178,20 +202,26 @@ export const ReportsPage = () => {
           </div>
 
           <div className="space-y-3">
-            {deptCosts.map((d) => (
-              <div key={d.department} className="space-y-1">
-                <div className="flex justify-between items-center text-xs">
-                  <span className="font-sans text-[#F5F2EA]">{d.department}</span>
-                  <span className="text-[#A6A3A0] font-bold">₹{Number(d.totalCost || 0).toLocaleString('en-IN')}</span>
-                </div>
-                <div className="w-full h-1.5 bg-[#0B0B0D] rounded-full overflow-hidden border border-white/5">
-                  <div
-                    className="h-full rounded-full bg-[#FF6B3D]"
-                    style={{ width: `${Math.min(100, Math.round((d.totalCost / 25000) * 100))}%` }}
-                  />
-                </div>
+            {deptCosts.length === 0 ? (
+              <div className="p-4 text-center text-[#6F6C69] text-xs">
+                No department cost logs recorded.
               </div>
-            ))}
+            ) : (
+              deptCosts.map((d) => (
+                <div key={d.department} className="space-y-1">
+                  <div className="flex justify-between items-center text-xs">
+                    <span className="font-sans text-[#F5F2EA]">{d.department} ({d.employeeCount || 1} staff)</span>
+                    <span className="text-[#A6A3A0] font-bold">₹{Number(d.totalCost || 0).toLocaleString('en-IN')}</span>
+                  </div>
+                  <div className="w-full h-1.5 bg-[#0B0B0D] rounded-full overflow-hidden border border-white/5">
+                    <div
+                      className="h-full rounded-full bg-[#FF6B3D]"
+                      style={{ width: `${Math.min(100, Math.round(((d.totalCost || 0) / maxDeptCost) * 100))}%` }}
+                    />
+                  </div>
+                </div>
+              ))
+            )}
           </div>
         </div>
       </div>

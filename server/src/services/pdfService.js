@@ -41,25 +41,33 @@ const generatePayslipPDF = async (payslipId) => {
 
       const periodStr = `${new Date(payrollPeriod.start).toISOString().split('T')[0]} to ${new Date(payrollPeriod.end).toISOString().split('T')[0]}`;
       
-      // Top Info Grid
+      // Top Info Grid with 2 distinct panels
       const topY = doc.y;
-      doc.fontSize(10).font('Helvetica-Bold').fillColor('#0F172A').text('EMPLOYEE DETAILS', 40, topY);
-      doc.font('Helvetica').fillColor('#334155');
-      doc.text(`Name: ${employee.firstName} ${employee.lastName}`, 40, topY + 16);
-      doc.text(`Employee ID: ${employee.employeeId}`, 40, topY + 30);
-      doc.text(`Department: ${employee.department}`, 40, topY + 44);
-      doc.text(`Position: ${employee.jobPosition}`, 40, topY + 58);
+      const colWidth = 245;
 
-      doc.font('Helvetica-Bold').fillColor('#0F172A').text('PAYROLL PERIOD & SUMMARY', 320, topY);
-      doc.font('Helvetica').fillColor('#334155');
-      doc.text(`Period: ${periodStr}`, 320, topY + 16);
-      doc.text(`Structure: ${salaryStructure?.name || 'Standard'}`, 320, topY + 30);
-      doc.text(`Worked Days: ${metrics?.workedDays || 0} days`, 320, topY + 44);
-      doc.text(`Bank A/C: ${employee.bankAccount?.accountNumber ? '••••' + employee.bankAccount.accountNumber.slice(-4) : 'N/A'}`, 320, topY + 58);
+      // Left Panel: Employee Details
+      doc.rect(40, topY, colWidth, 76).fillAndStroke('#F8FAFC', '#E2E8F0');
+      doc.fontSize(9).font('Helvetica-Bold').fillColor('#0F172A').text('EMPLOYEE DETAILS', 50, topY + 8);
+      doc.font('Helvetica').fontSize(8.5).fillColor('#334155');
+      doc.text(`Name: ${employee.firstName} ${employee.lastName}`, 50, topY + 22, { width: colWidth - 20 });
+      doc.text(`Employee ID: ${employee.employeeId || 'N/A'}`, 50, topY + 35, { width: colWidth - 20 });
+      doc.text(`Department: ${employee.department || 'N/A'}`, 50, topY + 48, { width: colWidth - 20 });
+      doc.text(`Position: ${employee.jobPosition || 'Staff'}`, 50, topY + 61, { width: colWidth - 20 });
 
-      doc.y = topY + 80;
-      doc.strokeColor('#E2E8F0').lineWidth(0.5).moveTo(40, doc.y).lineTo(555, doc.y).stroke();
-      doc.moveDown(1);
+      // Right Panel: Payroll Period & Summary
+      const structName = salaryStructure?.name || 'Standard Structure';
+      const shortStruct = structName.length > 28 ? structName.slice(0, 26) + '...' : structName;
+
+      doc.rect(300, topY, colWidth, 76).fillAndStroke('#F8FAFC', '#E2E8F0');
+      doc.fontSize(9).font('Helvetica-Bold').fillColor('#0F172A').text('PAYROLL PERIOD & SUMMARY', 310, topY + 8);
+      doc.font('Helvetica').fontSize(8.5).fillColor('#334155');
+      doc.text(`Period: ${periodStr}`, 310, topY + 22, { width: colWidth - 20 });
+      doc.text(`Structure: ${shortStruct}`, 310, topY + 35, { width: colWidth - 20 });
+      doc.text(`Worked Days: ${metrics?.workedDays || 0} days`, 310, topY + 48, { width: colWidth - 20 });
+      doc.text(`Bank A/C: ${employee.bankAccount?.accountNumber ? '••••' + employee.bankAccount.accountNumber.slice(-4) : 'N/A'}`, 310, topY + 61, { width: colWidth - 20 });
+
+      doc.y = topY + 88;
+      doc.moveDown(0.5);
 
       // Table Header
       const tableTop = doc.y;
