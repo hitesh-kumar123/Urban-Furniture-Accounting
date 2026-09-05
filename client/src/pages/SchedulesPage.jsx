@@ -59,13 +59,17 @@ export const SchedulesPage = () => {
   }, []);
 
   const calculateDayHours = (day) => {
-    if (!day.isWorkingDay) return 0;
-    const [startH, startM] = day.startTime.split(':').map(Number);
-    const [endH, endM] = day.endTime.split(':').map(Number);
-    const startMin = startH * 60 + startM;
-    const endMin = endH * 60 + endM;
-    const workMin = endMin - startMin - (Number(day.breakMinutes) || 0);
-    return workMin > 0 ? workMin / 60 : 0;
+    if (!day || !day.isWorkingDay || !day.startTime || !day.endTime) return 0;
+    try {
+      const [startH, startM] = (day.startTime || '09:00').split(':').map(Number);
+      const [endH, endM] = (day.endTime || '17:00').split(':').map(Number);
+      const startMin = (startH || 0) * 60 + (startM || 0);
+      const endMin = (endH || 0) * 60 + (endM || 0);
+      const workMin = endMin - startMin - (Number(day.breakMinutes) || 0);
+      return workMin > 0 ? workMin / 60 : 0;
+    } catch (e) {
+      return 0;
+    }
   };
 
   const calculateTotalWeeklyHours = (days) => {

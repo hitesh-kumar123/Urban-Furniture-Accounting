@@ -69,13 +69,13 @@ export const ContractsPage = () => {
       setEditingContract(contract);
       setFormData({
         name: contract.name,
-        employee: contract.employee?._id || contract.employee,
-        wage: contract.wage,
+        employee: contract.employee?._id || contract.employee || '',
+        wage: contract.wage || 6500,
         salaryStructure: contract.salaryStructure?._id || contract.salaryStructure || (structures[0]?._id || ''),
         workingSchedule: contract.workingSchedule?._id || contract.workingSchedule || (schedules[0]?._id || ''),
         startDate: contract.startDate ? contract.startDate.split('T')[0] : '',
         endDate: contract.endDate ? contract.endDate.split('T')[0] : '',
-        state: contract.state || 'Active'
+        status: contract.status || contract.state || 'Active'
       });
     } else {
       setEditingContract(null);
@@ -87,7 +87,7 @@ export const ContractsPage = () => {
         workingSchedule: schedules[0]?._id || '',
         startDate: new Date().toISOString().split('T')[0],
         endDate: '',
-        state: 'Active'
+        status: 'Active'
       });
     }
     setShowModal(true);
@@ -96,17 +96,28 @@ export const ContractsPage = () => {
   const handleSubmit = async (e) => {
     e.preventDefault();
     try {
+      const payload = {
+        name: formData.name.trim(),
+        employee: formData.employee,
+        wage: Number(formData.wage),
+        salaryStructure: formData.salaryStructure,
+        workingSchedule: formData.workingSchedule || null,
+        startDate: formData.startDate,
+        endDate: formData.endDate ? formData.endDate : null,
+        status: formData.status || 'Active'
+      };
+
       if (editingContract) {
-        const res = await contractApi.update(editingContract._id, formData);
+        const res = await contractApi.update(editingContract._id, payload);
         if (res.success) {
-          showToast('Contract updated', 'success');
+          showToast('Contract updated successfully', 'success');
           setShowModal(false);
           fetchData();
         }
       } else {
-        const res = await contractApi.create(formData);
+        const res = await contractApi.create(payload);
         if (res.success) {
-          showToast('Contract created', 'success');
+          showToast('Contract created successfully', 'success');
           setShowModal(false);
           fetchData();
         }
@@ -388,16 +399,16 @@ export const ContractsPage = () => {
           </div>
 
           <div>
-            <label className="staffora-label">Contract State</label>
+            <label className="staffora-label">Contract Status</label>
             <select
-              value={formData.state}
-              onChange={(e) => setFormData({ ...formData, state: e.target.value })}
+              value={formData.status}
+              onChange={(e) => setFormData({ ...formData, status: e.target.value })}
               className="staffora-input"
             >
               <option value="Active">Active</option>
               <option value="Draft">Draft</option>
               <option value="Expired">Expired</option>
-              <option value="Cancelled">Cancelled</option>
+              <option value="Terminated">Terminated</option>
             </select>
           </div>
 

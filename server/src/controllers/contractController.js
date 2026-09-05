@@ -92,16 +92,22 @@ const getApplicableContractForPeriod = async (req, res, next) => {
  */
 const createContract = async (req, res, next) => {
   try {
-    const { employee, startDate, endDate, status } = req.body;
+    const data = { ...req.body };
+    if (data.state && !data.status) data.status = data.state;
+    if (data.endDate === '') data.endDate = null;
+    if (data.workingSchedule === '') data.workingSchedule = null;
+
+    const { employee, startDate, endDate, status } = data;
 
     if (status !== 'Draft') {
       await validateNoOverlappingContract(employee, startDate, endDate);
     }
 
-    const contract = await Contract.create(req.body);
+    const contract = await Contract.create(data);
     const populated = await Contract.findById(contract._id)
       .populate('employee', 'firstName lastName email employeeId')
-      .populate('salaryStructure', 'name code');
+      .populate('salaryStructure', 'name code')
+      .populate('workingSchedule', 'name totalWeeklyHours');
 
     return successResponse(res, {
       status: 201,
@@ -126,21 +132,26 @@ const updateContract = async (req, res, next) => {
       return next(new AppError('Contract not found', 404));
     }
 
-    const newStartDate = req.body.startDate || current.startDate;
-    const newEndDate = req.body.endDate !== undefined ? req.body.endDate : current.endDate;
-    const newStatus = req.body.status || current.status;
+    const data = { ...req.body };
+    if (data.state && !data.status) data.status = data.state;
+    if (data.endDate === '') data.endDate = null;
+    if (data.workingSchedule === '') data.workingSchedule = null;
+
+    const newStartDate = data.startDate || current.startDate;
+    const newEndDate = data.endDate !== undefined ? data.endDate : current.endDate;
+    const newStatus = data.status || current.status;
 
     if (newStatus !== 'Draft') {
       await validateNoOverlappingContract(current.employee, newStartDate, newEndDate, id);
     }
 
-    const contract = await Contract.findByIdAndUpdate(id, req.body, {
+    const contract = await Contract.findByIdAndUpdate(id, data, {
       new: true,
       runValidators: true
     })
       .populate('employee', 'firstName lastName email employeeId')
       .populate('salaryStructure', 'name code')
-      .populate('workingSchedule');
+      .populate('workingSchedule', 'name totalWeeklyHours');
 
     return successResponse(res, {
       message: 'Contract updated successfully',

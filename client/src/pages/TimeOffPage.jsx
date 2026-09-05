@@ -130,17 +130,30 @@ export const TimeOffPage = () => {
     }
   };
 
+  const calculateDuration = (start, end) => {
+    if (!start || !end) return 1;
+    const s = new Date(start);
+    const e = new Date(end);
+    const diff = Math.round((e.getTime() - s.getTime()) / (1000 * 60 * 60 * 24)) + 1;
+    return diff > 0 ? diff : 1;
+  };
+
   const handleCreateRequest = async (e) => {
     e.preventDefault();
     try {
-      const res = await timeOffApi.createRequest(requestForm);
+      const dur = calculateDuration(requestForm.startDate, requestForm.endDate);
+      const payload = {
+        ...requestForm,
+        duration: dur
+      };
+      const res = await timeOffApi.createRequest(payload);
       if (res.success) {
-        showToast('Leave request submitted', 'success');
+        showToast('Leave request submitted successfully', 'success');
         setShowRequestModal(false);
         fetchData();
       }
     } catch (err) {
-      showToast(err.response?.data?.message || 'Failed to submit', 'error');
+      showToast(err.response?.data?.message || 'Failed to submit request', 'error');
     }
   };
 
@@ -156,6 +169,28 @@ export const TimeOffPage = () => {
     } catch (err) {
       showToast(err.response?.data?.message || 'Failed to allocate', 'error');
     }
+  };
+
+  const handleOpenRequestModal = () => {
+    const today = new Date().toISOString().split('T')[0];
+    setRequestForm({
+      employee: user?.employee || (employees[0]?._id || ''),
+      timeOffType: types[0]?._id || '',
+      startDate: today,
+      endDate: today,
+      reason: ''
+    });
+    setShowRequestModal(true);
+  };
+
+  const handleOpenAllocationModal = () => {
+    setAllocationForm({
+      employee: employees[0]?._id || '',
+      timeOffType: types[0]?._id || '',
+      year: new Date().getFullYear(),
+      numberOfDays: 20
+    });
+    setShowAllocationModal(true);
   };
 
   const canApprove = hasRole('Admin', 'HR Manager', 'HR Payroll Manager');
@@ -194,7 +229,7 @@ export const TimeOffPage = () => {
             <Button
               variant="secondary"
               size="sm"
-              onClick={() => setShowAllocationModal(true)}
+              onClick={handleOpenAllocationModal}
               icon="tune"
             >
               Allocate Quota
@@ -204,7 +239,7 @@ export const TimeOffPage = () => {
           <Button
             variant="primary"
             size="sm"
-            onClick={() => setShowRequestModal(true)}
+            onClick={handleOpenRequestModal}
             icon="add"
           >
             Submit Request
@@ -401,6 +436,13 @@ export const TimeOffPage = () => {
                 className="staffora-input"
               />
             </div>
+          </div>
+
+          <div className="flex items-center justify-between text-xs text-[#A6A3A0] bg-[#111114] p-2.5 rounded border border-white/5 font-mono">
+            <span>Requested Duration:</span>
+            <span className="font-bold text-[#FF8A65]">
+              {calculateDuration(requestForm.startDate, requestForm.endDate)} day(s)
+            </span>
           </div>
 
           <div>

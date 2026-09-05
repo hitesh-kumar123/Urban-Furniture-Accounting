@@ -221,6 +221,15 @@ const createTimeOffRequest = async (req, res, next) => {
       targetEmployee = req.user.employee;
     }
 
+    // Auto-compute duration if missing
+    let duration = Number(req.body.duration);
+    if (!duration || duration <= 0) {
+      const s = new Date(req.body.startDate);
+      const e = new Date(req.body.endDate);
+      const diffDays = Math.round((e.getTime() - s.getTime()) / (1000 * 60 * 60 * 24)) + 1;
+      duration = diffDays > 0 ? diffDays : 1;
+    }
+
     // Check time off type
     const timeOffType = await TimeOffType.findById(req.body.timeOffType);
     if (!timeOffType || timeOffType.status !== 'Active') {
@@ -230,10 +239,10 @@ const createTimeOffRequest = async (req, res, next) => {
     // Check balance upfront if allocation is required
     if (timeOffType.allocationRequired) {
       const balance = await getLeaveBalance(targetEmployee, timeOffType._id, req.body.startDate);
-      if (balance.remaining < req.body.duration) {
+      if (balance.remaining < duration) {
         return next(
           new AppError(
-            `Insufficient leave balance. Requested: ${req.body.duration} ${timeOffType.unit}, Remaining: ${balance.remaining} ${timeOffType.unit}`,
+            `Insufficient leave balance. Requested: ${duration} ${timeOffType.unit}, Remaining: ${balance.remaining} ${timeOffType.unit}`,
             400
           )
         );
@@ -242,6 +251,7 @@ const createTimeOffRequest = async (req, res, next) => {
 
     const request = await TimeOffRequest.create({
       ...req.body,
+      duration,
       employee: targetEmployee,
       status: timeOffType.approvalRequired ? 'Pending' : 'Approved'
     });

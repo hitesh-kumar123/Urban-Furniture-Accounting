@@ -82,26 +82,29 @@ const schemas = {
     employee: customObjectId.required(),
     name: Joi.string().trim().required(),
     startDate: Joi.date().iso().required(),
-    endDate: Joi.date().iso().greater(Joi.ref('startDate')).allow(null).optional(),
+    endDate: Joi.date().iso().allow(null, '').optional(),
     wage: Joi.number().min(0).required(),
-    department: Joi.string().trim().optional(),
-    jobPosition: Joi.string().trim().optional(),
+    department: Joi.string().trim().allow('', null).optional(),
+    jobPosition: Joi.string().trim().allow('', null).optional(),
     salaryStructure: customObjectId.required(),
-    workingSchedule: customObjectId.optional().allow(null),
+    workingSchedule: customObjectId.allow(null, '').optional(),
     status: Joi.string().valid('Draft', 'Active', 'Expired', 'Terminated').default('Active'),
+    state: Joi.string().valid('Draft', 'Active', 'Expired', 'Terminated').optional(),
     terms: Joi.string().allow('', null).optional()
   }),
 
   updateContract: Joi.object({
+    employee: customObjectId.optional(),
     name: Joi.string().trim().optional(),
     startDate: Joi.date().iso().optional(),
-    endDate: Joi.date().iso().allow(null).optional(),
+    endDate: Joi.date().iso().allow(null, '').optional(),
     wage: Joi.number().min(0).optional(),
-    department: Joi.string().trim().optional(),
-    jobPosition: Joi.string().trim().optional(),
+    department: Joi.string().trim().allow('', null).optional(),
+    jobPosition: Joi.string().trim().allow('', null).optional(),
     salaryStructure: customObjectId.optional(),
-    workingSchedule: customObjectId.optional().allow(null),
+    workingSchedule: customObjectId.allow(null, '').optional(),
     status: Joi.string().valid('Draft', 'Active', 'Expired', 'Terminated').optional(),
+    state: Joi.string().valid('Draft', 'Active', 'Expired', 'Terminated').optional(),
     terms: Joi.string().allow('', null).optional()
   }),
 
@@ -203,7 +206,7 @@ const schemas = {
     timeOffType: customObjectId.required(),
     startDate: Joi.date().iso().required(),
     endDate: Joi.date().iso().min(Joi.ref('startDate')).required(),
-    duration: Joi.number().positive().required(),
+    duration: Joi.number().positive().optional(),
     reason: Joi.string().allow('', null).optional()
   }),
 
