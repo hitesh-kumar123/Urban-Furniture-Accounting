@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, Link } from 'react-router-dom';
 import { useAuth, DEMO_USERS } from '../context/AuthContext';
 import { Button } from '../components/common/Button';
 
@@ -32,32 +32,30 @@ export const LoginPage = () => {
   };
 
   return (
-    <div className="min-h-screen bg-slate-50 flex flex-col justify-center items-center p-4 relative">
-      <div className="max-w-md w-full staffora-card p-8 z-10 flex flex-col gap-6 shadow-sm border border-slate-200">
-        {/* Logo & Title */}
-        <div className="flex flex-col items-center text-center gap-2">
-          <div className="flex items-center gap-2.5">
-            <div className="w-10 h-10 rounded-lg bg-indigo-600 flex items-center justify-center text-white shadow-sm shrink-0">
-              <span className="material-symbols-outlined text-2xl">hub</span>
+    <div className="min-h-screen bg-[#0B0B0D] flex flex-col justify-center items-center p-4">
+      <div className="max-w-sm w-full bg-[#111114] border border-white/10 rounded-lg p-6 flex flex-col gap-5 shadow-2xl">
+        {/* Brand Header */}
+        <div className="flex flex-col items-center text-center gap-1.5">
+          <Link to="/landing" className="flex flex-col items-center gap-1.5 group">
+            <div className="w-9 h-9 rounded bg-[#FF6B3D] flex items-center justify-center text-[#0B0B0D] font-black text-lg group-hover:scale-105 transition-transform">
+              S
             </div>
-            <span className="text-xl font-bold text-slate-900 tracking-tight">
+            <span className="text-lg font-bold text-[#F5F2EA] tracking-wider uppercase font-display">
               Staffora
             </span>
-          </div>
-          <p className="text-xs text-slate-500">
-            Enterprise Human Resource &amp; Payroll Platform
+          </Link>
+          <p className="text-xs text-[#6F6C69] font-mono">
+            Midnight Workforce OS
           </p>
         </div>
 
-        {/* Quick Demo Personas 1-Click Login */}
-        <div className="bg-slate-50 border border-slate-200/80 p-3.5 rounded-lg flex flex-col gap-2">
+        {/* Quick Demo Role Selector */}
+        <div className="bg-[#17171B] p-2.5 rounded border border-white/5 flex flex-col gap-1.5">
           <div className="flex items-center justify-between">
-            <span className="text-[10px] uppercase tracking-wider text-slate-500 font-semibold">
-              Fast Demo Login
+            <span className="text-[9px] font-mono uppercase tracking-widest text-[#6F6C69] font-semibold">
+              Fast Demo Persona:
             </span>
-            <span className="text-[10px] bg-indigo-50 text-indigo-700 border border-indigo-200 px-1.5 py-0.5 rounded font-semibold">
-              Select Role
-            </span>
+            <span className="text-[9px] font-mono text-[#FF8A65]">1-Click Login</span>
           </div>
           <div className="grid grid-cols-1 gap-1">
             {DEMO_USERS.map((demo) => (
@@ -65,10 +63,10 @@ export const LoginPage = () => {
                 key={demo.role}
                 type="button"
                 onClick={() => handleQuickLogin(demo)}
-                className="w-full text-left px-3 py-1.5 rounded-md bg-white hover:bg-indigo-50 hover:text-indigo-700 text-slate-700 text-xs font-medium flex items-center justify-between transition-colors border border-slate-200 group"
+                className="w-full text-left px-2.5 py-1 rounded bg-[#111114] hover:bg-[#1E1E24] hover:text-[#FF8A65] text-[#A6A3A0] text-xs font-medium flex items-center justify-between transition-colors border border-white/5"
               >
-                <span>{demo.label}</span>
-                <span className="material-symbols-outlined text-xs text-slate-400 group-hover:text-indigo-600">
+                <span className="truncate">{demo.label}</span>
+                <span className="material-symbols-outlined text-xs text-[#6F6C69]">
                   arrow_forward
                 </span>
               </button>
@@ -77,53 +75,48 @@ export const LoginPage = () => {
         </div>
 
         {/* Credentials Form */}
-        <form onSubmit={handleSubmit} className="flex flex-col gap-4">
-          <div className="flex flex-col gap-1">
-            <label className="staffora-label">
-              Email Address
-            </label>
-            <div className="relative">
-              <span className="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 text-lg">
-                mail
-              </span>
-              <input
-                type="email"
-                required
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-                className="staffora-input pl-10 text-xs"
-                placeholder="name@company.com"
-              />
-            </div>
+        <form onSubmit={handleSubmit} className="flex flex-col gap-3.5">
+          <div>
+            <label className="staffora-label">Email Address</label>
+            <input
+              type="email"
+              required
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+              className="staffora-input font-mono text-xs"
+              placeholder="name@company.com"
+            />
           </div>
 
-          <div className="flex flex-col gap-1">
-            <label className="staffora-label">
-              Password
-            </label>
-            <div className="relative">
-              <span className="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 text-lg">
-                lock
-              </span>
-              <input
-                type="password"
-                required
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                className="staffora-input pl-10 text-xs"
-                placeholder="••••••••"
-              />
-            </div>
+          <div>
+            <label className="staffora-label">Password</label>
+            <input
+              type="password"
+              required
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+              className="staffora-input font-mono text-xs"
+              placeholder="••••••••"
+            />
           </div>
 
           <Button
             type="submit"
             variant="primary"
             loading={loading}
-            className="w-full mt-2"
+            className="w-full mt-1 font-semibold"
           >
-            Sign In to Staffora
+            Authenticate Session
           </Button>
+
+          <div className="text-center pt-2 border-t border-white/5">
+            <Link
+              to="/landing"
+              className="text-xs text-[#6F6C69] hover:text-[#A6A3A0] font-mono flex items-center justify-center gap-1"
+            >
+              <span>← Back to Platform Landing</span>
+            </Link>
+          </div>
         </form>
       </div>
     </div>

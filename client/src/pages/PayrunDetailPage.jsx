@@ -10,13 +10,13 @@ import { useAuth } from '../context/AuthContext';
 import { useToast } from '../context/ToastContext';
 
 const PIPELINE_STAGES = [
-  { id: 1, name: 'Eligible Staff', icon: 'badge', desc: 'Scan employee roster' },
-  { id: 2, name: 'Active Contracts', icon: 'description', desc: 'Validate wage & schedules' },
-  { id: 3, name: 'Overtime Hours', icon: 'more_time', desc: 'Aggregate attendance logs' },
-  { id: 4, name: 'Approved Leaves', icon: 'flight_takeoff', desc: 'Compute paid/unpaid days' },
-  { id: 5, name: 'Salary Rules', icon: 'calculate', desc: 'Execute sequential engine' },
-  { id: 6, name: 'Net & Tax', icon: 'account_balance', desc: 'Deductions & net compute' },
-  { id: 7, name: 'Payslips Ready', icon: 'receipt_long', desc: 'Generate digital ledger' }
+  { id: 1, name: 'Setup', label: 'Batch Init' },
+  { id: 2, name: 'Employees', label: 'Scan Roster' },
+  { id: 3, name: 'Compute', label: 'Rules Engine' },
+  { id: 4, name: 'Review', label: 'Audit Warnings' },
+  { id: 5, name: 'Validate', label: 'Lock Ledger' },
+  { id: 6, name: 'Paid', label: 'Settlement' },
+  { id: 7, name: 'Delivered', label: 'Dispatched' }
 ];
 
 export const PayrunDetailPage = () => {
@@ -30,7 +30,7 @@ export const PayrunDetailPage = () => {
   const [actionLoading, setActionLoading] = useState(false);
   const [computingStage, setComputingStage] = useState(null);
 
-  // Inspector Modal State
+  // Inspector Modal
   const [selectedPayslip, setSelectedPayslip] = useState(null);
   const [showInspectorModal, setShowInspectorModal] = useState(false);
 
@@ -52,22 +52,20 @@ export const PayrunDetailPage = () => {
     if (id) fetchPayrun();
   }, [id]);
 
-  // Handle Compute Engine Execution with Pipeline Animation
   const handleCompute = async () => {
     setActionLoading(true);
     setComputingStage(1);
 
-    // Simulate animated pipeline stages progression visually for high fidelity UX
     const interval = setInterval(() => {
       setComputingStage((prev) => (prev < 6 ? prev + 1 : prev));
-    }, 400);
+    }, 280);
 
     try {
       const res = await payrunApi.compute(id);
       clearInterval(interval);
       setComputingStage(7);
       if (res.success) {
-        showToast('Payroll engine computed successfully!', 'success');
+        showToast('Payroll engine computed successfully', 'success');
         setPayrun(res.data);
       }
     } catch (err) {
@@ -77,17 +75,16 @@ export const PayrunDetailPage = () => {
       setTimeout(() => {
         setComputingStage(null);
         setActionLoading(false);
-      }, 500);
+      }, 400);
     }
   };
 
-  // Handle Validate Payrun
   const handleValidate = async () => {
     setActionLoading(true);
     try {
       const res = await payrunApi.validate(id);
       if (res.success) {
-        showToast('Payrun validated and locked!', 'success');
+        showToast('Payrun validated and locked', 'success');
         setPayrun(res.data);
       }
     } catch (err) {
@@ -97,13 +94,12 @@ export const PayrunDetailPage = () => {
     }
   };
 
-  // Handle Mark Paid
   const handleMarkPaid = async () => {
     setActionLoading(true);
     try {
       const res = await payrunApi.markPaid(id);
       if (res.success) {
-        showToast('Payrun marked as Paid!', 'success');
+        showToast('Payrun marked as Paid', 'success');
         setPayrun(res.data);
       }
     } catch (err) {
@@ -113,13 +109,12 @@ export const PayrunDetailPage = () => {
     }
   };
 
-  // Handle Send Payslips
   const handleSendPayslips = async () => {
     setActionLoading(true);
     try {
       const res = await payrunApi.sendPayslips(id);
       if (res.success) {
-        showToast('Digital payslips dispatched to employees!', 'success');
+        showToast('Digital payslips dispatched to employees', 'success');
         setPayrun(res.data);
       }
     } catch (err) {
@@ -129,7 +124,6 @@ export const PayrunDetailPage = () => {
     }
   };
 
-  // Handle Download Single PDF
   const handleDownloadPDF = async (payslipId, empName) => {
     try {
       await payslipApi.downloadPDF(payslipId, `Payslip_${empName?.replace(/\s+/g, '_')}.pdf`);
@@ -139,7 +133,6 @@ export const PayrunDetailPage = () => {
     }
   };
 
-  // Inspector modal open
   const handleOpenInspector = (payslip) => {
     setSelectedPayslip(payslip);
     setShowInspectorModal(true);
@@ -148,9 +141,9 @@ export const PayrunDetailPage = () => {
   const getStatusBadge = (st) => {
     switch (st) {
       case 'Draft':
-        return <Badge variant="neutral">Draft</Badge>;
+        return <Badge variant="default">Draft</Badge>;
       case 'Computed':
-        return <Badge variant="purple">Computed</Badge>;
+        return <Badge variant="primary">Computed</Badge>;
       case 'Validated':
         return <Badge variant="info">Validated</Badge>;
       case 'Paid':
@@ -160,7 +153,7 @@ export const PayrunDetailPage = () => {
       case 'Cancelled':
         return <Badge variant="danger">Cancelled</Badge>;
       default:
-        return <Badge variant="neutral">{st}</Badge>;
+        return <Badge variant="default">{st}</Badge>;
     }
   };
 
@@ -169,15 +162,15 @@ export const PayrunDetailPage = () => {
   if (loading) {
     return (
       <div className="flex justify-center items-center h-96">
-        <LoadingSpinner size="lg" />
+        <LoadingSpinner message="Loading payrun engine state..." />
       </div>
     );
   }
 
   if (!payrun) {
     return (
-      <div className="p-8 text-center bg-white rounded-2xl border border-slate-200">
-        <h3 className="text-lg font-bold text-slate-800">Payrun Not Found</h3>
+      <div className="p-8 text-center bg-[#111114] rounded border border-white/10">
+        <h3 className="text-sm font-bold text-[#F5F2EA]">Payrun Not Found</h3>
         <Button variant="primary" onClick={() => navigate('/payruns')} className="mt-4">
           Back to Payruns
         </Button>
@@ -187,8 +180,7 @@ export const PayrunDetailPage = () => {
 
   const pStart = new Date(payrun.periodStart).toLocaleDateString(undefined, {
     month: 'short',
-    day: 'numeric',
-    year: 'numeric'
+    day: 'numeric'
   });
   const pEnd = new Date(payrun.periodEnd).toLocaleDateString(undefined, {
     month: 'short',
@@ -201,126 +193,113 @@ export const PayrunDetailPage = () => {
   const isPaid = ['Paid', 'PayslipsSent'].includes(payrun.status);
   const isSent = payrun.status === 'PayslipsSent';
 
-  // Determine current active pipeline step
   let activeStep = 1;
   if (computingStage) activeStep = computingStage;
   else if (isSent) activeStep = 7;
-  else if (isPaid) activeStep = 7;
-  else if (isValidated) activeStep = 6;
-  else if (isComputed) activeStep = 5;
+  else if (isPaid) activeStep = 6;
+  else if (isValidated) activeStep = 5;
+  else if (isComputed) activeStep = 3;
 
   return (
-    <div className="space-y-6">
-      {/* Breadcrumbs & Header Bar */}
-      <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4">
+    <div className="p-5 max-w-[1600px] w-full mx-auto flex flex-col gap-5">
+      {/* Breadcrumb & Batch Header */}
+      <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4 pb-4 border-b border-white/10">
         <div>
-          <div className="flex items-center gap-2 text-xs font-semibold text-slate-400 mb-1">
-            <Link to="/payruns" className="hover:text-primary transition-colors">
+          <div className="flex items-center gap-2 font-mono text-[11px] text-[#6F6C69] mb-1">
+            <Link to="/payruns" className="hover:text-[#F5F2EA] transition-colors">
               Payruns
             </Link>
             <span>/</span>
-            <span className="text-slate-600 font-mono text-[11px]">{payrun._id}</span>
+            <span className="text-[#A6A3A0]">{payrun._id}</span>
           </div>
           <div className="flex items-center gap-3">
-            <h1 className="text-2xl font-bold text-on-surface">{payrun.name}</h1>
+            <h1 className="text-xl md:text-2xl font-bold text-[#F5F2EA] tracking-tight font-display">
+              {payrun.name}
+            </h1>
             {getStatusBadge(payrun.status)}
           </div>
-          <div className="flex items-center gap-4 text-xs text-slate-500 mt-1">
-            <span className="flex items-center gap-1 font-medium">
-              <span className="material-symbols-outlined text-[15px] text-primary">calendar_today</span>
-              {pStart} — {pEnd}
-            </span>
+          <div className="flex items-center gap-3 font-mono text-xs text-[#A6A3A0] mt-0.5">
+            <span>{pStart} — {pEnd}</span>
             <span>•</span>
-            <span className="flex items-center gap-1">
-              <span className="material-symbols-outlined text-[15px] text-primary">account_tree</span>
-              {payrun.salaryStructure?.name || 'Standard Structure'}
-            </span>
+            <span>{payrun.salaryStructure?.name || 'Standard Structure'}</span>
           </div>
         </div>
 
-        {/* Action Buttons Toolbar */}
+        {/* Action Toolbar */}
         {canManage && (
-          <div className="flex flex-wrap items-center gap-2.5">
-            {/* Compute Button */}
+          <div className="flex items-center gap-2">
             {!isValidated && (
               <Button
                 variant={payrun.status === 'Draft' ? 'primary' : 'secondary'}
+                size="sm"
                 onClick={handleCompute}
                 disabled={actionLoading}
-                className="flex items-center gap-1.5 shadow-sm"
               >
-                <span
-                  className={`material-symbols-outlined text-[18px] ${
-                    actionLoading ? 'animate-spin' : ''
-                  }`}
-                >
+                <span className={`material-symbols-outlined text-sm ${actionLoading ? 'animate-spin' : ''}`}>
                   sync
                 </span>
                 {payrun.status === 'Draft' ? 'Compute Payrun' : 'Re-compute'}
               </Button>
             )}
 
-            {/* Validate Button */}
             {isComputed && !isValidated && (
               <Button
                 variant="primary"
+                size="sm"
                 onClick={handleValidate}
                 disabled={actionLoading}
-                className="bg-emerald-600 hover:bg-emerald-700 text-white flex items-center gap-1.5 shadow-sm"
               >
-                <span className="material-symbols-outlined text-[18px]">verified</span>
+                <span className="material-symbols-outlined text-sm">verified</span>
                 Validate Batch
               </Button>
             )}
 
-            {/* Mark Paid Button */}
             {isValidated && !isPaid && (
               <Button
                 variant="primary"
+                size="sm"
                 onClick={handleMarkPaid}
                 disabled={actionLoading}
-                className="bg-indigo-600 hover:bg-indigo-700 text-white flex items-center gap-1.5 shadow-sm"
               >
-                <span className="material-symbols-outlined text-[18px]">paid</span>
-                Mark as Paid
+                <span className="material-symbols-outlined text-sm">paid</span>
+                Mark Paid
               </Button>
             )}
 
-            {/* Distribute Payslips Button */}
             {isPaid && !isSent && (
               <Button
                 variant="primary"
+                size="sm"
                 onClick={handleSendPayslips}
                 disabled={actionLoading}
-                className="bg-purple-600 hover:bg-purple-700 text-white flex items-center gap-1.5 shadow-sm"
               >
-                <span className="material-symbols-outlined text-[18px]">forward_to_inbox</span>
+                <span className="material-symbols-outlined text-sm">forward_to_inbox</span>
                 Distribute Payslips
               </Button>
             )}
 
             {isSent && (
-              <div className="px-3.5 py-2 bg-emerald-50 text-emerald-700 border border-emerald-200 rounded-xl text-xs font-bold flex items-center gap-1.5">
-                <span className="material-symbols-outlined text-[16px]">task_alt</span>
-                Distributed & Closed
+              <div className="px-2.5 py-1 bg-[#39D98A]/10 text-[#39D98A] border border-[#39D98A]/25 rounded text-xs font-mono font-semibold flex items-center gap-1">
+                <span className="material-symbols-outlined text-sm">check</span>
+                Distributed &amp; Closed
               </div>
             )}
           </div>
         )}
       </div>
 
-      {/* Stitch Design: 7-Stage Payroll Pipeline Stepper */}
-      <div className="bg-surface-container-lowest border border-slate-200/80 rounded-2xl p-6 shadow-sm">
-        <div className="flex items-center justify-between mb-4">
-          <span className="text-xs font-bold text-slate-500 uppercase tracking-wider">
-            Deterministic Payroll Engine Pipeline
+      {/* 7-Stage Payroll Pipeline Horizontal Stepper */}
+      <div className="midnight-card p-4">
+        <div className="flex items-center justify-between mb-3 font-mono text-xs">
+          <span className="text-[10px] uppercase tracking-wider text-[#6F6C69] font-bold">
+            Payroll Pipeline
           </span>
-          <span className="text-xs font-semibold text-primary">
-            {computingStage ? `Computing Stage ${computingStage} of 7...` : `Stage ${activeStep} of 7 Complete`}
+          <span className="text-[#FF8A65]">
+            {computingStage ? `Executing Stage 0${computingStage}...` : `Stage 0${activeStep} of 07`}
           </span>
         </div>
 
-        <div className="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-7 gap-2">
+        <div className="grid grid-cols-7 gap-1.5 font-mono">
           {PIPELINE_STAGES.map((stage) => {
             const isCompleted = activeStep > stage.id;
             const isCurrent = activeStep === stage.id;
@@ -328,66 +307,96 @@ export const PayrunDetailPage = () => {
             return (
               <div
                 key={stage.id}
-                className={`p-3 rounded-xl border flex flex-col justify-between transition-all ${
+                className={`p-2 rounded border transition-all ${
                   isCurrent
-                    ? 'bg-primary/5 border-primary/40 shadow-sm ring-2 ring-primary/20'
+                    ? 'bg-[#17171B] border-[#FF6B3D] text-[#F5F2EA]'
                     : isCompleted
-                    ? 'bg-emerald-50/40 border-emerald-200/60 text-emerald-900'
-                    : 'bg-slate-50/50 border-slate-100 text-slate-400 opacity-60'
+                    ? 'bg-[#111114] border-[#39D98A]/30 text-[#39D98A]'
+                    : 'bg-[#0B0B0D] border-white/5 text-[#6F6C69]'
                 }`}
               >
-                <div className="flex items-center justify-between">
-                  <div
-                    className={`w-7 h-7 rounded-lg flex items-center justify-center text-xs font-bold ${
-                      isCompleted
-                        ? 'bg-emerald-100 text-emerald-700'
-                        : isCurrent
-                        ? 'bg-primary text-white animate-pulse'
-                        : 'bg-slate-200 text-slate-500'
-                    }`}
-                  >
-                    {isCompleted ? (
-                      <span className="material-symbols-outlined text-[14px]">check</span>
-                    ) : (
-                      <span className="material-symbols-outlined text-[14px]">{stage.icon}</span>
-                    )}
-                  </div>
-                  <span className="text-[10px] font-mono font-bold text-slate-400">0{stage.id}</span>
+                <div className="flex items-center justify-between text-[10px]">
+                  <span className="font-bold">0{stage.id}</span>
+                  {isCompleted ? (
+                    <span className="text-[#39D98A]">✓</span>
+                  ) : isCurrent ? (
+                    <span className="text-[#FF6B3D]">●</span>
+                  ) : (
+                    <span className="text-[#6F6C69]">○</span>
+                  )}
                 </div>
-
-                <div className="mt-3">
-                  <div className={`text-xs font-bold ${isCurrent ? 'text-primary' : 'text-on-surface'}`}>
-                    {stage.name}
-                  </div>
-                  <div className="text-[10px] text-slate-500 mt-0.5 leading-tight">{stage.desc}</div>
-                </div>
+                <div className="text-xs font-semibold mt-1 truncate font-sans">{stage.name}</div>
+                <div className="text-[9px] text-[#6F6C69] truncate mt-0.5">{stage.label}</div>
               </div>
             );
           })}
         </div>
       </div>
 
-      {/* Pre-Flight Audit Warning Alerts (if any) */}
-      {payrun.warnings && payrun.warnings.length > 0 && (
-        <div className="bg-amber-50/80 border border-amber-200 rounded-2xl p-5 shadow-sm space-y-2">
-          <div className="flex items-center gap-2 text-amber-900 font-bold text-sm">
-            <span className="material-symbols-outlined text-amber-600 text-[20px]">warning</span>
-            Pre-Flight Computation Audit ({payrun.warnings.length} Notes / Warnings)
+      {/* Computation State Live Box (During Execution) */}
+      {actionLoading && computingStage && (
+        <div className="midnight-card-elevated p-4 font-mono text-xs space-y-2 border-[#FF6B3D]/30">
+          <div className="flex items-center gap-2 text-[#FF8A65] font-bold text-xs">
+            <span className="w-2 h-2 rounded-full bg-[#FF6B3D] animate-ping"></span>
+            COMPUTING PAYROLL
           </div>
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-2 pt-1">
+          <div className="grid grid-cols-2 sm:grid-cols-3 gap-2 pt-1 text-[11px]">
+            <div className="flex items-center justify-between p-2 bg-[#111114] rounded border border-white/5">
+              <span>Checking Contracts</span>
+              <span className={computingStage >= 1 ? 'text-[#39D98A]' : 'text-[#6F6C69]'}>
+                {computingStage >= 1 ? '✓' : '○'}
+              </span>
+            </div>
+            <div className="flex items-center justify-between p-2 bg-[#111114] rounded border border-white/5">
+              <span>Processing Attendance</span>
+              <span className={computingStage >= 2 ? 'text-[#39D98A]' : 'text-[#6F6C69]'}>
+                {computingStage >= 2 ? '✓' : '○'}
+              </span>
+            </div>
+            <div className="flex items-center justify-between p-2 bg-[#111114] rounded border border-white/5">
+              <span>Applying Leave</span>
+              <span className={computingStage >= 3 ? 'text-[#39D98A]' : 'text-[#6F6C69]'}>
+                {computingStage >= 3 ? '✓' : '○'}
+              </span>
+            </div>
+            <div className="flex items-center justify-between p-2 bg-[#111114] rounded border border-white/5">
+              <span>Running Salary Rules</span>
+              <span className={computingStage >= 4 ? 'text-[#39D98A]' : 'text-[#6F6C69]'}>
+                {computingStage >= 4 ? '✓' : '○'}
+              </span>
+            </div>
+            <div className="flex items-center justify-between p-2 bg-[#111114] rounded border border-white/5">
+              <span>Calculating Deductions</span>
+              <span className={computingStage >= 5 ? 'text-[#39D98A]' : 'text-[#6F6C69]'}>
+                {computingStage >= 5 ? '✓' : '○'}
+              </span>
+            </div>
+            <div className="flex items-center justify-between p-2 bg-[#111114] rounded border border-white/5">
+              <span>Generating Payslips</span>
+              <span className={computingStage >= 6 ? 'text-[#39D98A]' : 'text-[#6F6C69]'}>
+                {computingStage >= 6 ? '✓' : '○'}
+              </span>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Warnings Banner (If present) */}
+      {payrun.warnings && payrun.warnings.length > 0 && (
+        <div className="midnight-card p-4 border-[#F5B942]/30 space-y-2">
+          <div className="flex items-center gap-2 font-mono text-xs text-[#F5B942] font-semibold">
+            <span className="material-symbols-outlined text-sm">warning</span>
+            REVIEW REQUIRED ({payrun.warnings.length} Audit Notes)
+          </div>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-2 text-xs">
             {payrun.warnings.map((w, idx) => (
-              <div
-                key={idx}
-                className="bg-white/90 border border-amber-200/80 rounded-xl p-3 text-xs flex items-start gap-2.5"
-              >
-                <span className="material-symbols-outlined text-amber-600 text-[16px] shrink-0 mt-0.5">
-                  info
-                </span>
+              <div key={idx} className="p-2.5 bg-[#17171B] rounded border border-white/5 flex items-start gap-2">
+                <span className="material-symbols-outlined text-[#F5B942] text-sm shrink-0 mt-0.5">info</span>
                 <div>
-                  <span className="font-semibold text-slate-800 block">
+                  <span className="font-semibold text-[#F5F2EA] block">
                     {w.employee ? `${w.employee.firstName} ${w.employee.lastName}: ` : 'Audit: '}
                   </span>
-                  <span className="text-slate-600 text-[11px]">{w.message}</span>
+                  <span className="text-[#A6A3A0] text-[11px]">{w.message}</span>
                 </div>
               </div>
             ))}
@@ -395,286 +404,202 @@ export const PayrunDetailPage = () => {
         </div>
       )}
 
-      {/* Totals KPI Strip */}
-      <div className="grid grid-cols-2 sm:grid-cols-5 gap-4">
-        <div className="bg-surface-container-lowest border border-slate-200/80 rounded-2xl p-4 shadow-sm">
-          <span className="text-xs font-semibold text-slate-500 uppercase tracking-wider">Eligible Staff</span>
-          <div className="text-2xl font-bold text-on-surface mt-2">
+      {/* Summary Metrics Strip */}
+      <div className="grid grid-cols-2 sm:grid-cols-5 gap-3 font-mono">
+        <div className="midnight-card p-3.5">
+          <span className="text-[10px] text-[#6F6C69] uppercase block">Staff Selected</span>
+          <div className="text-xl font-bold text-[#F5F2EA] mt-1">
             {payrun.totals?.employeeCount || payrun.selectedEmployees?.length || 0}
           </div>
-          <span className="text-[11px] text-slate-400">Selected in run</span>
         </div>
 
-        <div className="bg-surface-container-lowest border border-slate-200/80 rounded-2xl p-4 shadow-sm">
-          <span className="text-xs font-semibold text-slate-500 uppercase tracking-wider">Total Basic</span>
-          <div className="text-2xl font-bold text-slate-800 mt-2">
+        <div className="midnight-card p-3.5">
+          <span className="text-[10px] text-[#6F6C69] uppercase block">Basic Salary</span>
+          <div className="text-xl font-bold text-[#F5F2EA] mt-1">
             ${(payrun.totals?.totalBasic || 0).toLocaleString()}
           </div>
-          <span className="text-[11px] text-slate-400">Base salary tier</span>
         </div>
 
-        <div className="bg-surface-container-lowest border border-slate-200/80 rounded-2xl p-4 shadow-sm">
-          <span className="text-xs font-semibold text-slate-500 uppercase tracking-wider">Allowances</span>
-          <div className="text-2xl font-bold text-emerald-600 mt-2">
+        <div className="midnight-card p-3.5">
+          <span className="text-[10px] text-[#6F6C69] uppercase block">Allowances</span>
+          <div className="text-xl font-bold text-[#39D98A] mt-1">
             +${(payrun.totals?.totalAllowances || 0).toLocaleString()}
           </div>
-          <span className="text-[11px] text-slate-400">HRA, DA, Bonuses</span>
         </div>
 
-        <div className="bg-surface-container-lowest border border-slate-200/80 rounded-2xl p-4 shadow-sm">
-          <span className="text-xs font-semibold text-slate-500 uppercase tracking-wider">Deductions & Tax</span>
-          <div className="text-2xl font-bold text-red-600 mt-2">
+        <div className="midnight-card p-3.5">
+          <span className="text-[10px] text-[#6F6C69] uppercase block">Deductions</span>
+          <div className="text-xl font-bold text-[#FF5C5C] mt-1">
             -${(payrun.totals?.totalDeductions || 0).toLocaleString()}
           </div>
-          <span className="text-[11px] text-slate-400">PF, Tax, Leave cuts</span>
         </div>
 
-        <div className="bg-gradient-to-br from-primary to-secondary p-4 rounded-2xl text-white shadow-md">
-          <span className="text-xs font-bold uppercase tracking-wider text-indigo-200">Total Net Disbursal</span>
-          <div className="text-2xl font-black text-white mt-2">
+        <div className="midnight-card-elevated p-3.5 border-[#FF6B3D]/30">
+          <span className="text-[10px] text-[#FF8A65] uppercase block font-bold">Total Net Pay</span>
+          <div className="text-xl font-bold text-[#F5F2EA] mt-1">
             ${(payrun.totals?.totalNet || 0).toLocaleString()}
           </div>
-          <span className="text-[11px] text-indigo-100">Final payout liability</span>
         </div>
       </div>
 
-      {/* Itemized Payslips Table */}
-      <div className="bg-surface-container-lowest border border-slate-200/80 rounded-2xl shadow-sm overflow-hidden">
-        <div className="p-4 border-b border-slate-100 flex items-center justify-between">
-          <div>
-            <h3 className="text-base font-bold text-on-surface">Calculated Payslip Roster</h3>
-            <p className="text-xs text-slate-500">
-              {payrun.payslips?.length || 0} individual payroll item records generated
-            </p>
-          </div>
+      {/* Calculated Payslip Roster Table */}
+      <div className="staffora-table-container">
+        <div className="p-3.5 bg-[#0E0E11] border-b border-white/10 flex items-center justify-between">
+          <span className="font-mono text-xs font-semibold text-[#F5F2EA]">
+            CALCULATED PAYSLIP ROSTER ({payrun.payslips?.length || 0} Records)
+          </span>
         </div>
 
         {!payrun.payslips || payrun.payslips.length === 0 ? (
-          <div className="p-12 text-center text-slate-400">
-            <span className="material-symbols-outlined text-4xl mb-2">calculate</span>
-            <p className="text-sm font-semibold text-slate-600">
-              {payrun.status === 'Draft'
-                ? 'Click "Compute Payrun" above to run the salary engine on selected employees.'
-                : 'No payslips generated for this payrun.'}
-            </p>
-            {payrun.status === 'Draft' && canManage && (
-              <Button variant="primary" onClick={handleCompute} className="mt-4">
-                Execute Computation Engine
-              </Button>
-            )}
+          <div className="p-10 text-center text-[#6F6C69] font-mono text-xs">
+            {payrun.status === 'Draft'
+              ? 'Click "Compute Payrun" above to calculate earnings and deductions.'
+              : 'No payslips generated.'}
           </div>
         ) : (
-          <div className="overflow-x-auto">
-            <table className="min-w-full divide-y divide-slate-200/80 text-left text-sm">
-              <thead className="bg-slate-50/70 text-slate-500 uppercase text-[11px] font-bold tracking-wider">
-                <tr>
-                  <th className="px-5 py-3.5">Employee</th>
-                  <th className="px-5 py-3.5 text-right">Basic Wage</th>
-                  <th className="px-5 py-3.5 text-right">Gross Earnings</th>
-                  <th className="px-5 py-3.5 text-right">Deductions</th>
-                  <th className="px-5 py-3.5 text-right">Net Payable</th>
-                  <th className="px-5 py-3.5 text-center">Status</th>
-                  <th className="px-5 py-3.5 text-right">Actions</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-slate-100 bg-white">
-                {payrun.payslips.map((ps, idx) => {
-                  const itemKey = ps?._id || (typeof ps === 'string' ? ps : `ps-${idx}`);
-                  const emp = ps?.employee;
-                  const empName = emp
-                    ? typeof emp === 'object'
-                      ? `${emp.firstName || ''} ${emp.lastName || ''}`.trim() || 'Employee'
-                      : 'Employee'
-                    : 'Employee';
+          <table className="staffora-table">
+            <thead>
+              <tr>
+                <th>Employee</th>
+                <th className="text-right">Basic</th>
+                <th className="text-right">Gross</th>
+                <th className="text-right">Deductions</th>
+                <th className="text-right">Net Payable</th>
+                <th className="text-center">Status</th>
+                <th className="text-right">Actions</th>
+              </tr>
+            </thead>
+            <tbody>
+              {payrun.payslips.map((ps, idx) => {
+                const itemKey = ps?._id || (typeof ps === 'string' ? ps : `ps-${idx}`);
+                const emp = ps?.employee;
+                const empName = emp
+                  ? typeof emp === 'object'
+                    ? `${emp.firstName || ''} ${emp.lastName || ''}`.trim() || 'Employee'
+                    : 'Employee'
+                  : 'Employee';
 
-                  return (
-                    <tr key={itemKey} className="hover:bg-slate-50/70 transition-colors">
-                      <td className="px-5 py-4">
-                        <div className="flex items-center gap-3">
-                          <div className="w-8 h-8 rounded-full bg-gradient-to-tr from-primary/10 to-indigo-100 flex items-center justify-center font-bold text-primary text-xs">
-                            {emp?.firstName?.[0] || 'E'}
-                            {emp?.lastName?.[0] || ''}
-                          </div>
-                          <div>
-                            <span className="font-semibold text-on-surface block text-xs">{empName}</span>
-                            <span className="text-[10px] text-slate-400">
-                              {emp?.employeeCode || '—'} • {emp?.department || 'General'}
-                            </span>
-                          </div>
-                        </div>
-                      </td>
+                return (
+                  <tr key={itemKey}>
+                    <td>
+                      <div className="font-semibold text-[#F5F2EA]">{empName}</div>
+                      <div className="text-[10px] font-mono text-[#6F6C69]">
+                        {emp?.employeeCode || '—'} • {emp?.department || 'General'}
+                      </div>
+                    </td>
 
-                      <td className="px-5 py-4 text-right font-medium text-xs text-slate-700">
-                        ${(ps.basicSalary || 0).toLocaleString()}
-                      </td>
+                    <td className="text-right font-mono text-xs text-[#A6A3A0]">
+                      ${(ps.basicSalary || 0).toLocaleString()}
+                    </td>
 
-                      <td className="px-5 py-4 text-right font-semibold text-xs text-slate-800">
-                        ${(ps.grossSalary || 0).toLocaleString()}
-                      </td>
+                    <td className="text-right font-mono text-xs text-[#F5F2EA]">
+                      ${(ps.grossSalary || 0).toLocaleString()}
+                    </td>
 
-                      <td className="px-5 py-4 text-right font-medium text-xs text-red-600">
-                        -${(ps.totalDeductions || 0).toLocaleString()}
-                      </td>
+                    <td className="text-right font-mono text-xs text-[#FF5C5C]">
+                      -${(ps.totalDeductions || 0).toLocaleString()}
+                    </td>
 
-                      <td className="px-5 py-4 text-right font-bold text-sm text-primary">
-                        ${(ps.netSalary || 0).toLocaleString()}
-                      </td>
+                    <td className="text-right font-mono font-bold text-xs text-[#39D98A]">
+                      ${(ps.netSalary || 0).toLocaleString()}
+                    </td>
 
-                      <td className="px-5 py-4 text-center">
-                        <Badge variant={ps.status === 'Paid' ? 'success' : 'purple'}>
-                          {ps.status}
-                        </Badge>
-                      </td>
+                    <td className="text-center font-mono">
+                      <Badge variant={ps.status === 'Paid' ? 'success' : 'primary'}>
+                        {ps.status}
+                      </Badge>
+                    </td>
 
-                      <td className="px-5 py-4 text-right">
-                        <div className="flex items-center justify-end gap-1.5">
-                          <button
-                            onClick={() => handleOpenInspector(ps)}
-                            className="p-1.5 rounded-lg bg-indigo-50 text-primary hover:bg-indigo-100 text-xs font-semibold flex items-center gap-1"
-                            title="Inspect Itemized Breakdown"
-                          >
-                            <span className="material-symbols-outlined text-[16px]">query_stats</span>
-                            Inspect
-                          </button>
-                          <button
-                            onClick={() => handleDownloadPDF(ps._id, empName)}
-                            className="p-1.5 rounded-lg bg-slate-100 text-slate-700 hover:bg-slate-200 text-xs font-semibold"
-                            title="Download PDF"
-                          >
-                            <span className="material-symbols-outlined text-[16px]">download</span>
-                          </button>
-                        </div>
-                      </td>
-                    </tr>
-                  );
-                })}
-              </tbody>
-            </table>
-          </div>
+                    <td className="text-right">
+                      <div className="inline-flex items-center gap-1.5">
+                        <button
+                          onClick={() => handleOpenInspector(ps)}
+                          className="px-2 py-1 bg-[#17171B] hover:bg-[#1E1E24] text-[#FF8A65] border border-white/10 rounded font-mono text-[11px] flex items-center gap-1"
+                        >
+                          <span className="material-symbols-outlined text-[14px]">query_stats</span>
+                          Trace
+                        </button>
+                        <button
+                          onClick={() => handleDownloadPDF(ps._id, empName)}
+                          className="p-1 bg-[#17171B] hover:bg-[#1E1E24] text-[#A6A3A0] hover:text-[#F5F2EA] border border-white/10 rounded"
+                          title="Download PDF"
+                        >
+                          <span className="material-symbols-outlined text-[14px]">download</span>
+                        </button>
+                      </div>
+                    </td>
+                  </tr>
+                );
+              })}
+            </tbody>
+          </table>
         )}
       </div>
 
-      {/* Stitch Design: Itemized Payslip Inspector Modal */}
-      <Modal
-        isOpen={showInspectorModal}
-        onClose={() => setShowInspectorModal(false)}
-        title="Itemized Salary Rule Inspector"
-        size="2xl"
-      >
-        {selectedPayslip && (
-          <div className="space-y-6">
-            {/* Payslip Header Card */}
-            <div className="bg-gradient-to-r from-slate-900 to-indigo-950 p-5 rounded-2xl text-white">
-              <div className="flex justify-between items-start">
-                <div>
-                  <span className="text-[10px] uppercase font-bold tracking-widest text-indigo-300">
-                    Official Salary Computation Audit
-                  </span>
-                  <h3 className="text-xl font-bold mt-1">
-                    {selectedPayslip.employee?.firstName} {selectedPayslip.employee?.lastName}
-                  </h3>
-                  <p className="text-xs text-indigo-200">
-                    {selectedPayslip.employee?.employeeCode} • {selectedPayslip.employee?.jobPosition}
-                  </p>
-                </div>
-                <div className="text-right">
-                  <span className="text-[10px] text-indigo-300 block uppercase">Net Disbursed</span>
-                  <span className="text-2xl font-black text-emerald-400">
-                    ${(selectedPayslip.netSalary || 0).toLocaleString()}
-                  </span>
-                </div>
-              </div>
-            </div>
-
-            {/* Attendance & Time-off Meta Stats */}
-            <div className="grid grid-cols-3 gap-3">
-              <div className="bg-slate-50 p-3 rounded-xl border border-slate-100 text-center">
-                <span className="text-[10px] text-slate-400 font-bold uppercase block">Worked Days</span>
-                <span className="text-base font-bold text-slate-800">
-                  {selectedPayslip.workedDays || 22} days
+      {/* Payslip Formula Trace Inspector Modal */}
+      {selectedPayslip && (
+        <Modal
+          isOpen={showInspectorModal}
+          onClose={() => setShowInspectorModal(false)}
+          title={`Calculation Trace — ${selectedPayslip.employee?.firstName || ''} ${selectedPayslip.employee?.lastName || 'Employee'}`}
+          maxWidth="max-w-2xl"
+        >
+          <div className="space-y-4 font-mono text-xs">
+            <div className="grid grid-cols-3 gap-3 text-center">
+              <div className="p-3 bg-[#111114] rounded border border-white/10">
+                <span className="text-[9px] text-[#6F6C69] uppercase block">Gross Salary</span>
+                <span className="text-sm font-bold text-[#F5F2EA]">
+                  ${(selectedPayslip.grossSalary || 0).toLocaleString()}
                 </span>
               </div>
-              <div className="bg-slate-50 p-3 rounded-xl border border-slate-100 text-center">
-                <span className="text-[10px] text-slate-400 font-bold uppercase block">Overtime Hours</span>
-                <span className="text-base font-bold text-primary">
-                  {selectedPayslip.overtimeHours || 0} hrs
+              <div className="p-3 bg-[#111114] rounded border border-white/10">
+                <span className="text-[9px] text-[#6F6C69] uppercase block">Total Deductions</span>
+                <span className="text-sm font-bold text-[#FF5C5C]">
+                  -${(selectedPayslip.totalDeductions || 0).toLocaleString()}
                 </span>
               </div>
-              <div className="bg-slate-50 p-3 rounded-xl border border-slate-100 text-center">
-                <span className="text-[10px] text-slate-400 font-bold uppercase block">Unpaid Leaves</span>
-                <span className="text-base font-bold text-red-600">
-                  {selectedPayslip.unpaidLeaveDays || 0} days
+              <div className="p-3 bg-[#111114] rounded border border-white/10">
+                <span className="text-[9px] text-[#6F6C69] uppercase block">Net Disbursed</span>
+                <span className="text-sm font-bold text-[#39D98A]">
+                  ${(selectedPayslip.netSalary || 0).toLocaleString()}
                 </span>
               </div>
             </div>
 
-            {/* Rule by Rule Calculation Ledger */}
-            <div>
-              <h4 className="text-xs font-bold text-slate-700 uppercase tracking-wider mb-2">
-                Sequential Rule Computation Trace
-              </h4>
-              <div className="border border-slate-200 rounded-xl overflow-hidden divide-y divide-slate-100 text-xs">
-                <div className="bg-slate-50 p-3 flex justify-between font-bold text-slate-600">
-                  <span>Rule / Component Name</span>
-                  <span>Category</span>
-                  <span className="text-right">Calculated Value</span>
-                </div>
-
-                {selectedPayslip.lineItems?.map((item, idx) => (
-                  <div key={idx} className="p-3 flex justify-between items-center hover:bg-slate-50/50">
+            <div className="space-y-2">
+              <span className="text-[10px] text-[#6F6C69] uppercase font-bold tracking-wider block">
+                Rule-by-Rule Sequential Computation Trace
+              </span>
+              <div className="border border-white/10 rounded divide-y divide-white/5 bg-[#111114] max-h-60 overflow-y-auto">
+                {selectedPayslip.lineItems?.map((li, idx) => (
+                  <div key={idx} className="p-2.5 flex items-center justify-between">
                     <div>
-                      <span className="font-semibold text-on-surface block">{item.name}</span>
-                      <span className="text-[10px] text-slate-400 font-mono">{item.code}</span>
+                      <span className="font-bold text-[#F5F2EA]">{li.name}</span>
+                      <span className="text-[10px] text-[#6F6C69] ml-2">
+                        [{li.category}]
+                      </span>
                     </div>
-                    <div>
-                      <Badge
-                        variant={
-                          item.category === 'Allowance'
-                            ? 'success'
-                            : item.category === 'Deduction'
-                            ? 'danger'
-                            : 'neutral'
-                        }
-                      >
-                        {item.category}
-                      </Badge>
-                    </div>
-                    <div
-                      className={`font-bold text-sm text-right ${
-                        item.category === 'Deduction' ? 'text-red-600' : 'text-emerald-700'
-                      }`}
-                    >
-                      {item.category === 'Deduction' ? '-' : '+'}
-                      ${(item.amount || 0).toLocaleString()}
+                    <div className="flex items-center gap-3">
+                      <span className="text-[10px] text-[#A6A3A0]">
+                        {li.rate ? `${li.rate}%` : ''}
+                      </span>
+                      <span className={`font-bold ${li.category === 'Deduction' ? 'text-[#FF5C5C]' : 'text-[#39D98A]'}`}>
+                        {li.category === 'Deduction' ? '-' : '+'}${Number(li.amount || 0).toFixed(2)}
+                      </span>
                     </div>
                   </div>
                 ))}
               </div>
             </div>
 
-            {/* Actions */}
-            <div className="flex justify-between items-center pt-3 border-t border-slate-100">
-              <Button
-                variant="secondary"
-                size="sm"
-                onClick={() =>
-                  handleDownloadPDF(
-                    selectedPayslip._id,
-                    `${selectedPayslip.employee?.firstName}_${selectedPayslip.employee?.lastName}`
-                  )
-                }
-                className="flex items-center gap-1.5"
-              >
-                <span className="material-symbols-outlined text-[16px]">download</span>
-                Download Official PDF
-              </Button>
-              <Button variant="primary" onClick={() => setShowInspectorModal(false)}>
-                Close Inspector
+            <div className="flex justify-end pt-3 border-t border-white/10">
+              <Button variant="secondary" onClick={() => setShowInspectorModal(false)}>
+                Close Trace
               </Button>
             </div>
           </div>
-        )}
-      </Modal>
+        </Modal>
+      )}
     </div>
   );
 };

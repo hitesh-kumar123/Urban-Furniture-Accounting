@@ -25,6 +25,17 @@ export const ContractsPage = () => {
   const [lookupResult, setLookupResult] = useState(null);
   const [lookupForm, setLookupForm] = useState({ employeeId: '', startDate: '', endDate: '' });
 
+  const [formData, setFormData] = useState({
+    name: '',
+    employee: '',
+    wage: 5000,
+    salaryStructure: '',
+    workingSchedule: '',
+    startDate: new Date().toISOString().split('T')[0],
+    endDate: '',
+    state: 'Active'
+  });
+
   const { hasRole } = useAuth();
   const { showToast } = useToast();
 
@@ -53,12 +64,64 @@ export const ContractsPage = () => {
     fetchData();
   }, [statusFilter]);
 
+  const handleOpenModal = (contract = null) => {
+    if (contract) {
+      setEditingContract(contract);
+      setFormData({
+        name: contract.name,
+        employee: contract.employee?._id || contract.employee,
+        wage: contract.wage,
+        salaryStructure: contract.salaryStructure?._id || contract.salaryStructure || (structures[0]?._id || ''),
+        workingSchedule: contract.workingSchedule?._id || contract.workingSchedule || (schedules[0]?._id || ''),
+        startDate: contract.startDate ? contract.startDate.split('T')[0] : '',
+        endDate: contract.endDate ? contract.endDate.split('T')[0] : '',
+        state: contract.state || 'Active'
+      });
+    } else {
+      setEditingContract(null);
+      setFormData({
+        name: `Contract — ${employees[0]?.firstName || 'Staff'}`,
+        employee: employees[0]?._id || '',
+        wage: 6500,
+        salaryStructure: structures[0]?._id || '',
+        workingSchedule: schedules[0]?._id || '',
+        startDate: new Date().toISOString().split('T')[0],
+        endDate: '',
+        state: 'Active'
+      });
+    }
+    setShowModal(true);
+  };
+
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    try {
+      if (editingContract) {
+        const res = await contractApi.update(editingContract._id, formData);
+        if (res.success) {
+          showToast('Contract updated', 'success');
+          setShowModal(false);
+          fetchData();
+        }
+      } else {
+        const res = await contractApi.create(formData);
+        if (res.success) {
+          showToast('Contract created', 'success');
+          setShowModal(false);
+          fetchData();
+        }
+      }
+    } catch (err) {
+      showToast(err.response?.data?.message || 'Action failed', 'error');
+    }
+  };
+
   const handleDelete = async (id) => {
-    if (!window.confirm('Are you sure you want to delete this contract?')) return;
+    if (!window.confirm('Delete this contract record?')) return;
     try {
       const res = await contractApi.delete(id);
       if (res.success) {
-        showToast('Contract deleted successfully', 'success');
+        showToast('Contract deleted', 'success');
         fetchData();
       }
     } catch (err) {
@@ -79,184 +142,295 @@ export const ContractsPage = () => {
     }
   };
 
+  const canManage = hasRole('Admin', 'HR Manager', 'HR Payroll Manager');
+
   return (
-    <div className="p-space-lg max-w-[1600px] w-full mx-auto flex flex-col gap-space-lg">
-      {/* Page Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-space-md">
+    <div className="p-5 max-w-[1600px] w-full mx-auto flex flex-col gap-5">
+      {/* Top Header */}
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-4 border-b border-white/10">
         <div>
-          <span className="font-label-sm text-label-sm uppercase tracking-wider text-primary font-bold">
-            Employment Terms &amp; Compensation
-          </span>
-          <h1 className="font-headline-lg text-headline-lg text-on-surface font-bold tracking-tight">
-            Contract Management Registry
+          <div className="flex items-center gap-2 mb-1">
+            <span className="font-mono text-[10px] uppercase tracking-widest text-[#FF6B3D] font-semibold">
+              Employment Registry
+            </span>
+          </div>
+          <h1 className="text-xl md:text-2xl font-bold text-[#F5F2EA] tracking-tight font-display">
+            Contracts &amp; Wage Terms ({contracts.length})
           </h1>
-          <p className="font-body-sm text-body-sm text-on-surface-variant">
-            Historical contract versioning &amp; dynamic payroll period mapping.
+          <p className="text-xs text-[#A6A3A0] mt-0.5">
+            Base wages, salary structure linkages, shift schedule mappings, and historical terms.
           </p>
         </div>
 
-        <div className="flex items-center gap-space-xs flex-wrap">
+        <div className="flex items-center gap-2.5">
           <Button
-            variant="outline"
-            icon="manage_search"
+            variant="secondary"
+            size="sm"
             onClick={() => {
               setLookupResult(null);
+              setLookupForm({
+                employeeId: employees[0]?._id || '',
+                startDate: new Date().toISOString().split('T')[0],
+                endDate: new Date().toISOString().split('T')[0]
+              });
               setShowLookupModal(true);
             }}
+            icon="search"
           >
-            Period Contract Lookup
+            Period Tester
           </Button>
 
-          {hasRole('Admin', 'HR Manager', 'HR Payroll Manager') && (
+          {canManage && (
             <Button
-              onClick={() => {
-                setEditingContract(null);
-                setShowModal(true);
-              }}
+              variant="primary"
+              size="sm"
+              onClick={() => handleOpenModal(null)}
               icon="add"
             >
-              + Create Contract
+              New Contract
             </Button>
           )}
         </div>
       </div>
 
       {/* Contracts Table */}
-      <div className="bg-surface-container-lowest rounded-2xl shadow-sm border border-outline-variant/20 overflow-hidden">
+      <div className="staffora-table-container">
         {loading ? (
-          <LoadingSpinner message="Loading employment contracts..." />
+          <LoadingSpinner message="Querying active contracts..." />
+        ) : contracts.length === 0 ? (
+          <div className="p-10 text-center text-[#6F6C69] font-mono text-xs">
+            No contract records found.
+          </div>
         ) : (
-          <div className="overflow-x-auto w-full">
-            <table className="w-full text-left border-collapse">
-              <thead>
-                <tr className="bg-surface-container-low font-label-sm text-label-sm text-outline uppercase tracking-wider select-none">
-                  <th className="py-3 px-4 font-semibold">Contract Title &amp; Employee</th>
-                  <th className="py-3 px-4 font-semibold">Base Wage ($)</th>
-                  <th className="py-3 px-4 font-semibold">Salary Structure</th>
-                  <th className="py-3 px-4 font-semibold">Validity Range</th>
-                  <th className="py-3 px-4 font-semibold">Status</th>
-                  <th className="py-3 px-4 text-right font-semibold">Actions</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-outline-variant/10 font-body-sm text-body-sm text-on-surface">
-                {contracts.map((contract) => (
-                  <tr key={contract._id} className="hover:bg-surface-container-low/50 transition-colors">
-                    <td className="py-3 px-4">
-                      <div className="flex flex-col">
-                        <span className="font-bold text-on-surface">{contract.name}</span>
-                        <span className="text-xs text-primary font-semibold">
-                          {contract.employee?.firstName} {contract.employee?.lastName} ({contract.employee?.employeeId})
-                        </span>
+          <table className="staffora-table">
+            <thead>
+              <tr>
+                <th>Contract Reference</th>
+                <th>Employee</th>
+                <th className="text-right">Monthly Base Wage</th>
+                <th>Salary Structure</th>
+                <th>Validity Period</th>
+                <th>Status</th>
+                <th className="text-right">Actions</th>
+              </tr>
+            </thead>
+            <tbody>
+              {contracts.map((c) => {
+                const empName = c.employee
+                  ? typeof c.employee === 'object'
+                    ? `${c.employee.firstName || ''} ${c.employee.lastName || ''}`.trim()
+                    : 'Employee'
+                  : 'Employee';
+                const sDate = c.startDate ? new Date(c.startDate).toLocaleDateString() : '—';
+                const eDate = c.endDate ? new Date(c.endDate).toLocaleDateString() : 'Indefinite';
+
+                return (
+                  <tr key={c._id}>
+                    <td>
+                      <div className="font-semibold text-[#F5F2EA]">{c.name}</div>
+                      <div className="text-[10px] font-mono text-[#6F6C69]">
+                        ID: {c._id.slice(-6)}
                       </div>
                     </td>
 
-                    <td className="py-3 px-4">
-                      <span className="font-bold text-primary font-tabular-numeric text-sm">
-                        ${contract.wage?.toLocaleString()}/mo
-                      </span>
+                    <td>
+                      <div className="font-semibold text-[#F5F2EA]">{empName}</div>
+                      <div className="text-[10px] font-mono text-[#6F6C69]">
+                        {c.employee?.employeeCode || '—'}
+                      </div>
                     </td>
 
-                    <td className="py-3 px-4">
-                      <span className="text-on-surface font-medium">
-                        {contract.salaryStructure?.name || 'Standard Structure'}
-                      </span>
+                    <td className="text-right font-mono font-bold text-xs text-[#39D98A]">
+                      ${Number(c.wage || 0).toLocaleString()}
                     </td>
 
-                    <td className="py-3 px-4">
-                      <span className="text-xs text-on-surface-variant font-medium">
-                        {new Date(contract.startDate).toLocaleDateString()} –{' '}
-                        {contract.endDate ? new Date(contract.endDate).toLocaleDateString() : 'Ongoing'}
-                      </span>
+                    <td className="text-xs font-mono text-[#A6A3A0]">
+                      {c.salaryStructure?.name || 'Standard'}
                     </td>
 
-                    <td className="py-3 px-4">
-                      <Badge
-                        variant={
-                          contract.status === 'Active'
-                            ? 'success'
-                            : contract.status === 'Expired'
-                            ? 'default'
-                            : 'warning'
-                        }
-                      >
-                        {contract.status}
+                    <td className="font-mono text-xs text-[#A6A3A0]">
+                      {sDate} → {eDate}
+                    </td>
+
+                    <td className="font-mono">
+                      <Badge variant={c.state === 'Active' ? 'success' : c.state === 'Draft' ? 'default' : 'danger'}>
+                        {c.state || 'Active'}
                       </Badge>
                     </td>
 
-                    <td className="py-3 px-4 text-right">
-                      <div className="inline-flex items-center gap-1">
-                        {hasRole('Admin', 'HR Manager', 'HR Payroll Manager') && (
+                    <td className="text-right">
+                      {canManage && (
+                        <div className="inline-flex items-center gap-1">
                           <button
-                            onClick={() => {
-                              setEditingContract(contract);
-                              setShowModal(true);
-                            }}
-                            className="p-1.5 hover:bg-surface-container rounded-lg text-primary"
+                            onClick={() => handleOpenModal(c)}
+                            className="p-1 hover:bg-[#17171B] rounded text-[#A6A3A0] hover:text-[#F5F2EA]"
                             title="Edit Contract"
                           >
-                            <span className="material-symbols-outlined text-base">edit</span>
+                            <span className="material-symbols-outlined text-sm">edit</span>
                           </button>
-                        )}
-                        {hasRole('Admin', 'HR Manager') && (
                           <button
-                            onClick={() => handleDelete(contract._id)}
-                            className="p-1.5 hover:bg-rose-50 rounded-lg text-error"
+                            onClick={() => handleDelete(c._id)}
+                            className="p-1 hover:bg-[#FF5C5C]/10 rounded text-[#FF5C5C]"
                             title="Delete Contract"
                           >
-                            <span className="material-symbols-outlined text-base">delete</span>
+                            <span className="material-symbols-outlined text-sm">delete</span>
                           </button>
-                        )}
-                      </div>
+                        </div>
+                      )}
                     </td>
                   </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
+                );
+              })}
+            </tbody>
+          </table>
         )}
       </div>
 
-      {/* Contract Create/Edit Modal */}
-      <ContractFormModal
+      {/* Contract Modal */}
+      <Modal
         isOpen={showModal}
-        onClose={() => {
-          setShowModal(false);
-          setEditingContract(null);
-        }}
-        initialData={editingContract}
-        employees={employees}
-        structures={structures}
-        schedules={schedules}
-        onSuccess={() => {
-          setShowModal(false);
-          setEditingContract(null);
-          fetchData();
-        }}
-      />
+        onClose={() => setShowModal(false)}
+        title={editingContract ? 'Edit Employment Contract' : 'New Contract Record'}
+        maxWidth="max-w-xl"
+      >
+        <form onSubmit={handleSubmit} className="space-y-3 font-mono text-xs">
+          <div>
+            <label className="staffora-label">Contract Reference Name *</label>
+            <input
+              type="text"
+              required
+              value={formData.name}
+              onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+              className="staffora-input"
+            />
+          </div>
 
-      {/* Period Contract Lookup Tester Modal */}
+          <div className="grid grid-cols-2 gap-3">
+            <div>
+              <label className="staffora-label">Employee *</label>
+              <select
+                value={formData.employee}
+                onChange={(e) => setFormData({ ...formData, employee: e.target.value })}
+                className="staffora-input"
+                required
+              >
+                {employees.map((e) => (
+                  <option key={e._id} value={e._id}>
+                    {e.firstName} {e.lastName} ({e.employeeCode})
+                  </option>
+                ))}
+              </select>
+            </div>
+            <div>
+              <label className="staffora-label">Monthly Base Wage ($) *</label>
+              <input
+                type="number"
+                required
+                value={formData.wage}
+                onChange={(e) => setFormData({ ...formData, wage: Number(e.target.value) })}
+                className="staffora-input font-mono font-bold text-[#39D98A]"
+              />
+            </div>
+          </div>
+
+          <div className="grid grid-cols-2 gap-3">
+            <div>
+              <label className="staffora-label">Salary Structure *</label>
+              <select
+                value={formData.salaryStructure}
+                onChange={(e) => setFormData({ ...formData, salaryStructure: e.target.value })}
+                className="staffora-input"
+                required
+              >
+                {structures.map((s) => (
+                  <option key={s._id} value={s._id}>
+                    {s.name} ({s.code})
+                  </option>
+                ))}
+              </select>
+            </div>
+            <div>
+              <label className="staffora-label">Working Schedule</label>
+              <select
+                value={formData.workingSchedule}
+                onChange={(e) => setFormData({ ...formData, workingSchedule: e.target.value })}
+                className="staffora-input"
+              >
+                {schedules.map((s) => (
+                  <option key={s._id} value={s._id}>
+                    {s.name} ({s.weeklyHours}h/wk)
+                  </option>
+                ))}
+              </select>
+            </div>
+          </div>
+
+          <div className="grid grid-cols-2 gap-3">
+            <div>
+              <label className="staffora-label">Start Date *</label>
+              <input
+                type="date"
+                required
+                value={formData.startDate}
+                onChange={(e) => setFormData({ ...formData, startDate: e.target.value })}
+                className="staffora-input"
+              />
+            </div>
+            <div>
+              <label className="staffora-label">End Date (Leave blank if ongoing)</label>
+              <input
+                type="date"
+                value={formData.endDate}
+                onChange={(e) => setFormData({ ...formData, endDate: e.target.value })}
+                className="staffora-input"
+              />
+            </div>
+          </div>
+
+          <div>
+            <label className="staffora-label">Contract State</label>
+            <select
+              value={formData.state}
+              onChange={(e) => setFormData({ ...formData, state: e.target.value })}
+              className="staffora-input"
+            >
+              <option value="Active">Active</option>
+              <option value="Draft">Draft</option>
+              <option value="Expired">Expired</option>
+              <option value="Cancelled">Cancelled</option>
+            </select>
+          </div>
+
+          <div className="flex justify-end gap-2 pt-3 border-t border-white/10">
+            <Button variant="secondary" type="button" onClick={() => setShowModal(false)}>
+              Cancel
+            </Button>
+            <Button variant="primary" type="submit">
+              {editingContract ? 'Save Changes' : 'Create Contract'}
+            </Button>
+          </div>
+        </form>
+      </Modal>
+
+      {/* Applicable Contract Lookup Tester Modal */}
       <Modal
         isOpen={showLookupModal}
         onClose={() => setShowLookupModal(false)}
-        title="Period-Specific Applicable Contract Lookup"
+        title="Period Contract Resolution Tester"
+        maxWidth="max-w-md"
       >
-        <form onSubmit={handleLookup} className="flex flex-col gap-4">
-          <p className="text-xs text-on-surface-variant">
-            Test the backend <code className="bg-surface-container-low px-1 py-0.5 rounded font-bold text-primary">getApplicableContract()</code> resolution algorithm by selecting an employee and a target payroll timeframe.
-          </p>
-
-          <div className="flex flex-col gap-1">
-            <label className="text-xs font-semibold text-on-surface-variant">Select Employee *</label>
+        <form onSubmit={handleLookup} className="space-y-3 font-mono text-xs">
+          <div>
+            <label className="staffora-label">Employee</label>
             <select
-              required
               value={lookupForm.employeeId}
               onChange={(e) => setLookupForm({ ...lookupForm, employeeId: e.target.value })}
-              className="w-full px-3 py-2 bg-surface-container-low rounded-xl text-sm outline-none focus:ring-1 focus:ring-primary"
+              className="staffora-input"
+              required
             >
-              <option value="">Choose employee...</option>
               {employees.map((e) => (
                 <option key={e._id} value={e._id}>
-                  {e.firstName} {e.lastName} ({e.employeeId})
+                  {e.firstName} {e.lastName} ({e.employeeCode})
                 </option>
               ))}
             </select>
@@ -264,226 +438,41 @@ export const ContractsPage = () => {
 
           <div className="grid grid-cols-2 gap-3">
             <div>
-              <label className="text-xs font-semibold text-on-surface-variant">Period Start Date *</label>
+              <label className="staffora-label">Period Start</label>
               <input
                 type="date"
                 required
                 value={lookupForm.startDate}
                 onChange={(e) => setLookupForm({ ...lookupForm, startDate: e.target.value })}
-                className="w-full mt-1 px-3 py-2 bg-surface-container-low rounded-xl text-sm outline-none"
+                className="staffora-input"
               />
             </div>
             <div>
-              <label className="text-xs font-semibold text-on-surface-variant">Period End Date *</label>
+              <label className="staffora-label">Period End</label>
               <input
                 type="date"
                 required
                 value={lookupForm.endDate}
                 onChange={(e) => setLookupForm({ ...lookupForm, endDate: e.target.value })}
-                className="w-full mt-1 px-3 py-2 bg-surface-container-low rounded-xl text-sm outline-none"
+                className="staffora-input"
               />
             </div>
           </div>
 
-          <Button type="submit" icon="search">Resolve Applicable Contract</Button>
+          <Button variant="primary" type="submit" className="w-full">
+            Test Contract Resolution
+          </Button>
 
           {lookupResult && (
-            <div className="p-4 bg-emerald-50 rounded-xl border border-emerald-200 mt-2 flex flex-col gap-1">
-              <div className="flex items-center justify-between">
-                <span className="font-bold text-sm text-emerald-900">{lookupResult.name}</span>
-                <Badge variant="success">Applicable Match</Badge>
-              </div>
-              <p className="text-xs text-emerald-800">
-                Wage: <strong>${lookupResult.wage?.toLocaleString()}/mo</strong> • Structure: <strong>{lookupResult.salaryStructure?.name}</strong>
-              </p>
-              <p className="text-[11px] text-emerald-700">
-                Term: {new Date(lookupResult.startDate).toLocaleDateString()} to {lookupResult.endDate ? new Date(lookupResult.endDate).toLocaleDateString() : 'Permanent'}
-              </p>
+            <div className="p-3 bg-[#111114] rounded border border-white/10 space-y-1">
+              <span className="text-[10px] text-[#39D98A] uppercase font-bold block">✓ Applicable Contract Resolved</span>
+              <div className="font-bold text-[#F5F2EA]">{lookupResult.name}</div>
+              <div className="text-[#A6A3A0]">Wage: ${lookupResult.wage}/mo</div>
+              <div className="text-[#6F6C69]">Structure: {lookupResult.salaryStructure?.name || 'Standard'}</div>
             </div>
           )}
         </form>
       </Modal>
     </div>
-  );
-};
-
-const ContractFormModal = ({ isOpen, onClose, initialData, employees, structures, schedules, onSuccess }) => {
-  const [formData, setFormData] = useState({
-    employee: '',
-    name: '',
-    startDate: '',
-    endDate: '',
-    wage: 5000,
-    salaryStructure: '',
-    workingSchedule: '',
-    status: 'Active'
-  });
-  const [loading, setLoading] = useState(false);
-  const { showToast } = useToast();
-
-  useEffect(() => {
-    if (initialData) {
-      setFormData({
-        employee: initialData.employee?._id || initialData.employee || '',
-        name: initialData.name || '',
-        startDate: initialData.startDate ? new Date(initialData.startDate).toISOString().split('T')[0] : '',
-        endDate: initialData.endDate ? new Date(initialData.endDate).toISOString().split('T')[0] : '',
-        wage: initialData.wage || 0,
-        salaryStructure: initialData.salaryStructure?._id || initialData.salaryStructure || '',
-        workingSchedule: initialData.workingSchedule?._id || initialData.workingSchedule || '',
-        status: initialData.status || 'Active'
-      });
-    } else {
-      setFormData({
-        employee: employees[0]?._id || '',
-        name: '',
-        startDate: new Date().toISOString().split('T')[0],
-        endDate: '',
-        wage: 6500,
-        salaryStructure: structures[0]?._id || '',
-        workingSchedule: schedules[0]?._id || '',
-        status: 'Active'
-      });
-    }
-  }, [initialData, isOpen, employees, structures, schedules]);
-
-  const handleSubmit = async (e) => {
-    e.preventDefault();
-    setLoading(true);
-    try {
-      const payload = {
-        ...formData,
-        endDate: formData.endDate ? formData.endDate : null
-      };
-      if (initialData) {
-        await contractApi.update(initialData._id, payload);
-        showToast('Contract updated successfully', 'success');
-      } else {
-        await contractApi.create(payload);
-        showToast('Contract created successfully', 'success');
-      }
-      onSuccess();
-    } catch (err) {
-      showToast(err.response?.data?.message || 'Operation failed', 'error');
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  return (
-    <Modal
-      isOpen={isOpen}
-      onClose={onClose}
-      title={initialData ? 'Edit Contract Terms' : 'Draft New Employment Contract'}
-    >
-      <form onSubmit={handleSubmit} className="flex flex-col gap-4">
-        <div>
-          <label className="text-xs font-semibold text-on-surface-variant">Contract Reference Title *</label>
-          <input
-            type="text"
-            required
-            value={formData.name}
-            onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-            placeholder="e.g. Senior Engineer 2026 Permanent Agreement"
-            className="w-full mt-1 px-3 py-2 bg-surface-container-low rounded-xl text-sm outline-none focus:ring-1 focus:ring-primary"
-          />
-        </div>
-
-        <div className="grid grid-cols-2 gap-3">
-          <div>
-            <label className="text-xs font-semibold text-on-surface-variant">Employee *</label>
-            <select
-              required
-              disabled={!!initialData}
-              value={formData.employee}
-              onChange={(e) => setFormData({ ...formData, employee: e.target.value })}
-              className="w-full mt-1 px-3 py-2 bg-surface-container-low rounded-xl text-sm outline-none focus:ring-1 focus:ring-primary disabled:opacity-60"
-            >
-              <option value="">Select Employee...</option>
-              {employees.map((e) => (
-                <option key={e._id} value={e._id}>
-                  {e.firstName} {e.lastName} ({e.employeeId})
-                </option>
-              ))}
-            </select>
-          </div>
-
-          <div>
-            <label className="text-xs font-semibold text-on-surface-variant">Monthly Base Wage ($) *</label>
-            <input
-              type="number"
-              required
-              min="0"
-              value={formData.wage}
-              onChange={(e) => setFormData({ ...formData, wage: Number(e.target.value) })}
-              className="w-full mt-1 px-3 py-2 bg-surface-container-low rounded-xl text-sm outline-none focus:ring-1 focus:ring-primary"
-            />
-          </div>
-        </div>
-
-        <div className="grid grid-cols-2 gap-3">
-          <div>
-            <label className="text-xs font-semibold text-on-surface-variant">Salary Structure *</label>
-            <select
-              required
-              value={formData.salaryStructure}
-              onChange={(e) => setFormData({ ...formData, salaryStructure: e.target.value })}
-              className="w-full mt-1 px-3 py-2 bg-surface-container-low rounded-xl text-sm outline-none focus:ring-1 focus:ring-primary"
-            >
-              <option value="">Select Salary Structure...</option>
-              {structures.map((s) => (
-                <option key={s._id} value={s._id}>
-                  {s.name} ({s.code})
-                </option>
-              ))}
-            </select>
-          </div>
-
-          <div>
-            <label className="text-xs font-semibold text-on-surface-variant">Working Schedule</label>
-            <select
-              value={formData.workingSchedule}
-              onChange={(e) => setFormData({ ...formData, workingSchedule: e.target.value })}
-              className="w-full mt-1 px-3 py-2 bg-surface-container-low rounded-xl text-sm outline-none focus:ring-1 focus:ring-primary"
-            >
-              <option value="">Choose Schedule...</option>
-              {schedules.map((s) => (
-                <option key={s._id} value={s._id}>
-                  {s.name} ({s.totalWeeklyHours}h/wk)
-                </option>
-              ))}
-            </select>
-          </div>
-        </div>
-
-        <div className="grid grid-cols-2 gap-3">
-          <div>
-            <label className="text-xs font-semibold text-on-surface-variant">Start Date *</label>
-            <input
-              type="date"
-              required
-              value={formData.startDate}
-              onChange={(e) => setFormData({ ...formData, startDate: e.target.value })}
-              className="w-full mt-1 px-3 py-2 bg-surface-container-low rounded-xl text-sm outline-none"
-            />
-          </div>
-
-          <div>
-            <label className="text-xs font-semibold text-on-surface-variant">End Date (Optional / Open-ended)</label>
-            <input
-              type="date"
-              value={formData.endDate}
-              onChange={(e) => setFormData({ ...formData, endDate: e.target.value })}
-              className="w-full mt-1 px-3 py-2 bg-surface-container-low rounded-xl text-sm outline-none"
-            />
-          </div>
-        </div>
-
-        <div className="flex justify-end gap-2 pt-2">
-          <Button variant="outline" onClick={onClose}>Cancel</Button>
-          <Button type="submit" loading={loading}>{initialData ? 'Save Changes' : 'Create Contract'}</Button>
-        </div>
-      </form>
-    </Modal>
   );
 };

@@ -2,14 +2,14 @@ import React from 'react';
 
 export const Badge = ({ children, variant = 'default', size = 'sm', icon = null, className = '' }) => {
   const variantStyles = {
-    default: 'bg-slate-100 text-slate-700 border border-slate-200/80',
-    primary: 'bg-indigo-50 text-indigo-700 border border-indigo-200/80',
-    secondary: 'bg-violet-50 text-violet-700 border border-violet-200/80',
-    success: 'bg-emerald-50 text-emerald-700 border border-emerald-200/80',
-    warning: 'bg-amber-50 text-amber-700 border border-amber-200/80',
-    danger: 'bg-rose-50 text-rose-700 border border-rose-200/80',
-    info: 'bg-cyan-50 text-cyan-700 border border-cyan-200/80',
-    outline: 'border border-slate-300 text-slate-700 bg-white'
+    default: 'bg-[#17171B] text-[#A6A3A0] border border-white/10',
+    primary: 'bg-[#FF6B3D]/10 text-[#FF8A65] border border-[#FF6B3D]/25',
+    secondary: 'bg-[#1E1E24] text-[#F5F2EA] border border-white/10',
+    success: 'bg-[#39D98A]/10 text-[#39D98A] border border-[#39D98A]/25',
+    warning: 'bg-[#F5B942]/10 text-[#F5B942] border border-[#F5B942]/25',
+    danger: 'bg-[#FF5C5C]/10 text-[#FF5C5C] border border-[#FF5C5C]/25',
+    info: 'bg-[#58B7FF]/10 text-[#58B7FF] border border-[#58B7FF]/25',
+    outline: 'border border-white/15 text-[#A6A3A0] bg-transparent'
   };
 
   const sizeStyles = {
@@ -20,7 +20,7 @@ export const Badge = ({ children, variant = 'default', size = 'sm', icon = null,
 
   return (
     <span
-      className={`inline-flex items-center gap-1 rounded-md font-medium tracking-normal ${
+      className={`inline-flex items-center gap-1 rounded font-medium tracking-normal ${
         variantStyles[variant] || variantStyles.default
       } ${sizeStyles[size] || sizeStyles.sm} ${className}`}
     >

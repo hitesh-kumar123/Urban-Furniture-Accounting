@@ -6,6 +6,7 @@ import { Layout } from './components/layout/Layout';
 import { LoadingSpinner } from './components/common/LoadingSpinner';
 
 // Pages
+import { LandingPage } from './pages/LandingPage';
 import { LoginPage } from './pages/LoginPage';
 import { DashboardPage } from './pages/DashboardPage';
 import { EmployeesPage } from './pages/EmployeesPage';
@@ -27,14 +28,14 @@ const ProtectedRoute = ({ children, allowedRoles }) => {
 
   if (loading) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-background">
-        <LoadingSpinner size="lg" />
+      <div className="min-h-screen flex items-center justify-center bg-[#0B0B0D]">
+        <LoadingSpinner />
       </div>
     );
   }
 
   if (!isAuthenticated) {
-    return <Navigate to="/login" replace />;
+    return <Navigate to="/landing" replace />;
   }
 
   if (allowedRoles && !allowedRoles.includes(user?.role)) {
@@ -50,7 +51,8 @@ export const App = () => {
       <ToastProvider>
         <AuthProvider>
           <Routes>
-            {/* Public Login Route */}
+            {/* Public Landing & Login Routes */}
+            <Route path="/landing" element={<LandingPage />} />
             <Route path="/login" element={<LoginPage />} />
 
             {/* Protected Platform Routes */}

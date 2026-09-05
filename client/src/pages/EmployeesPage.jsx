@@ -5,7 +5,6 @@ import { attendanceApi } from '../api/attendanceApi';
 import { timeOffApi } from '../api/timeOffApi';
 import { payslipApi } from '../api/payslipApi';
 import { scheduleApi } from '../api/scheduleApi';
-import { salaryApi } from '../api/salaryApi';
 import { Badge } from '../components/common/Badge';
 import { Button } from '../components/common/Button';
 import { Modal } from '../components/common/Modal';
@@ -16,7 +15,6 @@ import { useToast } from '../context/ToastContext';
 export const EmployeesPage = () => {
   const [employees, setEmployees] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [viewMode, setViewMode] = useState('table'); // 'table' | 'matrix'
   const [search, setSearch] = useState('');
   const [deptFilter, setDeptFilter] = useState('');
   const [statusFilter, setStatusFilter] = useState('');
@@ -37,6 +35,21 @@ export const EmployeesPage = () => {
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [editingEmployee, setEditingEmployee] = useState(null);
   const [schedules, setSchedules] = useState([]);
+
+  // Form
+  const [formData, setFormData] = useState({
+    employeeId: '',
+    firstName: '',
+    lastName: '',
+    email: '',
+    phone: '',
+    department: 'Engineering',
+    jobPosition: '',
+    employeeType: 'Full-Time',
+    employeeStatus: 'Active',
+    joiningDate: new Date().toISOString().split('T')[0],
+    workingSchedule: ''
+  });
 
   const { user, hasRole } = useAuth();
   const { showToast } = useToast();
@@ -65,7 +78,12 @@ export const EmployeesPage = () => {
   const fetchSchedules = async () => {
     try {
       const res = await scheduleApi.getAll();
-      if (res.success) setSchedules(res.data);
+      if (res.success) {
+        setSchedules(res.data);
+        if (res.data.length > 0 && !formData.workingSchedule) {
+          setFormData((prev) => ({ ...prev, workingSchedule: res.data[0]._id }));
+        }
+      }
     } catch (e) {
       console.error(e);
     }
@@ -102,6 +120,68 @@ export const EmployeesPage = () => {
     }
   };
 
+  const handleOpenCreate = () => {
+    setEditingEmployee(null);
+    setFormData({
+      employeeId: `EMP-${Math.floor(1000 + Math.random() * 9000)}`,
+      firstName: '',
+      lastName: '',
+      email: '',
+      phone: '',
+      department: 'Engineering',
+      jobPosition: '',
+      employeeType: 'Full-Time',
+      employeeStatus: 'Active',
+      joiningDate: new Date().toISOString().split('T')[0],
+      workingSchedule: schedules[0]?._id || ''
+    });
+    setShowCreateModal(true);
+  };
+
+  const handleOpenEdit = (emp) => {
+    setEditingEmployee(emp);
+    setFormData({
+      employeeId: emp.employeeId,
+      firstName: emp.firstName,
+      lastName: emp.lastName,
+      email: emp.email,
+      phone: emp.phone || '',
+      department: emp.department,
+      jobPosition: emp.jobPosition,
+      employeeType: emp.employeeType || 'Full-Time',
+      employeeStatus: emp.employeeStatus || 'Active',
+      joiningDate: emp.joiningDate ? emp.joiningDate.split('T')[0] : '',
+      workingSchedule: emp.workingSchedule?._id || emp.workingSchedule || ''
+    });
+    setShowCreateModal(true);
+  };
+
+  const handleSubmitForm = async (e) => {
+    e.preventDefault();
+    try {
+      if (editingEmployee) {
+        const res = await employeeApi.update(editingEmployee._id, formData);
+        if (res.success) {
+          showToast('Employee updated successfully', 'success');
+          setShowCreateModal(false);
+          fetchEmployees();
+          if (selectedEmployee?._id === editingEmployee._id) {
+            setSelectedEmployee(res.data);
+          }
+        }
+      } else {
+        const res = await employeeApi.create(formData);
+        if (res.success) {
+          showToast('Employee created successfully', 'success');
+          setShowCreateModal(false);
+          fetchEmployees();
+        }
+      }
+    } catch (err) {
+      showToast(err.response?.data?.message || 'Action failed', 'error');
+    }
+  };
+
   const handleDelete = async (id) => {
     if (!window.confirm('Are you sure you want to remove this employee record?')) return;
     try {
@@ -117,201 +197,129 @@ export const EmployeesPage = () => {
   };
 
   return (
-    <div className="p-space-lg max-w-[1600px] w-full mx-auto flex flex-col gap-space-md">
-      {/* Top Action Bar / Page Header */}
-      <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-space-md">
-        <div className="flex flex-col">
-          <div className="flex items-center gap-space-xs mb-1">
-            <span className="font-label-sm text-label-sm uppercase tracking-wider text-primary font-bold">
-              Talent Core
-            </span>
-            <span className="text-outline text-label-sm">•</span>
-            <span className="font-label-sm text-label-sm text-on-surface-variant font-medium">
-              Real-Time Directory Sync
-            </span>
-            <span className="w-1.5 h-1.5 rounded-full bg-primary animate-pulse"></span>
-          </div>
-          <div className="flex items-baseline gap-space-sm">
-            <h1 className="font-headline-lg text-headline-lg text-on-surface font-bold tracking-tight">
-              Employee Directory &amp; Talent Hub
-            </h1>
-            <span className="font-label-md text-label-md px-space-xs py-0.5 rounded-xl bg-surface-container-high text-on-surface-variant font-semibold">
-              {employees.length} active
+    <div className="p-5 max-w-[1600px] w-full mx-auto flex flex-col gap-5">
+      {/* Top Header */}
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-4 border-b border-white/10">
+        <div>
+          <div className="flex items-center gap-2 mb-1">
+            <span className="font-mono text-[10px] uppercase tracking-widest text-[#FF6B3D] font-semibold">
+              People Operations
             </span>
           </div>
+          <h1 className="text-xl md:text-2xl font-bold text-[#F5F2EA] tracking-tight font-display">
+            Employee Directory ({employees.length})
+          </h1>
+          <p className="text-xs text-[#A6A3A0] mt-0.5">
+            Talent roster, contract terms, attendance logs, and digital payslip history.
+          </p>
         </div>
 
-        {/* Quick Controls */}
-        <div className="flex flex-wrap items-center gap-space-xs">
-          {/* Segmented View Toggle */}
-          <div className="flex items-center bg-surface-container-low p-1 rounded-xl shadow-inner">
-            <button
-              onClick={() => setViewMode('table')}
-              className={`flex items-center gap-1 px-space-xs py-1 rounded-lg font-label-md text-label-md font-semibold transition-all ${
-                viewMode === 'table'
-                  ? 'bg-surface-container-lowest text-on-surface shadow-sm'
-                  : 'text-on-surface-variant hover:text-on-surface'
-              }`}
-            >
-              <span className="material-symbols-outlined text-base">format_list_bulleted</span>
-              <span>Table</span>
-            </button>
-            <button
-              onClick={() => setViewMode('matrix')}
-              className={`flex items-center gap-1 px-space-xs py-1 rounded-lg font-label-md text-label-md font-semibold transition-all ${
-                viewMode === 'matrix'
-                  ? 'bg-surface-container-lowest text-on-surface shadow-sm'
-                  : 'text-on-surface-variant hover:text-on-surface'
-              }`}
-            >
-              <span className="material-symbols-outlined text-base">view_kanban</span>
-              <span>Matrix</span>
-            </button>
-          </div>
+        <div className="flex items-center gap-2.5">
+          <select
+            value={deptFilter}
+            onChange={(e) => setDeptFilter(e.target.value)}
+            className="staffora-input py-1 px-2.5 text-xs w-auto font-mono"
+          >
+            <option value="">All Departments</option>
+            <option value="Engineering">Engineering</option>
+            <option value="Product">Product</option>
+            <option value="Design">Design</option>
+            <option value="Marketing">Marketing</option>
+            <option value="Human Resources">Human Resources</option>
+          </select>
 
-          {/* Department Filter */}
-          <div className="relative">
-            <select
-              value={deptFilter}
-              onChange={(e) => setDeptFilter(e.target.value)}
-              className="appearance-none bg-surface-container-lowest text-on-surface font-body-sm text-body-sm pl-space-sm pr-space-lg py-1.5 rounded-xl shadow-sm cursor-pointer focus:outline-none"
-            >
-              <option value="">All Departments</option>
-              <option value="Engineering">Engineering</option>
-              <option value="Product">Product</option>
-              <option value="Design">Design</option>
-              <option value="Marketing">Marketing</option>
-              <option value="Sales">Sales</option>
-              <option value="Operations">Operations</option>
-              <option value="Human Resources">Human Resources</option>
-            </select>
-            <span className="material-symbols-outlined absolute right-2 top-1/2 -translate-y-1/2 text-outline pointer-events-none text-base">
-              expand_more
-            </span>
-          </div>
+          <select
+            value={statusFilter}
+            onChange={(e) => setStatusFilter(e.target.value)}
+            className="staffora-input py-1 px-2.5 text-xs w-auto font-mono"
+          >
+            <option value="">All Statuses</option>
+            <option value="Active">Active</option>
+            <option value="Probation">Probation</option>
+            <option value="Suspended">Suspended</option>
+            <option value="Terminated">Terminated</option>
+          </select>
 
-          {/* Status Filter */}
-          <div className="relative">
-            <select
-              value={statusFilter}
-              onChange={(e) => setStatusFilter(e.target.value)}
-              className="appearance-none bg-surface-container-lowest text-on-surface font-body-sm text-body-sm pl-space-sm pr-space-lg py-1.5 rounded-xl shadow-sm cursor-pointer focus:outline-none"
-            >
-              <option value="">All Statuses</option>
-              <option value="Active">Active</option>
-              <option value="Probation">Probation</option>
-              <option value="Suspended">Suspended</option>
-              <option value="Terminated">Terminated</option>
-            </select>
-            <span className="material-symbols-outlined absolute right-2 top-1/2 -translate-y-1/2 text-outline pointer-events-none text-base">
-              filter_list
-            </span>
-          </div>
-
-          {/* Add Employee Button */}
           {hasRole('Admin', 'HR Manager', 'HR Payroll Manager') && (
             <Button
-              onClick={() => {
-                setEditingEmployee(null);
-                setShowCreateModal(true);
-              }}
-              icon="person_add"
+              variant="primary"
               size="sm"
+              onClick={handleOpenCreate}
+              icon="add"
             >
-              + New Employee
+              Add Employee
             </Button>
           )}
         </div>
       </div>
 
-      {/* Main Split Layout: Table (Left 7 cols) + Slide-Over Hub (Right 5 cols) */}
-      <div className="grid grid-cols-1 xl:grid-cols-12 gap-space-md items-start">
-        {/* Left Column: Table or Matrix View */}
-        <div
-          className={`${
-            selectedEmployee ? 'xl:col-span-7' : 'xl:col-span-12'
-          } flex flex-col bg-surface-container-lowest rounded-2xl shadow-sm overflow-hidden border border-outline-variant/20 transition-all duration-300`}
-        >
-          {/* Table Search */}
-          <div className="p-space-sm bg-surface-container-low flex items-center justify-between gap-space-xs">
-            <div className="relative flex-1">
-              <span className="material-symbols-outlined absolute left-space-xs top-1/2 -translate-y-1/2 text-outline text-lg">
-                search
-              </span>
-              <input
-                type="text"
-                value={search}
-                onChange={(e) => setSearch(e.target.value)}
-                placeholder="Filter by name, ID, email, or job position..."
-                className="w-full pl-9 pr-3 py-1.5 bg-surface-container-lowest rounded-xl font-body-sm text-body-sm text-on-surface placeholder:text-outline focus:outline-none shadow-sm"
-              />
-            </div>
+      {/* Main Split Layout: Table (Left 7 Cols) + Command Hub (Right 5 Cols) */}
+      <div className="grid grid-cols-1 lg:grid-cols-12 gap-5 items-start">
+        {/* Left Column: High-Density Table */}
+        <div className={`${selectedEmployee ? 'lg:col-span-7' : 'lg:col-span-12'} flex flex-col gap-3`}>
+          <div className="relative">
+            <span className="material-symbols-outlined absolute left-2.5 top-1/2 -translate-y-1/2 text-[#6F6C69] text-base">
+              search
+            </span>
+            <input
+              type="text"
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+              placeholder="Search by name, ID, job title..."
+              className="staffora-input pl-8 font-mono text-xs"
+            />
           </div>
 
-          {loading ? (
-            <LoadingSpinner message="Fetching talent roster..." />
-          ) : viewMode === 'table' ? (
-            <div className="overflow-x-auto w-full">
-              <table className="w-full text-left border-collapse">
+          <div className="staffora-table-container">
+            {loading ? (
+              <LoadingSpinner message="Querying employee records..." />
+            ) : employees.length === 0 ? (
+              <div className="p-8 text-center text-[#6F6C69] font-mono text-xs">
+                No matching employees found.
+              </div>
+            ) : (
+              <table className="staffora-table">
                 <thead>
-                  <tr className="bg-surface-container-low font-label-sm text-label-sm text-outline uppercase tracking-wider select-none">
-                    <th className="py-2.5 px-3 font-semibold">Employee</th>
-                    <th className="py-2.5 px-3 font-semibold">ID / Role</th>
-                    <th className="py-2.5 px-3 font-semibold">Department</th>
-                    <th className="py-2.5 px-3 font-semibold">Status</th>
-                    <th className="py-2.5 px-3 text-right font-semibold">Actions</th>
+                  <tr>
+                    <th>Employee</th>
+                    <th>Position / Dept</th>
+                    <th>Status</th>
+                    <th className="text-right">Actions</th>
                   </tr>
                 </thead>
-                <tbody className="font-body-sm text-body-sm text-on-surface divide-y divide-outline-variant/10">
+                <tbody>
                   {employees.map((emp) => {
                     const isSelected = selectedEmployee?._id === emp._id;
                     return (
                       <tr
                         key={emp._id}
                         onClick={() => selectEmployee(emp)}
-                        className={`transition-colors cursor-pointer group ${
-                          isSelected
-                            ? 'bg-surface-container-high/60 hover:bg-surface-container-high'
-                            : 'hover:bg-surface-container-low'
+                        className={`cursor-pointer ${
+                          isSelected ? 'bg-[#17171B] text-[#F5F2EA]' : ''
                         }`}
                       >
-                        <td className="py-2.5 px-3">
-                          <div className="flex items-center gap-space-xs">
-                            <div className="relative">
-                              <div className="w-9 h-9 rounded-full bg-primary-container text-white flex items-center justify-center font-bold text-xs shadow-sm">
-                                {emp.firstName[0]}{emp.lastName[0]}
-                              </div>
-                              <span className="absolute bottom-0 right-0 w-2.5 h-2.5 rounded-full bg-emerald-500 ring-2 ring-surface-container-lowest"></span>
+                        <td>
+                          <div className="flex items-center gap-2">
+                            <div className="w-6 h-6 rounded bg-[#1E1E24] border border-white/10 text-[#FF8A65] flex items-center justify-center font-bold text-[10px] font-mono shrink-0">
+                              {emp.firstName?.[0]}{emp.lastName?.[0]}
                             </div>
-                            <div className="flex flex-col min-w-0">
-                              <span className="font-title-sm text-title-sm font-bold text-primary group-hover:underline truncate">
+                            <div className="min-w-0">
+                              <span className="font-semibold text-[#F5F2EA] text-xs block truncate">
                                 {emp.firstName} {emp.lastName}
                               </span>
-                              <span className="font-caption text-caption text-on-surface-variant truncate">
-                                {emp.email}
+                              <span className="text-[10px] font-mono text-[#6F6C69] block truncate">
+                                {emp.employeeId}
                               </span>
                             </div>
                           </div>
                         </td>
 
-                        <td className="py-2.5 px-3">
-                          <div className="flex flex-col">
-                            <span className="font-label-md text-label-md font-semibold text-on-surface">
-                              {emp.jobPosition}
-                            </span>
-                            <span className="font-caption text-caption text-on-surface-variant">
-                              {emp.employeeId}
-                            </span>
-                          </div>
+                        <td className="text-xs">
+                          <span className="text-[#F5F2EA] block truncate">{emp.jobPosition}</span>
+                          <span className="text-[10px] text-[#6F6C69] block font-mono truncate">{emp.department}</span>
                         </td>
 
-                        <td className="py-2.5 px-3">
-                          <span className="font-body-sm text-body-sm text-on-surface-variant font-medium">
-                            {emp.department}
-                          </span>
-                        </td>
-
-                        <td className="py-2.5 px-3">
+                        <td className="font-mono">
                           <Badge
                             variant={
                               emp.employeeStatus === 'Active'
@@ -325,27 +333,24 @@ export const EmployeesPage = () => {
                           </Badge>
                         </td>
 
-                        <td className="py-2.5 px-3 text-right">
-                          <div className="inline-flex items-center gap-1" onClick={(e) => e.stopPropagation()}>
+                        <td className="text-right" onClick={(e) => e.stopPropagation()}>
+                          <div className="inline-flex items-center gap-1">
                             {hasRole('Admin', 'HR Manager', 'HR Payroll Manager') && (
                               <button
-                                onClick={() => {
-                                  setEditingEmployee(emp);
-                                  setShowCreateModal(true);
-                                }}
-                                className="p-1 hover:bg-surface-container rounded-lg text-primary text-xs font-semibold"
-                                title="Edit Employee"
+                                onClick={() => handleOpenEdit(emp)}
+                                className="p-1 hover:bg-[#1E1E24] rounded text-[#A6A3A0] hover:text-[#F5F2EA]"
+                                title="Edit"
                               >
-                                <span className="material-symbols-outlined text-base">edit</span>
+                                <span className="material-symbols-outlined text-[15px]">edit</span>
                               </button>
                             )}
                             {hasRole('Admin', 'HR Manager') && (
                               <button
                                 onClick={() => handleDelete(emp._id)}
-                                className="p-1 hover:bg-rose-50 rounded-lg text-error"
-                                title="Delete Employee"
+                                className="p-1 hover:bg-[#FF5C5C]/10 rounded text-[#FF5C5C]"
+                                title="Delete"
                               >
-                                <span className="material-symbols-outlined text-base">delete</span>
+                                <span className="material-symbols-outlined text-[15px]">delete</span>
                               </button>
                             )}
                           </div>
@@ -355,59 +360,28 @@ export const EmployeesPage = () => {
                   })}
                 </tbody>
               </table>
-            </div>
-          ) : (
-            /* Matrix / Kanban View */
-            <div className="p-4 grid grid-cols-1 sm:grid-cols-2 gap-3">
-              {employees.map((emp) => (
-                <div
-                  key={emp._id}
-                  onClick={() => selectEmployee(emp)}
-                  className={`p-4 rounded-xl border transition-all cursor-pointer flex flex-col gap-2 ${
-                    selectedEmployee?._id === emp._id
-                      ? 'border-primary bg-primary-container/5 shadow-md'
-                      : 'border-outline-variant/30 bg-surface-container-lowest hover:border-primary/50'
-                  }`}
-                >
-                  <div className="flex items-center gap-3">
-                    <div className="w-10 h-10 rounded-full bg-primary text-white flex items-center justify-center font-bold text-sm">
-                      {emp.firstName[0]}{emp.lastName[0]}
-                    </div>
-                    <div>
-                      <h4 className="font-bold text-sm text-on-surface">{emp.firstName} {emp.lastName}</h4>
-                      <p className="text-xs text-on-surface-variant">{emp.jobPosition}</p>
-                    </div>
-                  </div>
-                  <div className="flex items-center justify-between text-xs pt-2 border-t border-outline-variant/10">
-                    <span className="text-on-surface-variant font-medium">{emp.department}</span>
-                    <Badge variant={emp.employeeStatus === 'Active' ? 'success' : 'warning'}>
-                      {emp.employeeStatus}
-                    </Badge>
-                  </div>
-                </div>
-              ))}
-            </div>
-          )}
+            )}
+          </div>
         </div>
 
-        {/* Right Column: Slide-Over Employee Central Hub */}
+        {/* Right Column: Employee Command Hub */}
         {selectedEmployee && (
-          <div className="xl:col-span-5 bg-surface-container-lowest rounded-2xl shadow-md border border-outline-variant/20 p-space-md flex flex-col gap-space-md">
-            {/* Hub Header Card */}
-            <div className="flex items-start justify-between">
-              <div className="flex items-center gap-3">
-                <div className="w-14 h-14 rounded-2xl bg-gradient-to-tr from-primary to-secondary text-white flex items-center justify-center font-bold text-lg shadow-md">
-                  {selectedEmployee.firstName[0]}{selectedEmployee.lastName[0]}
+          <div className="lg:col-span-5 midnight-card-elevated p-4 flex flex-col gap-4">
+            {/* Header */}
+            <div className="flex items-start justify-between pb-3 border-b border-white/10">
+              <div className="flex items-center gap-2.5">
+                <div className="w-10 h-10 rounded bg-[#0B0B0D] border border-white/10 text-[#FF8A65] flex items-center justify-center font-bold text-sm font-mono shrink-0">
+                  {selectedEmployee.firstName?.[0]}{selectedEmployee.lastName?.[0]}
                 </div>
-                <div className="flex flex-col">
-                  <h2 className="font-headline-sm text-headline-sm font-bold text-on-surface">
+                <div>
+                  <h2 className="text-sm font-bold text-[#F5F2EA] font-display">
                     {selectedEmployee.firstName} {selectedEmployee.lastName}
                   </h2>
-                  <span className="text-xs text-primary font-bold">
+                  <span className="text-[11px] font-mono text-[#FF8A65] block">
                     {selectedEmployee.jobPosition} • {selectedEmployee.employeeId}
                   </span>
-                  <span className="text-xs text-on-surface-variant">
-                    {selectedEmployee.department} • Joined {new Date(selectedEmployee.joiningDate).toLocaleDateString()}
+                  <span className="text-[10px] font-mono text-[#6F6C69]">
+                    {selectedEmployee.department}
                   </span>
                 </div>
               </div>
@@ -417,177 +391,108 @@ export const EmployeesPage = () => {
               </Badge>
             </div>
 
-            {/* Smart Navigation Tabs */}
-            <div className="flex items-center bg-surface-container-low p-1 rounded-xl gap-1 overflow-x-auto">
+            {/* Hub Tabs */}
+            <div className="flex items-center bg-[#0B0B0D] p-0.5 rounded border border-white/10 font-mono text-[11px]">
               {[
-                { id: 'profile', label: 'Profile', icon: 'person' },
-                { id: 'contracts', label: 'Contract', icon: 'description' },
-                { id: 'attendance', label: 'Attendance', icon: 'schedule' },
-                { id: 'timeOff', label: 'Time Off', icon: 'calendar_today' },
-                { id: 'payslips', label: 'Payslips', icon: 'receipt_long' }
+                { id: 'profile', label: 'Profile' },
+                { id: 'contracts', label: 'Contract' },
+                { id: 'attendance', label: 'Attendance' },
+                { id: 'timeOff', label: 'Leaves' },
+                { id: 'payslips', label: 'Payslips' }
               ].map((tab) => (
                 <button
                   key={tab.id}
                   onClick={() => setHubTab(tab.id)}
-                  className={`flex-1 flex items-center justify-center gap-1 py-1.5 px-2 rounded-lg font-label-sm text-label-sm font-semibold transition-all ${
+                  className={`flex-1 py-1 rounded text-center transition-colors ${
                     hubTab === tab.id
-                      ? 'bg-surface-container-lowest text-primary shadow-sm'
-                      : 'text-on-surface-variant hover:text-on-surface'
+                      ? 'bg-[#17171B] text-[#FF8A65] font-semibold'
+                      : 'text-[#6F6C69] hover:text-[#A6A3A0]'
                   }`}
                 >
-                  <span className="material-symbols-outlined text-sm">{tab.icon}</span>
-                  <span>{tab.label}</span>
+                  {tab.label}
                 </button>
               ))}
             </div>
 
-            {/* Tab Body Contents */}
+            {/* Tab Contents */}
             {hubLoading ? (
-              <LoadingSpinner message="Loading employee intelligence..." />
+              <LoadingSpinner message="Fetching employee data..." />
             ) : hubTab === 'profile' ? (
-              <div className="flex flex-col gap-3 text-sm">
-                <div className="p-3 bg-surface-container-low rounded-xl flex flex-col gap-1.5">
-                  <span className="text-xs text-outline font-semibold uppercase">Contact &amp; Identity</span>
-                  <div className="grid grid-cols-2 gap-2 mt-1">
-                    <div>
-                      <span className="text-xs text-on-surface-variant">Email:</span>
-                      <p className="font-semibold text-xs text-on-surface truncate">{selectedEmployee.email}</p>
-                    </div>
-                    <div>
-                      <span className="text-xs text-on-surface-variant">Phone:</span>
-                      <p className="font-semibold text-xs text-on-surface">{selectedEmployee.phone || 'N/A'}</p>
-                    </div>
-                    <div>
-                      <span className="text-xs text-on-surface-variant">Employee Type:</span>
-                      <p className="font-semibold text-xs text-on-surface">{selectedEmployee.employeeType}</p>
-                    </div>
-                    <div>
-                      <span className="text-xs text-on-surface-variant">Schedule:</span>
-                      <p className="font-semibold text-xs text-on-surface">{selectedEmployee.workingSchedule?.name || 'Standard'}</p>
-                    </div>
-                  </div>
-                </div>
-
-                <div className="p-3 bg-surface-container-low rounded-xl flex flex-col gap-1.5">
-                  <span className="text-xs text-outline font-semibold uppercase">Bank Details</span>
-                  <div className="grid grid-cols-2 gap-2 mt-1">
-                    <div>
-                      <span className="text-xs text-on-surface-variant">Bank Name:</span>
-                      <p className="font-semibold text-xs text-on-surface">{selectedEmployee.bankAccount?.bankName || 'N/A'}</p>
-                    </div>
-                    <div>
-                      <span className="text-xs text-on-surface-variant">Account Number:</span>
-                      <p className="font-semibold text-xs text-on-surface">
-                        {selectedEmployee.bankAccount?.accountNumber ? '••••' + selectedEmployee.bankAccount.accountNumber.slice(-4) : 'Missing'}
-                      </p>
-                    </div>
-                  </div>
+              <div className="space-y-2.5 text-xs font-mono">
+                <div className="p-3 bg-[#111114] rounded border border-white/5 space-y-1.5">
+                  <span className="text-[10px] text-[#6F6C69] uppercase font-bold block">Contact Information</span>
+                  <div className="flex justify-between"><span className="text-[#6F6C69]">Email:</span><span className="text-[#F5F2EA]">{selectedEmployee.email}</span></div>
+                  <div className="flex justify-between"><span className="text-[#6F6C69]">Phone:</span><span className="text-[#F5F2EA]">{selectedEmployee.phone || '—'}</span></div>
+                  <div className="flex justify-between"><span className="text-[#6F6C69]">Type:</span><span className="text-[#F5F2EA]">{selectedEmployee.employeeType}</span></div>
+                  <div className="flex justify-between"><span className="text-[#6F6C69]">Joined:</span><span className="text-[#F5F2EA]">{new Date(selectedEmployee.joiningDate).toLocaleDateString()}</span></div>
                 </div>
               </div>
             ) : hubTab === 'contracts' ? (
-              <div className="flex flex-col gap-2">
-                {hubData.contracts.length > 0 ? (
+              <div className="space-y-2 font-mono text-xs">
+                {hubData.contracts.length === 0 ? (
+                  <p className="text-[#6F6C69] p-4 text-center">No contracts linked.</p>
+                ) : (
                   hubData.contracts.map((c) => (
-                    <div key={c._id} className="p-3 bg-surface-container-low rounded-xl border border-outline-variant/20 flex flex-col gap-1">
-                      <div className="flex items-center justify-between">
-                        <span className="font-bold text-sm text-on-surface">{c.name}</span>
-                        <Badge variant={c.status === 'Active' ? 'success' : 'default'}>{c.status}</Badge>
+                    <div key={c._id} className="p-3 bg-[#111114] rounded border border-white/5 space-y-1">
+                      <div className="flex justify-between font-bold text-[#F5F2EA]">
+                        <span>{c.name}</span>
+                        <span className="text-[#39D98A]">${Number(c.wage || 0).toLocaleString()}/mo</span>
                       </div>
-                      <div className="flex items-center justify-between text-xs text-on-surface-variant mt-1">
-                        <span>Wage: <strong className="text-primary font-bold">${c.wage?.toLocaleString()}/mo</strong></span>
-                        <span>Structure: <strong>{c.salaryStructure?.name || 'Standard'}</strong></span>
+                      <div className="text-[10px] text-[#6F6C69]">
+                        Structure: {c.salaryStructure?.name || 'Standard'} • Status: {c.state}
                       </div>
-                      <span className="text-[11px] text-outline">
-                        Period: {new Date(c.startDate).toLocaleDateString()} – {c.endDate ? new Date(c.endDate).toLocaleDateString() : 'Permanent / Ongoing'}
-                      </span>
                     </div>
                   ))
-                ) : (
-                  <p className="text-xs text-outline py-4 text-center">No contracts found for this employee.</p>
                 )}
               </div>
             ) : hubTab === 'attendance' ? (
-              <div className="flex flex-col gap-2">
-                <span className="text-xs text-outline font-semibold uppercase">Recent Logged Shifts</span>
-                {hubData.attendance.length > 0 ? (
-                  <div className="max-h-60 overflow-y-auto flex flex-col gap-1.5">
-                    {hubData.attendance.slice(0, 10).map((att) => (
-                      <div key={att._id} className="p-2.5 bg-surface-container-low rounded-lg flex items-center justify-between text-xs">
-                        <div>
-                          <span className="font-semibold text-on-surface">{new Date(att.date).toLocaleDateString()}</span>
-                          <span className="text-on-surface-variant ml-2">({att.workedHours} hrs)</span>
-                        </div>
-                        <Badge variant={att.status === 'Present' ? 'success' : 'warning'}>{att.status}</Badge>
-                      </div>
-                    ))}
-                  </div>
+              <div className="space-y-2 font-mono text-xs">
+                {hubData.attendance.length === 0 ? (
+                  <p className="text-[#6F6C69] p-4 text-center">No attendance logs.</p>
                 ) : (
-                  <p className="text-xs text-outline py-4 text-center">No attendance records logged.</p>
+                  hubData.attendance.slice(0, 5).map((a) => (
+                    <div key={a._id} className="p-2.5 bg-[#111114] rounded border border-white/5 flex justify-between items-center">
+                      <div>
+                        <span className="text-[#F5F2EA] block">{a.date}</span>
+                        <span className="text-[10px] text-[#6F6C69]">{a.status}</span>
+                      </div>
+                      <span className="text-xs font-bold text-[#FF8A65]">{a.workedHours || 8}h</span>
+                    </div>
+                  ))
                 )}
               </div>
             ) : hubTab === 'timeOff' ? (
-              <div className="flex flex-col gap-3">
-                <div className="p-3 bg-primary-container/10 rounded-xl flex flex-col gap-1">
-                  <span className="text-xs font-bold text-primary uppercase">Leave Balance Summary</span>
-                  <div className="grid grid-cols-2 gap-2 mt-1">
-                    {hubData.leaveBalances.map((bal, idx) => (
-                      <div key={idx} className="p-2 bg-surface-container-lowest rounded-lg shadow-sm">
-                        <span className="text-[11px] text-outline block">{bal.timeOffType?.name || 'Leave'}</span>
-                        <span className="font-bold text-sm text-primary">{bal.remaining}d Remaining</span>
-                        <span className="text-[10px] text-on-surface-variant block">({bal.taken}d taken of {bal.allocated}d)</span>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-
-                <div className="flex flex-col gap-1.5">
-                  <span className="text-xs text-outline font-semibold uppercase">Request History</span>
-                  {hubData.timeOffRequests.length > 0 ? (
-                    hubData.timeOffRequests.map((req) => (
-                      <div key={req._id} className="p-2.5 bg-surface-container-low rounded-lg flex items-center justify-between text-xs">
-                        <div>
-                          <span className="font-semibold text-on-surface">{req.timeOffType?.name} ({req.duration}d)</span>
-                          <span className="text-outline block text-[10px]">
-                            {new Date(req.startDate).toLocaleDateString()} to {new Date(req.endDate).toLocaleDateString()}
-                          </span>
-                        </div>
-                        <Badge variant={req.status === 'Approved' ? 'success' : req.status === 'Pending' ? 'warning' : 'danger'}>
-                          {req.status}
-                        </Badge>
-                      </div>
-                    ))
-                  ) : (
-                    <p className="text-xs text-outline text-center py-2">No leave requests.</p>
-                  )}
-                </div>
-              </div>
-            ) : (
-              /* Payslips Tab */
-              <div className="flex flex-col gap-2">
-                <span className="text-xs text-outline font-semibold uppercase">Historical Payslips</span>
-                {hubData.payslips.length > 0 ? (
-                  hubData.payslips.map((ps) => (
-                    <div key={ps._id} className="p-3 bg-surface-container-low rounded-xl flex items-center justify-between text-xs">
+              <div className="space-y-2 font-mono text-xs">
+                {hubData.timeOffRequests.length === 0 ? (
+                  <p className="text-[#6F6C69] p-4 text-center">No leave requests.</p>
+                ) : (
+                  hubData.timeOffRequests.map((r) => (
+                    <div key={r._id} className="p-2.5 bg-[#111114] rounded border border-white/5 flex justify-between items-center">
                       <div>
-                        <span className="font-bold text-sm text-on-surface">${ps.net?.toLocaleString()} Net</span>
-                        <span className="text-outline block text-[11px]">
-                          Period: {new Date(ps.payrollPeriod.start).toLocaleDateString()} – {new Date(ps.payrollPeriod.end).toLocaleDateString()}
-                        </span>
+                        <span className="text-[#F5F2EA] block">{r.timeOffType?.name || 'Leave'}</span>
+                        <span className="text-[10px] text-[#6F6C69]">{r.startDate?.split('T')[0]} to {r.endDate?.split('T')[0]}</span>
                       </div>
-                      <div className="flex items-center gap-2">
-                        <Badge variant={ps.status === 'Paid' ? 'success' : 'warning'}>{ps.status}</Badge>
-                        <button
-                          onClick={() => payslipApi.downloadPDF(ps._id, `Payslip_${selectedEmployee.employeeId}.pdf`)}
-                          className="p-1.5 bg-primary text-white rounded-lg hover:bg-primary-container transition-colors"
-                          title="Download Payslip PDF"
-                        >
-                          <span className="material-symbols-outlined text-sm">download</span>
-                        </button>
-                      </div>
+                      <Badge variant={r.status === 'Approved' ? 'success' : r.status === 'Pending' ? 'warning' : 'danger'}>
+                        {r.status}
+                      </Badge>
                     </div>
                   ))
+                )}
+              </div>
+            ) : (
+              <div className="space-y-2 font-mono text-xs">
+                {hubData.payslips.length === 0 ? (
+                  <p className="text-[#6F6C69] p-4 text-center">No payslips generated.</p>
                 ) : (
-                  <p className="text-xs text-outline py-4 text-center">No payslips calculated yet.</p>
+                  hubData.payslips.map((ps) => (
+                    <div key={ps._id} className="p-2.5 bg-[#111114] rounded border border-white/5 flex justify-between items-center">
+                      <div>
+                        <span className="text-[#F5F2EA] block">{ps.payrun?.name || 'Payrun'}</span>
+                        <span className="text-[10px] text-[#6F6C69]">Gross: ${ps.grossSalary}</span>
+                      </div>
+                      <span className="text-xs font-bold text-[#39D98A]">${ps.netSalary?.toLocaleString()}</span>
+                    </div>
+                  ))
                 )}
               </div>
             )}
@@ -595,257 +500,123 @@ export const EmployeesPage = () => {
         )}
       </div>
 
-      {/* Create / Edit Employee Modal */}
-      <EmployeeFormModal
+      {/* Add / Edit Employee Modal */}
+      <Modal
         isOpen={showCreateModal}
-        onClose={() => {
-          setShowCreateModal(false);
-          setEditingEmployee(null);
-        }}
-        initialData={editingEmployee}
-        schedules={schedules}
-        onSuccess={() => {
-          setShowCreateModal(false);
-          setEditingEmployee(null);
-          fetchEmployees();
-        }}
-      />
-    </div>
-  );
-};
-
-// Form Modal Component for Create & Edit
-const EmployeeFormModal = ({ isOpen, onClose, initialData, schedules, onSuccess }) => {
-  const [formData, setFormData] = useState({
-    firstName: '',
-    lastName: '',
-    email: '',
-    phone: '',
-    employeeId: '',
-    department: 'Engineering',
-    jobPosition: '',
-    workingSchedule: '',
-    employeeStatus: 'Active',
-    employeeType: 'Full-Time',
-    joiningDate: new Date().toISOString().split('T')[0],
-    bankAccount: {
-      bankName: '',
-      accountNumber: '',
-      ifscOrRouting: '',
-      accountHolderName: ''
-    }
-  });
-  const [loading, setLoading] = useState(false);
-  const { showToast } = useToast();
-
-  useEffect(() => {
-    if (initialData) {
-      setFormData({
-        firstName: initialData.firstName || '',
-        lastName: initialData.lastName || '',
-        email: initialData.email || '',
-        phone: initialData.phone || '',
-        employeeId: initialData.employeeId || '',
-        department: initialData.department || 'Engineering',
-        jobPosition: initialData.jobPosition || '',
-        workingSchedule: initialData.workingSchedule?._id || initialData.workingSchedule || '',
-        employeeStatus: initialData.employeeStatus || 'Active',
-        employeeType: initialData.employeeType || 'Full-Time',
-        joiningDate: initialData.joiningDate ? new Date(initialData.joiningDate).toISOString().split('T')[0] : new Date().toISOString().split('T')[0],
-        bankAccount: {
-          bankName: initialData.bankAccount?.bankName || '',
-          accountNumber: initialData.bankAccount?.accountNumber || '',
-          ifscOrRouting: initialData.bankAccount?.ifscOrRouting || '',
-          accountHolderName: initialData.bankAccount?.accountHolderName || ''
-        }
-      });
-    } else {
-      setFormData({
-        firstName: '',
-        lastName: '',
-        email: '',
-        phone: '',
-        employeeId: `EMP-${Math.floor(100 + Math.random() * 900)}`,
-        department: 'Engineering',
-        jobPosition: '',
-        workingSchedule: schedules[0]?._id || '',
-        employeeStatus: 'Active',
-        employeeType: 'Full-Time',
-        joiningDate: new Date().toISOString().split('T')[0],
-        bankAccount: {
-          bankName: '',
-          accountNumber: '',
-          ifscOrRouting: '',
-          accountHolderName: ''
-        }
-      });
-    }
-  }, [initialData, isOpen, schedules]);
-
-  const handleSubmit = async (e) => {
-    e.preventDefault();
-    setLoading(true);
-    try {
-      if (initialData) {
-        await employeeApi.update(initialData._id, formData);
-        showToast('Employee updated successfully', 'success');
-      } else {
-        await employeeApi.create(formData);
-        showToast('Employee created successfully', 'success');
-      }
-      onSuccess();
-    } catch (err) {
-      showToast(err.response?.data?.message || 'Operation failed', 'error');
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  return (
-    <Modal
-      isOpen={isOpen}
-      onClose={onClose}
-      title={initialData ? 'Edit Employee Record' : 'Onboard New Employee'}
-      maxWidth="max-w-2xl"
-    >
-      <form onSubmit={handleSubmit} className="flex flex-col gap-4">
-        <div className="grid grid-cols-2 gap-4">
-          <div>
-            <label className="text-xs font-semibold text-on-surface-variant">First Name *</label>
-            <input
-              type="text"
-              required
-              value={formData.firstName}
-              onChange={(e) => setFormData({ ...formData, firstName: e.target.value })}
-              className="w-full mt-1 px-3 py-2 bg-surface-container-low rounded-xl text-sm focus:ring-1 focus:ring-primary outline-none"
-            />
-          </div>
-          <div>
-            <label className="text-xs font-semibold text-on-surface-variant">Last Name *</label>
-            <input
-              type="text"
-              required
-              value={formData.lastName}
-              onChange={(e) => setFormData({ ...formData, lastName: e.target.value })}
-              className="w-full mt-1 px-3 py-2 bg-surface-container-low rounded-xl text-sm focus:ring-1 focus:ring-primary outline-none"
-            />
-          </div>
-        </div>
-
-        <div className="grid grid-cols-2 gap-4">
-          <div>
-            <label className="text-xs font-semibold text-on-surface-variant">Email Address *</label>
-            <input
-              type="email"
-              required
-              value={formData.email}
-              onChange={(e) => setFormData({ ...formData, email: e.target.value })}
-              className="w-full mt-1 px-3 py-2 bg-surface-container-low rounded-xl text-sm focus:ring-1 focus:ring-primary outline-none"
-            />
-          </div>
-          <div>
-            <label className="text-xs font-semibold text-on-surface-variant">Employee ID *</label>
-            <input
-              type="text"
-              required
-              value={formData.employeeId}
-              onChange={(e) => setFormData({ ...formData, employeeId: e.target.value })}
-              className="w-full mt-1 px-3 py-2 bg-surface-container-low rounded-xl text-sm focus:ring-1 focus:ring-primary outline-none"
-            />
-          </div>
-        </div>
-
-        <div className="grid grid-cols-2 gap-4">
-          <div>
-            <label className="text-xs font-semibold text-on-surface-variant">Department *</label>
-            <select
-              value={formData.department}
-              onChange={(e) => setFormData({ ...formData, department: e.target.value })}
-              className="w-full mt-1 px-3 py-2 bg-surface-container-low rounded-xl text-sm focus:ring-1 focus:ring-primary outline-none"
-            >
-              <option value="Engineering">Engineering</option>
-              <option value="Product">Product</option>
-              <option value="Design">Design</option>
-              <option value="Marketing">Marketing</option>
-              <option value="Sales">Sales</option>
-              <option value="Operations">Operations</option>
-              <option value="Human Resources">Human Resources</option>
-            </select>
-          </div>
-          <div>
-            <label className="text-xs font-semibold text-on-surface-variant">Job Position *</label>
-            <input
-              type="text"
-              required
-              value={formData.jobPosition}
-              onChange={(e) => setFormData({ ...formData, jobPosition: e.target.value })}
-              className="w-full mt-1 px-3 py-2 bg-surface-container-low rounded-xl text-sm focus:ring-1 focus:ring-primary outline-none"
-              placeholder="e.g. Senior Backend Engineer"
-            />
-          </div>
-        </div>
-
-        <div className="grid grid-cols-2 gap-4">
-          <div>
-            <label className="text-xs font-semibold text-on-surface-variant">Employment Type</label>
-            <select
-              value={formData.employeeType}
-              onChange={(e) => setFormData({ ...formData, employeeType: e.target.value })}
-              className="w-full mt-1 px-3 py-2 bg-surface-container-low rounded-xl text-sm focus:ring-1 focus:ring-primary outline-none"
-            >
-              <option value="Full-Time">Full-Time</option>
-              <option value="Part-Time">Part-Time</option>
-              <option value="Contractor">Contractor</option>
-              <option value="Intern">Intern</option>
-            </select>
-          </div>
-          <div>
-            <label className="text-xs font-semibold text-on-surface-variant">Working Schedule</label>
-            <select
-              value={formData.workingSchedule}
-              onChange={(e) => setFormData({ ...formData, workingSchedule: e.target.value })}
-              className="w-full mt-1 px-3 py-2 bg-surface-container-low rounded-xl text-sm focus:ring-1 focus:ring-primary outline-none"
-            >
-              <option value="">Default Schedule</option>
-              {schedules.map((s) => (
-                <option key={s._id} value={s._id}>{s.name} ({s.totalWeeklyHours}h/wk)</option>
-              ))}
-            </select>
-          </div>
-        </div>
-
-        {/* Bank Account Fields */}
-        <div className="p-3 bg-surface-container-low rounded-xl flex flex-col gap-3">
-          <span className="text-xs font-bold text-primary uppercase">Banking &amp; Direct Deposit Setup</span>
+        onClose={() => setShowCreateModal(false)}
+        title={editingEmployee ? 'Edit Employee Record' : 'Create New Employee Record'}
+        maxWidth="max-w-xl"
+      >
+        <form onSubmit={handleSubmitForm} className="space-y-3 font-mono text-xs">
           <div className="grid grid-cols-2 gap-3">
             <div>
-              <label className="text-xs font-medium text-on-surface-variant">Bank Name</label>
+              <label className="staffora-label">Employee Code *</label>
               <input
                 type="text"
-                value={formData.bankAccount.bankName}
-                onChange={(e) => setFormData({ ...formData, bankAccount: { ...formData.bankAccount, bankName: e.target.value } })}
-                className="w-full mt-1 px-3 py-1.5 bg-surface-container-lowest rounded-lg text-sm outline-none"
-                placeholder="JPMorgan Chase"
+                required
+                value={formData.employeeId}
+                onChange={(e) => setFormData({ ...formData, employeeId: e.target.value })}
+                className="staffora-input"
               />
             </div>
             <div>
-              <label className="text-xs font-medium text-on-surface-variant">Account Number</label>
+              <label className="staffora-label">Department *</label>
+              <select
+                required
+                value={formData.department}
+                onChange={(e) => setFormData({ ...formData, department: e.target.value })}
+                className="staffora-input"
+              >
+                <option value="Engineering">Engineering</option>
+                <option value="Product">Product</option>
+                <option value="Design">Design</option>
+                <option value="Marketing">Marketing</option>
+                <option value="Human Resources">Human Resources</option>
+              </select>
+            </div>
+          </div>
+
+          <div className="grid grid-cols-2 gap-3">
+            <div>
+              <label className="staffora-label">First Name *</label>
               <input
                 type="text"
-                value={formData.bankAccount.accountNumber}
-                onChange={(e) => setFormData({ ...formData, bankAccount: { ...formData.bankAccount, accountNumber: e.target.value } })}
-                className="w-full mt-1 px-3 py-1.5 bg-surface-container-lowest rounded-lg text-sm outline-none"
-                placeholder="1234567890"
+                required
+                value={formData.firstName}
+                onChange={(e) => setFormData({ ...formData, firstName: e.target.value })}
+                className="staffora-input"
+              />
+            </div>
+            <div>
+              <label className="staffora-label">Last Name *</label>
+              <input
+                type="text"
+                required
+                value={formData.lastName}
+                onChange={(e) => setFormData({ ...formData, lastName: e.target.value })}
+                className="staffora-input"
               />
             </div>
           </div>
-        </div>
 
-        <div className="flex justify-end gap-2 pt-2">
-          <Button variant="outline" onClick={onClose}>Cancel</Button>
-          <Button type="submit" loading={loading}>{initialData ? 'Save Changes' : 'Create Employee'}</Button>
-        </div>
-      </form>
-    </Modal>
+          <div className="grid grid-cols-2 gap-3">
+            <div>
+              <label className="staffora-label">Email Address *</label>
+              <input
+                type="email"
+                required
+                value={formData.email}
+                onChange={(e) => setFormData({ ...formData, email: e.target.value })}
+                className="staffora-input"
+              />
+            </div>
+            <div>
+              <label className="staffora-label">Phone</label>
+              <input
+                type="text"
+                value={formData.phone}
+                onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
+                className="staffora-input"
+              />
+            </div>
+          </div>
+
+          <div className="grid grid-cols-2 gap-3">
+            <div>
+              <label className="staffora-label">Job Position *</label>
+              <input
+                type="text"
+                required
+                value={formData.jobPosition}
+                onChange={(e) => setFormData({ ...formData, jobPosition: e.target.value })}
+                className="staffora-input"
+              />
+            </div>
+            <div>
+              <label className="staffora-label">Status *</label>
+              <select
+                value={formData.employeeStatus}
+                onChange={(e) => setFormData({ ...formData, employeeStatus: e.target.value })}
+                className="staffora-input"
+              >
+                <option value="Active">Active</option>
+                <option value="Probation">Probation</option>
+                <option value="Suspended">Suspended</option>
+                <option value="Terminated">Terminated</option>
+              </select>
+            </div>
+          </div>
+
+          <div className="flex justify-end gap-2 pt-3 border-t border-white/10">
+            <Button variant="secondary" type="button" onClick={() => setShowCreateModal(false)}>
+              Cancel
+            </Button>
+            <Button variant="primary" type="submit">
+              {editingEmployee ? 'Save Changes' : 'Create Record'}
+            </Button>
+          </div>
+        </form>
+      </Modal>
+    </div>
   );
 };

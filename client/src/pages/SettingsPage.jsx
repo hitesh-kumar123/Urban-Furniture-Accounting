@@ -23,209 +23,137 @@ export const SettingsPage = () => {
   };
 
   return (
-    <div className="space-y-6">
+    <div className="p-5 max-w-[1600px] w-full mx-auto flex flex-col gap-5">
       {/* Top Header */}
-      <div>
-        <h1 className="text-2xl font-bold text-on-surface">System & Organization Settings</h1>
-        <p className="text-sm text-slate-500 mt-1">
-          Configure corporate parameters, statutory defaults, RBAC security profiles, and API integration.
+      <div className="pb-4 border-b border-white/10">
+        <div className="flex items-center gap-2 mb-1">
+          <span className="font-mono text-[10px] uppercase tracking-widest text-[#FF6B3D] font-semibold">
+            System Administration
+          </span>
+        </div>
+        <h1 className="text-xl md:text-2xl font-bold text-[#F5F2EA] tracking-tight font-display">
+          System &amp; Security Settings
+        </h1>
+        <p className="text-xs text-[#A6A3A0] mt-0.5">
+          Corporate parameters, statutory defaults, and RBAC matrix.
         </p>
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        {/* Left 2 Cols: Company Profile Settings */}
-        <div className="lg:col-span-2 space-y-6">
-          <div className="bg-surface-container-lowest border border-slate-200/80 rounded-2xl p-6 shadow-sm">
-            <h3 className="text-base font-bold text-on-surface mb-4">Corporate Payroll Parameters</h3>
-            <form onSubmit={handleSaveCompany} className="space-y-4">
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                <div>
-                  <label className="block text-xs font-semibold text-slate-700 uppercase tracking-wider mb-1">
-                    Company Legal Name
-                  </label>
-                  <input
-                    type="text"
-                    value={companyForm.companyName}
-                    onChange={(e) => setCompanyForm({ ...companyForm, companyName: e.target.value })}
-                    className="w-full px-3.5 py-2.5 text-sm bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-primary/20"
-                  />
-                </div>
-
-                <div>
-                  <label className="block text-xs font-semibold text-slate-700 uppercase tracking-wider mb-1">
-                    Tax / Statutory Registration ID
-                  </label>
-                  <input
-                    type="text"
-                    value={companyForm.taxId}
-                    onChange={(e) => setCompanyForm({ ...companyForm, taxId: e.target.value })}
-                    className="w-full px-3.5 py-2.5 text-sm bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-primary/20"
-                  />
-                </div>
-
-                <div>
-                  <label className="block text-xs font-semibold text-slate-700 uppercase tracking-wider mb-1">
-                    Base Currency
-                  </label>
-                  <input
-                    type="text"
-                    value={companyForm.currency}
-                    onChange={(e) => setCompanyForm({ ...companyForm, currency: e.target.value })}
-                    className="w-full px-3.5 py-2.5 text-sm bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-primary/20"
-                  />
-                </div>
-
-                <div>
-                  <label className="block text-xs font-semibold text-slate-700 uppercase tracking-wider mb-1">
-                    Pay Cycle Frequency
-                  </label>
-                  <input
-                    type="text"
-                    value={companyForm.payCycle}
-                    onChange={(e) => setCompanyForm({ ...companyForm, payCycle: e.target.value })}
-                    className="w-full px-3.5 py-2.5 text-sm bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-primary/20"
-                  />
-                </div>
-
-                <div>
-                  <label className="block text-xs font-semibold text-slate-700 uppercase tracking-wider mb-1">
-                    Overtime Multiplier Rate
-                  </label>
-                  <input
-                    type="text"
-                    value={companyForm.overtimeMultiplier}
-                    onChange={(e) => setCompanyForm({ ...companyForm, overtimeMultiplier: e.target.value })}
-                    className="w-full px-3.5 py-2.5 text-sm bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-primary/20"
-                  />
-                </div>
-
-                <div>
-                  <label className="block text-xs font-semibold text-slate-700 uppercase tracking-wider mb-1">
-                    Standard Full-Time Capacity
-                  </label>
-                  <input
-                    type="text"
-                    value={companyForm.standardWorkWeek}
-                    onChange={(e) => setCompanyForm({ ...companyForm, standardWorkWeek: e.target.value })}
-                    className="w-full px-3.5 py-2.5 text-sm bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-primary/20"
-                  />
-                </div>
+      <div className="grid grid-cols-1 lg:grid-cols-12 gap-5 items-start">
+        {/* Left 7 Cols: Company Profile Settings */}
+        <div className="lg:col-span-7 midnight-card p-5 space-y-4">
+          <h3 className="text-sm font-bold text-[#F5F2EA] font-display">Corporate Payroll Parameters</h3>
+          <form onSubmit={handleSaveCompany} className="space-y-3 font-mono text-xs">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+              <div>
+                <label className="staffora-label">Legal Company Name</label>
+                <input
+                  type="text"
+                  value={companyForm.companyName}
+                  onChange={(e) => setCompanyForm({ ...companyForm, companyName: e.target.value })}
+                  className="staffora-input"
+                />
               </div>
 
-              <div className="flex justify-end pt-4 border-t border-slate-100">
-                <Button variant="primary" type="submit">
-                  Save Changes
-                </Button>
+              <div>
+                <label className="staffora-label">Tax / EIN Registration</label>
+                <input
+                  type="text"
+                  value={companyForm.taxId}
+                  onChange={(e) => setCompanyForm({ ...companyForm, taxId: e.target.value })}
+                  className="staffora-input"
+                />
               </div>
-            </form>
-          </div>
 
-          {/* RBAC Matrix Card */}
-          <div className="bg-surface-container-lowest border border-slate-200/80 rounded-2xl p-6 shadow-sm">
-            <h3 className="text-base font-bold text-on-surface mb-2">Role-Based Access Control (RBAC) Matrix</h3>
-            <p className="text-xs text-slate-500 mb-4">Granular permissions configured across platform modules.</p>
+              <div>
+                <label className="staffora-label">Base Currency</label>
+                <input
+                  type="text"
+                  value={companyForm.currency}
+                  onChange={(e) => setCompanyForm({ ...companyForm, currency: e.target.value })}
+                  className="staffora-input"
+                />
+              </div>
 
-            <div className="border border-slate-200 rounded-xl overflow-x-auto">
-              <table className="min-w-full divide-y divide-slate-200 text-xs text-left">
-                <thead className="bg-slate-50 text-slate-600 font-bold uppercase">
-                  <tr>
-                    <th className="px-4 py-3">Role</th>
-                    <th className="px-4 py-3">Employee Hub</th>
-                    <th className="px-4 py-3">Contracts</th>
-                    <th className="px-4 py-3">Attendance</th>
-                    <th className="px-4 py-3">Time Off</th>
-                    <th className="px-4 py-3">Payrun Engine</th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-slate-100 bg-white">
-                  <tr>
-                    <td className="px-4 py-3 font-bold text-primary">Admin</td>
-                    <td className="px-4 py-3 text-emerald-600 font-bold">Full</td>
-                    <td className="px-4 py-3 text-emerald-600 font-bold">Full</td>
-                    <td className="px-4 py-3 text-emerald-600 font-bold">Full</td>
-                    <td className="px-4 py-3 text-emerald-600 font-bold">Full</td>
-                    <td className="px-4 py-3 text-emerald-600 font-bold">Full</td>
-                  </tr>
-                  <tr>
-                    <td className="px-4 py-3 font-bold text-slate-800">HR Manager</td>
-                    <td className="px-4 py-3 text-emerald-600 font-bold">Full</td>
-                    <td className="px-4 py-3 text-emerald-600 font-bold">Full</td>
-                    <td className="px-4 py-3 text-emerald-600 font-bold">Full</td>
-                    <td className="px-4 py-3 text-emerald-600 font-bold">Approve</td>
-                    <td className="px-4 py-3 text-slate-400">View Only</td>
-                  </tr>
-                  <tr>
-                    <td className="px-4 py-3 font-bold text-purple-700">HR Payroll Manager</td>
-                    <td className="px-4 py-3 text-emerald-600 font-bold">Full</td>
-                    <td className="px-4 py-3 text-emerald-600 font-bold">Full</td>
-                    <td className="px-4 py-3 text-emerald-600 font-bold">Full</td>
-                    <td className="px-4 py-3 text-emerald-600 font-bold">Approve</td>
-                    <td className="px-4 py-3 text-emerald-600 font-bold">Full Engine</td>
-                  </tr>
-                  <tr>
-                    <td className="px-4 py-3 font-bold text-slate-700">HR Payroll User</td>
-                    <td className="px-4 py-3 text-slate-600 font-medium">Read Only</td>
-                    <td className="px-4 py-3 text-slate-600 font-medium">Read Only</td>
-                    <td className="px-4 py-3 text-emerald-600 font-bold">Log</td>
-                    <td className="px-4 py-3 text-slate-600 font-medium">Read</td>
-                    <td className="px-4 py-3 text-slate-600 font-medium">Draft & Compute</td>
-                  </tr>
-                  <tr>
-                    <td className="px-4 py-3 font-bold text-slate-500">Employee</td>
-                    <td className="px-4 py-3 text-slate-400">Self</td>
-                    <td className="px-4 py-3 text-slate-400">Self</td>
-                    <td className="px-4 py-3 text-emerald-600 font-bold">Punch</td>
-                    <td className="px-4 py-3 text-emerald-600 font-bold">Request</td>
-                    <td className="px-4 py-3 text-slate-400">Own Payslips</td>
-                  </tr>
-                </tbody>
-              </table>
+              <div>
+                <label className="staffora-label">Pay Cycle Frequency</label>
+                <input
+                  type="text"
+                  value={companyForm.payCycle}
+                  onChange={(e) => setCompanyForm({ ...companyForm, payCycle: e.target.value })}
+                  className="staffora-input"
+                />
+              </div>
+
+              <div>
+                <label className="staffora-label">Overtime Multiplier</label>
+                <input
+                  type="text"
+                  value={companyForm.overtimeMultiplier}
+                  onChange={(e) => setCompanyForm({ ...companyForm, overtimeMultiplier: e.target.value })}
+                  className="staffora-input text-[#39D98A]"
+                />
+              </div>
+
+              <div>
+                <label className="staffora-label">Standard Work Week</label>
+                <input
+                  type="text"
+                  value={companyForm.standardWorkWeek}
+                  onChange={(e) => setCompanyForm({ ...companyForm, standardWorkWeek: e.target.value })}
+                  className="staffora-input"
+                />
+              </div>
             </div>
-          </div>
+
+            <div className="pt-3 border-t border-white/10 flex justify-end">
+              <Button variant="primary" size="sm" type="submit">
+                Save System Parameters
+              </Button>
+            </div>
+          </form>
         </div>
 
-        {/* Right 1 Col: User Account & Security */}
-        <div className="space-y-6">
-          <div className="bg-surface-container-lowest border border-slate-200/80 rounded-2xl p-6 shadow-sm">
-            <h3 className="text-base font-bold text-on-surface mb-3">Active Session Profile</h3>
-            <div className="p-4 bg-slate-50 rounded-xl border border-slate-100 flex items-center gap-3">
-              <div className="w-12 h-12 rounded-full bg-primary text-white flex items-center justify-center font-bold text-lg">
-                {user?.name?.[0] || 'U'}
-              </div>
-              <div>
-                <h4 className="text-sm font-bold text-on-surface">{user?.name}</h4>
-                <span className="text-xs text-slate-500 block">{user?.email}</span>
-                <Badge variant="purple" className="mt-1">
-                  {user?.role}
-                </Badge>
-              </div>
-            </div>
-
-            <div className="mt-4 space-y-2 text-xs text-slate-500 border-t border-slate-100 pt-3">
+        {/* Right 5 Cols: Active RBAC Matrix & Session Info */}
+        <div className="lg:col-span-5 space-y-4">
+          <div className="midnight-card p-5 space-y-3 font-mono text-xs">
+            <h3 className="text-sm font-bold text-[#F5F2EA] font-display">Active Session &amp; Security</h3>
+            <div className="p-3 bg-[#17171B] rounded border border-white/5 space-y-1.5">
               <div className="flex justify-between">
-                <span>Security Scheme</span>
-                <span className="font-semibold text-slate-700">JWT Bearer (HS256)</span>
+                <span className="text-[#6F6C69]">Authenticated User:</span>
+                <span className="text-[#F5F2EA] font-bold">{user?.name}</span>
               </div>
               <div className="flex justify-between">
-                <span>Auto-Refresh Session</span>
-                <span className="font-semibold text-emerald-600">Active</span>
+                <span className="text-[#6F6C69]">User Email:</span>
+                <span className="text-[#A6A3A0]">{user?.email}</span>
               </div>
-              <div className="flex justify-between">
-                <span>Linked Employee ID</span>
-                <span className="font-mono text-slate-700">{user?.employee || 'Admin Root'}</span>
+              <div className="flex justify-between items-center">
+                <span className="text-[#6F6C69]">Assigned Role:</span>
+                <Badge variant="primary">{user?.role}</Badge>
               </div>
             </div>
           </div>
 
-          <div className="bg-gradient-to-br from-indigo-900 to-slate-900 rounded-2xl p-6 text-white shadow-md">
-            <div className="flex items-center gap-2 text-indigo-300 font-bold text-xs uppercase tracking-wider mb-2">
-              <span className="material-symbols-outlined text-[16px]">verified_user</span>
-              Production Ready
+          <div className="midnight-card p-5 space-y-3 font-mono text-xs">
+            <h3 className="text-sm font-bold text-[#F5F2EA] font-display">Role Access Rights Matrix</h3>
+            <div className="space-y-1.5">
+              <div className="p-2 bg-[#17171B] rounded border border-white/5 flex justify-between items-center">
+                <span className="text-[#F5F2EA]">Admin</span>
+                <span className="text-[10px] text-[#39D98A]">Full System Control</span>
+              </div>
+              <div className="p-2 bg-[#17171B] rounded border border-white/5 flex justify-between items-center">
+                <span className="text-[#F5F2EA]">HR Payroll Manager</span>
+                <span className="text-[10px] text-[#FF8A65]">Run &amp; Validate Payruns</span>
+              </div>
+              <div className="p-2 bg-[#17171B] rounded border border-white/5 flex justify-between items-center">
+                <span className="text-[#F5F2EA]">HR Manager</span>
+                <span className="text-[10px] text-[#58B7FF]">Employee &amp; Time Off Mgmt</span>
+              </div>
+              <div className="p-2 bg-[#17171B] rounded border border-white/5 flex justify-between items-center">
+                <span className="text-[#F5F2EA]">Employee</span>
+                <span className="text-[10px] text-[#6F6C69]">Self-Service Vault</span>
+              </div>
             </div>
-            <h4 className="text-base font-bold text-white">Deterministic Payroll Core</h4>
-            <p className="text-xs text-indigo-100 mt-1 leading-relaxed">
-              Staffora uses server-side deterministic rule execution with Joi payload validation, bcrypt hashing, and PDFKit certified payslips.
-            </p>
           </div>
         </div>
       </div>

@@ -39,7 +39,6 @@ export const SalaryRulesPage = () => {
         category: categoryFilter || undefined
       });
       if (res.success) {
-        // Sort by sequence ascending
         const sorted = [...res.data].sort((a, b) => (a.sequence || 0) - (b.sequence || 0));
         setRules(sorted);
       }
@@ -108,12 +107,12 @@ export const SalaryRulesPage = () => {
         }
       }
     } catch (err) {
-      showToast(err.response?.data?.message || 'Failed to save salary rule', 'error');
+      showToast(err.response?.data?.message || 'Action failed', 'error');
     }
   };
 
   const handleDelete = async (id) => {
-    if (!window.confirm('Are you sure you want to delete this rule?')) return;
+    if (!window.confirm('Delete this salary rule formula?')) return;
     try {
       const res = await salaryApi.deleteRule(id);
       if (res.success) {
@@ -121,345 +120,283 @@ export const SalaryRulesPage = () => {
         fetchRules();
       }
     } catch (err) {
-      showToast(err.response?.data?.message || 'Failed to delete rule', 'error');
-    }
-  };
-
-  const getCategoryBadge = (cat) => {
-    switch (cat) {
-      case 'Basic':
-        return <Badge variant="info">Basic</Badge>;
-      case 'Allowances':
-        return <Badge variant="success">Allowance</Badge>;
-      case 'Gross':
-        return <Badge variant="purple">Gross</Badge>;
-      case 'Deductions':
-        return <Badge variant="danger">Deduction</Badge>;
-      case 'Net':
-        return <Badge variant="success">Net</Badge>;
-      default:
-        return <Badge variant="neutral">{cat}</Badge>;
+      showToast(err.response?.data?.message || 'Delete failed', 'error');
     }
   };
 
   const canManage = hasRole('Admin', 'HR Payroll Manager');
 
   return (
-    <div className="space-y-6">
+    <div className="p-5 max-w-[1600px] w-full mx-auto flex flex-col gap-5">
       {/* Top Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-4 border-b border-white/10">
         <div>
-          <h1 className="text-2xl font-bold text-on-surface">Salary Rules & Formula Engine</h1>
-          <p className="text-sm text-slate-500 mt-1">
-            Configure arithmetic computation sequences, statutory tax brackets, percentages, and formulas.
+          <div className="flex items-center gap-2 mb-1">
+            <span className="font-mono text-[10px] uppercase tracking-widest text-[#FF6B3D] font-semibold">
+              Calculation Engine
+            </span>
+          </div>
+          <h1 className="text-xl md:text-2xl font-bold text-[#F5F2EA] tracking-tight font-display">
+            Salary Rules &amp; Formula Engine
+          </h1>
+          <p className="text-xs text-[#A6A3A0] mt-0.5">
+            Sequential salary computation rules, statutory tax formulas, and deduction tiers.
           </p>
         </div>
-        {canManage && (
-          <Button
-            variant="primary"
-            onClick={() => handleOpenModal()}
-            className="flex items-center gap-2 shadow-sm"
-          >
-            <span className="material-symbols-outlined text-[18px]">add_circle</span>
-            New Rule
-          </Button>
-        )}
-      </div>
 
-      {/* Filter Tabs */}
-      <div className="bg-surface-container-lowest border border-slate-200/80 rounded-2xl p-4 shadow-sm flex items-center justify-between">
-        <div className="flex flex-wrap items-center gap-2">
-          {['', 'Basic', 'Allowances', 'Gross', 'Deductions', 'Net'].map((cat) => (
-            <button
-              key={cat}
-              onClick={() => setCategoryFilter(cat)}
-              className={`px-3.5 py-1.5 rounded-xl text-xs font-semibold transition-all ${
-                categoryFilter === cat
-                  ? 'bg-primary text-white shadow-sm'
-                  : 'bg-slate-50 text-slate-600 hover:bg-slate-100'
-              }`}
+        <div className="flex items-center gap-2.5">
+          <select
+            value={categoryFilter}
+            onChange={(e) => setCategoryFilter(e.target.value)}
+            className="staffora-input py-1 px-2.5 text-xs w-auto font-mono"
+          >
+            <option value="">All Categories</option>
+            <option value="Basic">Basic Salary</option>
+            <option value="Allowances">Allowances</option>
+            <option value="Gross">Gross Earnings</option>
+            <option value="Deduction">Deductions &amp; Tax</option>
+            <option value="Net">Net Disbursal</option>
+          </select>
+
+          {canManage && (
+            <Button
+              variant="primary"
+              size="sm"
+              onClick={() => handleOpenModal(null)}
+              icon="add"
             >
-              {cat || 'All Categories'}
-            </button>
-          ))}
+              Add Rule
+            </Button>
+          )}
         </div>
       </div>
 
       {/* Rules Table */}
-      <div className="bg-surface-container-lowest border border-slate-200/80 rounded-2xl shadow-sm overflow-hidden">
+      <div className="staffora-table-container">
         {loading ? (
-          <div className="flex justify-center p-12">
-            <LoadingSpinner size="lg" />
-          </div>
+          <LoadingSpinner message="Querying rule ASTs and formulas..." />
         ) : rules.length === 0 ? (
-          <div className="p-12 text-center text-slate-400">
-            <span className="material-symbols-outlined text-4xl mb-2">functions</span>
-            <p className="text-sm font-semibold text-slate-600">No salary rules found.</p>
+          <div className="p-10 text-center text-[#6F6C69] font-mono text-xs">
+            No salary rules defined.
           </div>
         ) : (
-          <div className="overflow-x-auto">
-            <table className="min-w-full divide-y divide-slate-200/80 text-left text-sm">
-              <thead className="bg-slate-50/70 text-slate-500 uppercase text-[11px] font-bold tracking-wider">
-                <tr>
-                  <th className="px-5 py-3.5 text-center">Seq</th>
-                  <th className="px-5 py-3.5">Rule Name & Code</th>
-                  <th className="px-5 py-3.5">Category</th>
-                  <th className="px-5 py-3.5">Computation Type</th>
-                  <th className="px-5 py-3.5">Value / Formula</th>
-                  <th className="px-5 py-3.5 text-center">Status</th>
-                  {canManage && <th className="px-5 py-3.5 text-right">Actions</th>}
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-slate-100 bg-white">
-                {rules.map((rule) => {
-                  let valueDisplay = '—';
-                  if (rule.calculationType === 'Fixed') {
-                    valueDisplay = `$${rule.fixedAmount}`;
-                  } else if (rule.calculationType === 'Percentage') {
-                    valueDisplay = `${rule.percentage}% of ${rule.percentageBaseRuleCode || 'BASIC'}`;
-                  } else if (rule.calculationType === 'Formula') {
-                    valueDisplay = rule.formula || 'Custom Formula';
-                  }
+          <table className="staffora-table font-mono">
+            <thead>
+              <tr>
+                <th className="w-16 text-center">Seq</th>
+                <th>Code</th>
+                <th>Rule Name</th>
+                <th>Category</th>
+                <th>Computation Type</th>
+                <th>Value / Formula</th>
+                <th>Status</th>
+                <th className="text-right">Actions</th>
+              </tr>
+            </thead>
+            <tbody>
+              {rules.map((rule) => {
+                const isDeduction = rule.category === 'Deduction';
+                return (
+                  <tr key={rule._id}>
+                    <td className="text-center font-bold text-[#FF8A65]">
+                      {rule.sequence}
+                    </td>
 
-                  return (
-                    <tr key={rule._id} className="hover:bg-slate-50/70 transition-colors">
-                      <td className="px-5 py-4 text-center">
-                        <span className="font-mono text-xs font-bold px-2 py-1 bg-slate-100 rounded text-slate-700">
-                          {rule.sequence}
-                        </span>
-                      </td>
+                    <td>
+                      <span className="font-bold text-[#F5F2EA] bg-[#17171B] border border-white/10 px-1.5 py-0.5 rounded text-xs">
+                        {rule.code}
+                      </span>
+                    </td>
 
-                      <td className="px-5 py-4">
-                        <div className="font-bold text-on-surface text-xs">{rule.name}</div>
-                        <div className="font-mono text-[11px] text-primary mt-0.5">{rule.code}</div>
-                      </td>
+                    <td className="font-sans font-semibold text-xs text-[#F5F2EA]">
+                      {rule.name}
+                    </td>
 
-                      <td className="px-5 py-4">{getCategoryBadge(rule.category)}</td>
+                    <td>
+                      <span className="text-xs text-[#A6A3A0]">
+                        {rule.category}
+                      </span>
+                    </td>
 
-                      <td className="px-5 py-4">
-                        <span className="px-2.5 py-1 bg-slate-100 text-slate-700 rounded-lg text-xs font-medium">
-                          {rule.calculationType}
-                        </span>
-                      </td>
+                    <td className="text-xs text-[#A6A3A0]">
+                      {rule.calculationType}
+                    </td>
 
-                      <td className="px-5 py-4 font-mono text-xs font-semibold text-slate-700">
-                        {valueDisplay}
-                      </td>
-
-                      <td className="px-5 py-4 text-center">
-                        <Badge variant={rule.active ? 'success' : 'neutral'}>
-                          {rule.active ? 'Active' : 'Disabled'}
-                        </Badge>
-                      </td>
-
-                      {canManage && (
-                        <td className="px-5 py-4 text-right">
-                          <div className="flex items-center justify-end gap-1.5">
-                            <Button
-                              variant="secondary"
-                              size="sm"
-                              onClick={() => handleOpenModal(rule)}
-                              className="text-xs"
-                            >
-                              Edit
-                            </Button>
-                            <button
-                              onClick={() => handleDelete(rule._id)}
-                              className="p-1.5 rounded-lg text-red-600 hover:bg-red-50 text-xs"
-                              title="Delete"
-                            >
-                              <span className="material-symbols-outlined text-[16px]">delete</span>
-                            </button>
-                          </div>
-                        </td>
+                    <td className="text-xs">
+                      {rule.calculationType === 'Fixed' ? (
+                        <span className="text-[#39D98A] font-bold">${rule.fixedAmount}</span>
+                      ) : rule.calculationType === 'Percentage' ? (
+                        <span className="text-[#58B7FF] font-bold">{rule.percentage}% of {rule.percentageBaseRuleCode || 'BASIC'}</span>
+                      ) : (
+                        <span className="text-[#FF8A65] font-bold">{rule.formula}</span>
                       )}
-                    </tr>
-                  );
-                })}
-              </tbody>
-            </table>
-          </div>
+                    </td>
+
+                    <td>
+                      <Badge variant={rule.active ? 'success' : 'default'}>
+                        {rule.active ? 'Active' : 'Disabled'}
+                      </Badge>
+                    </td>
+
+                    <td className="text-right font-sans">
+                      {canManage && (
+                        <div className="inline-flex items-center gap-1">
+                          <button
+                            onClick={() => handleOpenModal(rule)}
+                            className="p-1 hover:bg-[#17171B] rounded text-[#A6A3A0] hover:text-[#F5F2EA]"
+                            title="Edit Rule"
+                          >
+                            <span className="material-symbols-outlined text-sm">edit</span>
+                          </button>
+                          <button
+                            onClick={() => handleDelete(rule._id)}
+                            className="p-1 hover:bg-[#FF5C5C]/10 rounded text-[#FF5C5C]"
+                            title="Delete Rule"
+                          >
+                            <span className="material-symbols-outlined text-sm">delete</span>
+                          </button>
+                        </div>
+                      )}
+                    </td>
+                  </tr>
+                );
+              })}
+            </tbody>
+          </table>
         )}
       </div>
 
-      {/* Create / Edit Rule Modal */}
+      {/* Add / Edit Salary Rule Modal */}
       <Modal
         isOpen={showModal}
         onClose={() => setShowModal(false)}
-        title={editingRule ? 'Edit Salary Rule' : 'Create Salary Rule'}
-        size="lg"
+        title={editingRule ? 'Edit Calculation Rule' : 'New Salary Rule Formula'}
+        maxWidth="max-w-xl"
       >
-        <form onSubmit={handleSubmit} className="space-y-4">
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+        <form onSubmit={handleSubmit} className="space-y-3 font-mono text-xs">
+          <div className="grid grid-cols-2 gap-3">
             <div>
-              <label className="block text-xs font-semibold text-slate-700 uppercase tracking-wider mb-1">
-                Rule Name *
-              </label>
+              <label className="staffora-label">Rule Name *</label>
               <input
                 type="text"
                 required
-                placeholder="e.g. House Rent Allowance"
                 value={formData.name}
                 onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-                className="w-full px-3.5 py-2.5 text-sm bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-primary/20"
+                className="staffora-input"
+                placeholder="e.g. Provident Fund"
               />
             </div>
-
             <div>
-              <label className="block text-xs font-semibold text-slate-700 uppercase tracking-wider mb-1">
-                Rule Code *
-              </label>
+              <label className="staffora-label">Rule Code *</label>
               <input
                 type="text"
                 required
-                placeholder="e.g. HRA"
                 value={formData.code}
                 onChange={(e) => setFormData({ ...formData, code: e.target.value.toUpperCase() })}
-                className="w-full px-3.5 py-2.5 text-sm bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-primary/20 font-mono"
+                className="staffora-input"
+                placeholder="e.g. PF_DED"
               />
             </div>
           </div>
 
-          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+          <div className="grid grid-cols-2 gap-3">
             <div>
-              <label className="block text-xs font-semibold text-slate-700 uppercase tracking-wider mb-1">
-                Category *
-              </label>
+              <label className="staffora-label">Category *</label>
               <select
                 value={formData.category}
                 onChange={(e) => setFormData({ ...formData, category: e.target.value })}
-                className="w-full px-3.5 py-2.5 text-sm bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-primary/20"
+                className="staffora-input"
               >
-                <option value="Basic">Basic</option>
+                <option value="Basic">Basic Salary</option>
                 <option value="Allowances">Allowances</option>
-                <option value="Gross">Gross</option>
-                <option value="Deductions">Deductions</option>
-                <option value="Net">Net</option>
+                <option value="Gross">Gross Earnings</option>
+                <option value="Deduction">Deduction / Tax</option>
+                <option value="Net">Net Disbursal</option>
               </select>
             </div>
-
             <div>
-              <label className="block text-xs font-semibold text-slate-700 uppercase tracking-wider mb-1">
-                Sequence *
-              </label>
+              <label className="staffora-label">Execution Sequence *</label>
               <input
                 type="number"
                 required
-                min="1"
                 value={formData.sequence}
                 onChange={(e) => setFormData({ ...formData, sequence: Number(e.target.value) })}
-                className="w-full px-3.5 py-2.5 text-sm bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-primary/20"
+                className="staffora-input"
               />
-            </div>
-
-            <div>
-              <label className="block text-xs font-semibold text-slate-700 uppercase tracking-wider mb-1">
-                Calculation Type *
-              </label>
-              <select
-                value={formData.calculationType}
-                onChange={(e) => setFormData({ ...formData, calculationType: e.target.value })}
-                className="w-full px-3.5 py-2.5 text-sm bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-primary/20"
-              >
-                <option value="Percentage">Percentage</option>
-                <option value="Fixed">Fixed Amount</option>
-                <option value="Formula">Custom Formula</option>
-              </select>
             </div>
           </div>
 
-          {/* Dynamic Configuration based on calculationType */}
-          {formData.calculationType === 'Fixed' && (
+          <div className="grid grid-cols-2 gap-3">
             <div>
-              <label className="block text-xs font-semibold text-slate-700 uppercase tracking-wider mb-1">
-                Fixed Amount ($) *
-              </label>
-              <input
-                type="number"
-                min="0"
-                step="0.01"
-                required
-                value={formData.fixedAmount}
-                onChange={(e) => setFormData({ ...formData, fixedAmount: Number(e.target.value) })}
-                className="w-full px-3.5 py-2.5 text-sm bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-primary/20"
-              />
+              <label className="staffora-label">Calculation Type *</label>
+              <select
+                value={formData.calculationType}
+                onChange={(e) => setFormData({ ...formData, calculationType: e.target.value })}
+                className="staffora-input"
+              >
+                <option value="Percentage">Percentage Base</option>
+                <option value="Fixed">Fixed Amount</option>
+                <option value="Formula">Custom Formula Expression</option>
+              </select>
             </div>
-          )}
-
-          {formData.calculationType === 'Percentage' && (
-            <div className="grid grid-cols-2 gap-4">
+            {formData.calculationType === 'Fixed' && (
               <div>
-                <label className="block text-xs font-semibold text-slate-700 uppercase tracking-wider mb-1">
-                  Percentage (%) *
-                </label>
+                <label className="staffora-label">Fixed Amount ($) *</label>
                 <input
                   type="number"
-                  min="0"
-                  max="100"
-                  step="0.1"
+                  required
+                  value={formData.fixedAmount}
+                  onChange={(e) => setFormData({ ...formData, fixedAmount: Number(e.target.value) })}
+                  className="staffora-input"
+                />
+              </div>
+            )}
+            {formData.calculationType === 'Percentage' && (
+              <div>
+                <label className="staffora-label">Percentage (%) *</label>
+                <input
+                  type="number"
+                  step="0.01"
                   required
                   value={formData.percentage}
                   onChange={(e) => setFormData({ ...formData, percentage: Number(e.target.value) })}
-                  className="w-full px-3.5 py-2.5 text-sm bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-primary/20"
+                  className="staffora-input"
                 />
               </div>
+            )}
+          </div>
 
-              <div>
-                <label className="block text-xs font-semibold text-slate-700 uppercase tracking-wider mb-1">
-                  Base Rule Code *
-                </label>
-                <input
-                  type="text"
-                  required
-                  placeholder="e.g. BASIC or GROSS"
-                  value={formData.percentageBaseRuleCode}
-                  onChange={(e) =>
-                    setFormData({ ...formData, percentageBaseRuleCode: e.target.value.toUpperCase() })
-                  }
-                  className="w-full px-3.5 py-2.5 text-sm bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-primary/20 font-mono"
-                />
-              </div>
+          {formData.calculationType === 'Percentage' && (
+            <div>
+              <label className="staffora-label">Percentage Base Code (e.g. BASIC, GROSS)</label>
+              <input
+                type="text"
+                value={formData.percentageBaseRuleCode}
+                onChange={(e) => setFormData({ ...formData, percentageBaseRuleCode: e.target.value.toUpperCase() })}
+                className="staffora-input"
+              />
             </div>
           )}
 
           {formData.calculationType === 'Formula' && (
             <div>
-              <label className="block text-xs font-semibold text-slate-700 uppercase tracking-wider mb-1">
-                Calculation Formula Expression *
-              </label>
+              <label className="staffora-label">Formula Expression * (e.g. BASIC * 0.4 + HRA)</label>
               <input
                 type="text"
                 required
-                placeholder="e.g. BASIC * 0.12 + HRA * 0.05"
                 value={formData.formula}
                 onChange={(e) => setFormData({ ...formData, formula: e.target.value })}
-                className="w-full px-3.5 py-2.5 text-sm bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-primary/20 font-mono"
+                className="staffora-input font-mono"
               />
-              <span className="text-[11px] text-slate-400 mt-1 block">
-                Use prior rule codes in formula calculation expression.
-              </span>
             </div>
           )}
 
-          <div>
-            <label className="block text-xs font-semibold text-slate-700 uppercase tracking-wider mb-1">
-              Description / Statutory Note
-            </label>
-            <input
-              type="text"
-              placeholder="e.g. Statutory Provident Fund employee contribution (12% of Basic)"
-              value={formData.description}
-              onChange={(e) => setFormData({ ...formData, description: e.target.value })}
-              className="w-full px-3.5 py-2.5 text-sm bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-primary/20"
-            />
-          </div>
-
-          <div className="flex justify-end gap-3 pt-4 border-t border-slate-100">
+          <div className="flex justify-end gap-2 pt-3 border-t border-white/10">
             <Button variant="secondary" type="button" onClick={() => setShowModal(false)}>
               Cancel
             </Button>
             <Button variant="primary" type="submit">
-              {editingRule ? 'Save Changes' : 'Create Rule'}
+              {editingRule ? 'Save Rule' : 'Create Rule'}
             </Button>
           </div>
         </form>

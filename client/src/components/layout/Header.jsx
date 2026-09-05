@@ -12,7 +12,6 @@ export const Header = ({ collapsed }) => {
   const [showNotifications, setShowNotifications] = useState(false);
   const [showSearchModal, setShowSearchModal] = useState(false);
 
-  // Global Cmd+K / Ctrl+K shortcut listener
   useEffect(() => {
     const handleKeyDown = (e) => {
       if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === 'k') {
@@ -24,25 +23,24 @@ export const Header = ({ collapsed }) => {
     return () => window.removeEventListener('keydown', handleKeyDown);
   }, []);
 
-  // Derive readable breadcrumb hierarchy
   const getBreadcrumbInfo = () => {
     const path = location.pathname.split('/')[1] || '';
     const map = {
-      '': { section: 'Overview', label: 'Dashboard', path: '/' },
-      dashboard: { section: 'Overview', label: 'Dashboard', path: '/' },
-      employees: { section: 'Core HR', label: 'Employees', path: '/employees' },
-      contracts: { section: 'Core HR', label: 'Contracts', path: '/contracts' },
-      schedules: { section: 'Core HR', label: 'Shift Schedules', path: '/schedules' },
-      attendance: { section: 'Core HR', label: 'Attendance', path: '/attendance' },
-      'time-off': { section: 'Core HR', label: 'Time Off & Leaves', path: '/time-off' },
-      payruns: { section: 'Payroll Engine', label: 'Payrun Batches', path: '/payruns' },
-      payslips: { section: 'Payroll Engine', label: 'Payslips Vault', path: '/payslips' },
-      'salary-structures': { section: 'Payroll Engine', label: 'Salary Structures', path: '/salary-structures' },
-      'salary-rules': { section: 'Payroll Engine', label: 'Salary Rules', path: '/salary-rules' },
-      reports: { section: 'Insights', label: 'Executive Reports', path: '/reports' },
-      settings: { section: 'Admin', label: 'Settings & RBAC', path: '/settings' }
+      '': { section: 'Workspace', label: 'Overview', path: '/' },
+      dashboard: { section: 'Workspace', label: 'Overview', path: '/' },
+      employees: { section: 'People', label: 'Employees', path: '/employees' },
+      contracts: { section: 'People', label: 'Contracts', path: '/contracts' },
+      schedules: { section: 'People', label: 'Schedules', path: '/schedules' },
+      attendance: { section: 'People', label: 'Attendance', path: '/attendance' },
+      'time-off': { section: 'People', label: 'Time Off', path: '/time-off' },
+      payruns: { section: 'Payroll', label: 'Payruns', path: '/payruns' },
+      payslips: { section: 'Payroll', label: 'Payslips', path: '/payslips' },
+      'salary-structures': { section: 'Payroll', label: 'Salary Structures', path: '/salary-structures' },
+      'salary-rules': { section: 'Payroll', label: 'Salary Rules', path: '/salary-rules' },
+      reports: { section: 'Insights', label: 'Reports', path: '/reports' },
+      settings: { section: 'System', label: 'Settings', path: '/settings' }
     };
-    return map[path] || { section: 'Overview', label: 'Dashboard', path: '/' };
+    return map[path] || { section: 'Workspace', label: 'Overview', path: '/' };
   };
 
   const breadcrumb = getBreadcrumbInfo();
@@ -50,47 +48,45 @@ export const Header = ({ collapsed }) => {
   return (
     <>
       <header
-        className={`fixed top-0 right-0 h-14 bg-white/90 backdrop-blur-md border-b border-slate-200 z-40 flex items-center justify-between px-6 transition-all duration-200 ${
-          collapsed ? 'left-16' : 'left-64'
+        className={`fixed top-0 right-0 h-12 bg-[#0B0B0D] border-b border-white/10 z-40 flex items-center justify-between px-5 transition-all duration-150 ${
+          collapsed ? 'left-16' : 'left-60'
         }`}
       >
-        {/* Left Clickable Interactive Breadcrumbs & Spotlight Trigger */}
-        <div className="flex items-center gap-4 flex-1 max-w-xl">
+        {/* Left Interactive Breadcrumbs & Command Palette Trigger */}
+        <div className="flex items-center gap-4 flex-1 max-w-lg">
           {/* Breadcrumbs */}
-          <nav className="flex items-center gap-1.5 text-xs font-medium hidden md:flex shrink-0">
+          <nav className="flex items-center gap-1.5 text-xs font-mono hidden md:flex shrink-0">
             <Link
               to="/"
-              className="text-slate-400 hover:text-indigo-600 transition-colors flex items-center"
-              title="Dashboard"
+              className="text-[#6F6C69] hover:text-[#F5F2EA] transition-colors"
+              title="Overview"
             >
-              <span className="material-symbols-outlined text-[18px]">home</span>
+              <span className="material-symbols-outlined text-[16px]">grid_view</span>
             </Link>
-            <span className="text-slate-300">/</span>
-            <span className="text-slate-400 text-xs">
+            <span className="text-[#6F6C69]">/</span>
+            <span className="text-[#6F6C69] text-[11px] uppercase tracking-wider">
               {breadcrumb.section}
             </span>
-            <span className="text-slate-300">/</span>
+            <span className="text-[#6F6C69]">/</span>
             <Link
               to={breadcrumb.path}
-              className="text-indigo-600 font-semibold hover:text-indigo-700 transition-colors truncate max-w-[200px]"
+              className="text-[#F5F2EA] font-semibold text-xs hover:text-[#FF8A65] transition-colors truncate max-w-[180px]"
             >
               {breadcrumb.label}
             </Link>
           </nav>
 
-          {/* Interactive Spotlight Search Trigger */}
+          {/* Command Search Trigger */}
           <div
             onClick={() => setShowSearchModal(true)}
-            className="relative flex-1 cursor-pointer group"
+            className="relative flex-1 cursor-pointer"
           >
-            <div className="w-full flex items-center justify-between pl-3 pr-2 py-1.5 bg-slate-50 group-hover:bg-slate-100 border border-slate-200 rounded-lg text-slate-400 text-xs font-medium transition-colors group-hover:border-slate-300">
-              <div className="flex items-center gap-2">
-                <span className="material-symbols-outlined text-slate-400 group-hover:text-indigo-600 text-[18px] transition-colors">
-                  search
-                </span>
-                <span className="truncate">Search employees, payruns, rules...</span>
+            <div className="w-full flex items-center justify-between pl-2.5 pr-2 py-1 bg-[#111114] hover:bg-[#17171B] border border-white/10 rounded text-[#6F6C69] hover:text-[#A6A3A0] text-xs font-medium transition-colors">
+              <div className="flex items-center gap-1.5">
+                <span className="material-symbols-outlined text-sm">search</span>
+                <span className="truncate">Search commands, pages...</span>
               </div>
-              <kbd className="font-mono text-[10px] font-semibold bg-white text-slate-500 border border-slate-200 px-1.5 py-0.5 rounded shadow-xs">
+              <kbd className="font-mono text-[9px] text-[#6F6C69] border border-white/10 bg-[#17171B] px-1 py-0.2 rounded">
                 ⌘K
               </kbd>
             </div>
@@ -98,31 +94,31 @@ export const Header = ({ collapsed }) => {
         </div>
 
         {/* Right Controls */}
-        <div className="flex items-center gap-2.5">
-          {/* New Payrun Button for authorized roles */}
+        <div className="flex items-center gap-2">
+          {/* Action Trigger */}
           {hasRole('Admin', 'HR Payroll User', 'HR Payroll Manager') && (
             <button
               onClick={() => navigate('/payruns')}
-              className="flex items-center gap-1.5 bg-indigo-600 hover:bg-indigo-700 text-white px-3 py-1.5 rounded-lg font-medium text-xs transition-colors shadow-sm active:scale-95"
+              className="flex items-center gap-1 bg-[#FF6B3D] hover:bg-[#FF8A65] text-[#0B0B0D] px-2.5 py-1 rounded font-semibold text-xs transition-colors shadow-xs"
             >
-              <span className="material-symbols-outlined text-[16px]">add</span>
-              <span className="hidden sm:inline">New Payrun</span>
+              <span className="material-symbols-outlined text-sm">play_arrow</span>
+              <span className="hidden sm:inline">Run Payrun</span>
             </button>
           )}
 
-          {/* Notification Center Trigger */}
+          {/* Notifications Trigger */}
           <div className="relative">
             <button
               onClick={() => setShowNotifications(!showNotifications)}
-              className={`relative p-2 rounded-lg border transition-colors ${
+              className={`relative p-1.5 rounded border transition-colors ${
                 showNotifications
-                  ? 'bg-indigo-50 border-indigo-200 text-indigo-600'
-                  : 'bg-white hover:bg-slate-50 border-slate-200 text-slate-600'
+                  ? 'bg-[#1E1E24] border-white/20 text-[#FF8A65]'
+                  : 'bg-[#111114] hover:bg-[#17171B] border-white/10 text-[#A6A3A0]'
               }`}
               title="Notifications"
             >
-              <span className="material-symbols-outlined text-[18px]">notifications</span>
-              <span className="absolute top-1.5 right-1.5 w-2 h-2 bg-rose-500 rounded-full"></span>
+              <span className="material-symbols-outlined text-base">notifications</span>
+              <span className="absolute top-1 right-1 w-1.5 h-1.5 bg-[#FF6B3D] rounded-full"></span>
             </button>
 
             <NotificationDrawer
@@ -131,78 +127,67 @@ export const Header = ({ collapsed }) => {
             />
           </div>
 
-          {/* Profile Avatar & Interactive Role Dropdown */}
-          <div className="relative pl-2 border-l border-slate-200">
+          {/* Profile Dropdown */}
+          <div className="relative pl-2 border-l border-white/10">
             <button
               onClick={() => setShowProfileMenu(!showProfileMenu)}
-              className="flex items-center gap-2 p-1 rounded-lg hover:bg-slate-50 transition-colors"
+              className="flex items-center gap-2 p-1 rounded hover:bg-[#111114] transition-colors"
             >
-              <div className="w-7 h-7 rounded-full bg-indigo-600 text-white font-semibold text-xs flex items-center justify-center shrink-0">
+              <div className="w-6 h-6 rounded bg-[#1E1E24] border border-white/10 text-[#FF8A65] font-bold text-[11px] flex items-center justify-center shrink-0 font-mono">
                 {user?.name ? user.name.split(' ').map((n) => n[0]).join('').slice(0, 2).toUpperCase() : 'U'}
               </div>
-              <div className="hidden md:flex flex-col text-left">
-                <span className="font-semibold text-xs text-slate-800 leading-tight">
-                  {user?.name || 'User'}
-                </span>
-                <span className="text-[10px] font-medium text-slate-500 leading-tight">
-                  {user?.role || 'Staff'}
-                </span>
-              </div>
-              <span className="material-symbols-outlined text-slate-400 text-sm">
+              <span className="material-symbols-outlined text-[#6F6C69] text-sm">
                 {showProfileMenu ? 'expand_less' : 'expand_more'}
               </span>
             </button>
 
             {showProfileMenu && (
-              <div className="absolute right-0 top-full mt-2 w-64 bg-white border border-slate-200 rounded-xl shadow-lg p-2 z-50 flex flex-col gap-2">
-                <div className="px-3 py-2 bg-slate-50 rounded-lg border border-slate-100">
-                  <p className="text-xs font-semibold text-slate-800">{user?.name}</p>
-                  <p className="text-[11px] text-slate-500 truncate">{user?.email}</p>
-                  <div className="mt-1.5">
-                    <span className="px-2 py-0.5 rounded bg-indigo-50 text-indigo-700 border border-indigo-200 text-[10px] font-semibold">
+              <div className="absolute right-0 top-full mt-1 w-56 bg-[#17171B] border border-white/10 rounded shadow-2xl p-2 z-50 flex flex-col gap-1.5">
+                <div className="px-2 py-1.5 bg-[#111114] rounded border border-white/5">
+                  <p className="text-xs font-bold text-[#F5F2EA]">{user?.name}</p>
+                  <p className="text-[10px] text-[#6F6C69] truncate font-mono">{user?.email}</p>
+                  <div className="mt-1">
+                    <span className="px-1.5 py-0.5 rounded bg-[#FF6B3D]/10 text-[#FF8A65] border border-[#FF6B3D]/25 text-[9px] font-mono font-semibold uppercase">
                       {user?.role}
                     </span>
                   </div>
                 </div>
 
-                {/* 1-Click Role Switcher inside dropdown */}
-                <div className="space-y-1">
-                  <span className="text-[10px] font-semibold text-slate-400 uppercase tracking-wider px-2 block">
+                <div className="space-y-0.5">
+                  <span className="text-[9px] font-mono text-[#6F6C69] uppercase tracking-wider px-2 block">
                     Fast Demo Role Switch:
                   </span>
-                  <div className="grid grid-cols-1 gap-0.5">
-                    {DEMO_USERS.map((demo) => (
-                      <button
-                        key={demo.role}
-                        onClick={async () => {
-                          await login(demo.email, demo.password);
-                          setShowProfileMenu(false);
-                        }}
-                        className={`text-left px-2.5 py-1.5 rounded-md text-xs font-medium flex items-center justify-between transition-colors ${
-                          user?.role === demo.role
-                            ? 'bg-indigo-50 text-indigo-700 font-semibold'
-                            : 'hover:bg-slate-50 text-slate-600'
-                        }`}
-                      >
-                        <span className="text-xs truncate">{demo.role}</span>
-                        {user?.role === demo.role && (
-                          <span className="material-symbols-outlined text-sm text-indigo-600">check</span>
-                        )}
-                      </button>
-                    ))}
-                  </div>
+                  {DEMO_USERS.map((demo) => (
+                    <button
+                      key={demo.role}
+                      onClick={async () => {
+                        await login(demo.email, demo.password);
+                        setShowProfileMenu(false);
+                      }}
+                      className={`w-full text-left px-2 py-1 rounded text-xs flex items-center justify-between transition-colors ${
+                        user?.role === demo.role
+                          ? 'bg-[#1E1E24] text-[#FF8A65] font-semibold'
+                          : 'hover:bg-[#1E1E24] text-[#A6A3A0]'
+                      }`}
+                    >
+                      <span className="truncate">{demo.role}</span>
+                      {user?.role === demo.role && (
+                        <span className="material-symbols-outlined text-xs text-[#FF6B3D]">check</span>
+                      )}
+                    </button>
+                  ))}
                 </div>
 
-                <div className="pt-2 border-t border-slate-100 flex flex-col gap-1">
+                <div className="pt-1.5 border-t border-white/10 flex flex-col gap-0.5">
                   <button
                     onClick={() => {
                       navigate('/settings');
                       setShowProfileMenu(false);
                     }}
-                    className="flex items-center gap-2 px-2.5 py-1.5 text-slate-700 hover:bg-slate-50 rounded-md transition-colors text-xs font-medium"
+                    className="flex items-center gap-2 px-2 py-1 text-[#A6A3A0] hover:text-[#F5F2EA] hover:bg-[#111114] rounded text-xs"
                   >
-                    <span className="material-symbols-outlined text-[16px]">settings</span>
-                    System Settings
+                    <span className="material-symbols-outlined text-sm">settings</span>
+                    Settings &amp; RBAC
                   </button>
                   <button
                     onClick={() => {
@@ -210,9 +195,9 @@ export const Header = ({ collapsed }) => {
                       setShowProfileMenu(false);
                       navigate('/login');
                     }}
-                    className="flex items-center gap-2 px-2.5 py-1.5 text-rose-600 hover:bg-rose-50 rounded-md transition-colors text-xs font-semibold"
+                    className="flex items-center gap-2 px-2 py-1 text-[#FF5C5C] hover:bg-[#FF5C5C]/10 rounded text-xs font-semibold"
                   >
-                    <span className="material-symbols-outlined text-[16px]">logout</span>
+                    <span className="material-symbols-outlined text-sm">logout</span>
                     Sign Out
                   </button>
                 </div>
@@ -222,7 +207,6 @@ export const Header = ({ collapsed }) => {
         </div>
       </header>
 
-      {/* Global Spotlight Search Modal */}
       <GlobalSearchModal
         isOpen={showSearchModal}
         onClose={() => setShowSearchModal(false)}

@@ -7,39 +7,39 @@ export const StatCard = ({
   icon,
   badgeText,
   badgeType = 'success',
-  trend = null, // e.g. { value: '+4.5%', label: 'vs last mo', isPositive: true }
-  iconBg = 'bg-indigo-50',
-  iconColor = 'text-indigo-600'
+  trend = null,
+  iconBg = 'bg-[#17171B]',
+  iconColor = 'text-[#FF6B3D]'
 }) => {
   return (
-    <div className="staffora-card p-5 flex flex-col justify-between hover:border-slate-300 transition-all duration-200">
-      <div className="flex items-center justify-between mb-3">
-        <span className="text-xs font-semibold uppercase tracking-wider text-slate-500">
+    <div className="midnight-card p-4 flex flex-col justify-between">
+      <div className="flex items-center justify-between mb-2">
+        <span className="text-[11px] font-semibold uppercase tracking-wider text-[#6F6C69]">
           {title}
         </span>
         {icon && (
-          <div className={`w-8 h-8 rounded-lg ${iconBg} ${iconColor} flex items-center justify-center`}>
-            <span className="material-symbols-outlined text-[18px]">{icon}</span>
+          <div className={`w-7 h-7 rounded ${iconBg} ${iconColor} flex items-center justify-center border border-white/5`}>
+            <span className="material-symbols-outlined text-[16px]">{icon}</span>
           </div>
         )}
       </div>
 
       <div>
-        <div className="text-2xl font-bold text-slate-900 tracking-tight font-mono-val">
+        <div className="text-xl font-bold text-[#F5F2EA] tracking-tight font-mono-val">
           {value}
         </div>
 
         <div className="flex items-center gap-2 mt-2 flex-wrap">
           {badgeText && (
             <span
-              className={`inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[11px] font-semibold ${
+              className={`inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[10px] font-semibold ${
                 badgeType === 'success'
-                  ? 'bg-emerald-50 text-emerald-700 border border-emerald-200/80'
+                  ? 'bg-[#39D98A]/10 text-[#39D98A] border border-[#39D98A]/20'
                   : badgeType === 'warning'
-                  ? 'bg-amber-50 text-amber-700 border border-amber-200/80'
+                  ? 'bg-[#F5B942]/10 text-[#F5B942] border border-[#F5B942]/20'
                   : badgeType === 'danger'
-                  ? 'bg-rose-50 text-rose-700 border border-rose-200/80'
-                  : 'bg-slate-100 text-slate-700 border border-slate-200/80'
+                  ? 'bg-[#FF5C5C]/10 text-[#FF5C5C] border border-[#FF5C5C]/20'
+                  : 'bg-[#17171B] text-[#A6A3A0] border border-white/10'
               }`}
             >
               {badgeText}
@@ -48,20 +48,20 @@ export const StatCard = ({
 
           {trend && (
             <span
-              className={`inline-flex items-center gap-0.5 text-xs font-medium ${
-                trend.isPositive ? 'text-emerald-600' : 'text-rose-600'
+              className={`inline-flex items-center gap-0.5 text-[11px] font-medium ${
+                trend.isPositive ? 'text-[#39D98A]' : 'text-[#FF5C5C]'
               }`}
             >
-              <span className="material-symbols-outlined text-sm">
+              <span className="material-symbols-outlined text-xs">
                 {trend.isPositive ? 'trending_up' : 'trending_down'}
               </span>
               <span>{trend.value}</span>
-              {trend.label && <span className="text-slate-400 text-[11px] ml-1">{trend.label}</span>}
+              {trend.label && <span className="text-[#6F6C69] text-[10px] ml-1">{trend.label}</span>}
             </span>
           )}
 
           {subtext && !trend && (
-            <span className="text-xs text-slate-500">{subtext}</span>
+            <span className="text-[11px] text-[#6F6C69]">{subtext}</span>
           )}
         </div>
       </div>
