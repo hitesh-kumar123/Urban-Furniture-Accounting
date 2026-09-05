@@ -18,6 +18,7 @@ export const PayrunsPage = () => {
   // 2-Step Creation Wizard States
   const [showWizard, setShowWizard] = useState(false);
   const [wizardStep, setWizardStep] = useState(1);
+  const [payrunMode, setPayrunMode] = useState('batch'); // 'batch' | 'single'
   const [wizardData, setWizardData] = useState({
     name: '',
     salaryStructureId: '',
@@ -26,6 +27,8 @@ export const PayrunsPage = () => {
   });
   const [eligibleEmployees, setEligibleEmployees] = useState([]);
   const [selectedEmpIds, setSelectedEmpIds] = useState([]);
+  const [searchEmployee, setSearchEmployee] = useState('');
+  const [deptFilter, setDeptFilter] = useState('');
   const [fetchingEligible, setFetchingEligible] = useState(false);
   const [submitting, setSubmitting] = useState(false);
 
@@ -102,9 +105,16 @@ export const PayrunsPage = () => {
 
       if (res.success) {
         setEligibleEmployees(res.data);
-        // Pre-select all matching employees
-        const allIds = res.data.map((item) => item.employee?._id || item._id);
-        setSelectedEmpIds(allIds);
+        setSearchEmployee('');
+        setDeptFilter('');
+        // Pre-select mode: if single mode, don't select all; if batch, select all
+        if (payrunMode === 'single') {
+          const firstId = res.data[0]?.employee?._id || res.data[0]?._id;
+          setSelectedEmpIds(firstId ? [firstId] : []);
+        } else {
+          const allIds = res.data.map((item) => item.employee?._id || item._id);
+          setSelectedEmpIds(allIds);
+        }
         setWizardStep(2);
       }
     } catch (err) {
@@ -120,12 +130,21 @@ export const PayrunsPage = () => {
     );
   };
 
+  const handleSelectOnlyThis = (e, empId) => {
+    e.stopPropagation();
+    setSelectedEmpIds([empId]);
+  };
+
   const handleToggleAllEmployees = () => {
     if (selectedEmpIds.length === eligibleEmployees.length) {
       setSelectedEmpIds([]);
     } else {
       setSelectedEmpIds(eligibleEmployees.map((item) => item.employee?._id || item._id));
     }
+  };
+
+  const handleClearAll = () => {
+    setSelectedEmpIds([]);
   };
 
   const handleCreatePayrun = async () => {
@@ -341,6 +360,49 @@ export const PayrunsPage = () => {
       >
         {wizardStep === 1 ? (
           <form onSubmit={handleProceedToStep2} className="space-y-4 text-xs">
+            {/* Payrun Scope Toggle */}
+            <div>
+              <label className="staffora-label">Payrun Scope &amp; Target Mode</label>
+              <div className="grid grid-cols-2 gap-2 p-1 bg-[#FAF9F6] border border-[#E7E2D9] rounded-lg">
+                <button
+                  type="button"
+                  onClick={() => {
+                    setPayrunMode('batch');
+                    setWizardData((prev) => ({
+                      ...prev,
+                      name: `${new Date().toLocaleString('default', { month: 'long', year: 'numeric' })} Regular Payrun`
+                    }));
+                  }}
+                  className={`py-2 px-3 rounded-md text-xs font-medium flex items-center justify-center gap-1.5 transition-colors ${
+                    payrunMode === 'batch'
+                      ? 'bg-[#0F5C4A] text-white shadow-xs'
+                      : 'text-[#6B665C] hover:text-[#1C1B19]'
+                  }`}
+                >
+                  <span className="material-symbols-outlined text-sm">groups</span>
+                  Standard Full Batch (All Staff)
+                </button>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setPayrunMode('single');
+                    setWizardData((prev) => ({
+                      ...prev,
+                      name: `${new Date().toLocaleString('default', { month: 'long', year: 'numeric' })} Single Employee Off-Cycle`
+                    }));
+                  }}
+                  className={`py-2 px-3 rounded-md text-xs font-medium flex items-center justify-center gap-1.5 transition-colors ${
+                    payrunMode === 'single'
+                      ? 'bg-[#0F5C4A] text-white shadow-xs'
+                      : 'text-[#6B665C] hover:text-[#1C1B19]'
+                  }`}
+                >
+                  <span className="material-symbols-outlined text-sm">person</span>
+                  Single Employee (Off-Cycle)
+                </button>
+              </div>
+            </div>
+
             <div>
               <label className="staffora-label">Payrun Batch Name</label>
               <input
@@ -396,72 +458,136 @@ export const PayrunsPage = () => {
                 Cancel
               </Button>
               <Button variant="primary" type="submit" disabled={fetchingEligible}>
-                {fetchingEligible ? 'Scanning Contracts...' : 'Next: Select Employees'}
+                {fetchingEligible ? 'Scanning Contracts...' : payrunMode === 'single' ? 'Next: Pick Employee' : 'Next: Select Employees'}
               </Button>
             </div>
           </form>
         ) : (
-          <div className="space-y-4 text-xs">
-            <div className="flex items-center justify-between text-xs">
-              <span className="text-[#6B665C]">
-                {eligibleEmployees.length} matching active employee contracts.
-              </span>
-              <button
-                type="button"
-                onClick={handleToggleAllEmployees}
-                className="text-[#0F5C4A] font-medium hover:underline"
-              >
-                {selectedEmpIds.length === eligibleEmployees.length ? 'Deselect All' : 'Select All'}
-              </button>
+          <div className="space-y-3 text-xs">
+            {/* Header / Selection Control Bar */}
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 p-2.5 bg-[#FAF9F6] border border-[#E7E2D9] rounded-lg">
+              <div className="flex items-center gap-2">
+                <span className="font-mono text-xs font-bold text-[#0F5C4A] bg-[#E8F4F1] px-2 py-0.5 rounded border border-[#0F5C4A]/20">
+                  {selectedEmpIds.length} of {eligibleEmployees.length} Selected
+                </span>
+                <span className="text-[11px] text-[#6B665C]">
+                  {payrunMode === 'single' ? 'Pick the single employee for off-cycle payout' : 'Review employee inclusions'}
+                </span>
+              </div>
+              <div className="flex items-center gap-2">
+                <button
+                  type="button"
+                  onClick={handleClearAll}
+                  className="text-xs text-[#B5482E] font-medium hover:underline px-1.5 py-0.5"
+                >
+                  Clear All (0)
+                </button>
+                <button
+                  type="button"
+                  onClick={handleToggleAllEmployees}
+                  className="text-xs text-[#0F5C4A] font-medium hover:underline px-1.5 py-0.5"
+                >
+                  Select All ({eligibleEmployees.length})
+                </button>
+              </div>
             </div>
 
+            {/* Quick Search & Department Filter */}
+            <div className="flex items-center gap-2">
+              <div className="relative flex-1">
+                <span className="material-symbols-outlined absolute left-2.5 top-1/2 -translate-y-1/2 text-sm text-[#918C82]">
+                  search
+                </span>
+                <input
+                  type="text"
+                  placeholder="Search by employee name, EMP ID, or position..."
+                  value={searchEmployee}
+                  onChange={(e) => setSearchEmployee(e.target.value)}
+                  className="staffora-input pl-8 py-1.5 text-xs font-body w-full"
+                />
+              </div>
+
+              <select
+                value={deptFilter}
+                onChange={(e) => setDeptFilter(e.target.value)}
+                className="staffora-input py-1.5 px-2 text-xs w-auto font-medium"
+              >
+                <option value="">All Departments</option>
+                {Array.from(new Set(eligibleEmployees.map((i) => (i.employee || i).department).filter(Boolean))).map((d) => (
+                  <option key={d} value={d}>
+                    {d}
+                  </option>
+                ))}
+              </select>
+            </div>
+
+            {/* Employee Selection List */}
             {eligibleEmployees.length === 0 ? (
               <div className="p-6 text-center text-[#6B665C] border border-dashed border-[#E7E2D9] rounded-lg">
                 No active employee contracts found matching this salary structure for this date range.
               </div>
             ) : (
               <div className="max-h-60 overflow-y-auto border border-[#E7E2D9] rounded-lg divide-y divide-[#E7E2D9] bg-white">
-                {eligibleEmployees.map((item) => {
-                  const emp = item.employee || item;
-                  const contract = item.applicableContract;
-                  const empId = emp._id;
-                  const isChecked = selectedEmpIds.includes(empId);
-                  return (
-                    <div
-                      key={empId || item._id}
-                      onClick={() => handleToggleEmployee(empId)}
-                      className={`p-2.5 flex items-center justify-between cursor-pointer transition-colors ${
-                        isChecked ? 'bg-[#E8F4F1]/50' : 'hover:bg-[#FAF9F6]'
-                      }`}
-                    >
-                      <div className="flex items-center gap-2.5">
-                        <input
-                          type="checkbox"
-                          checked={isChecked}
-                          onChange={() => {}}
-                          className="rounded text-[#0F5C4A] focus:ring-0 h-4 w-4 bg-white border-[#E7E2D9]"
-                        />
-                        <div>
-                          <span className="text-xs font-semibold text-[#1C1B19] block">
-                            {emp.firstName} {emp.lastName}
-                          </span>
-                          <span className="text-[11px] font-mono text-[#6B665C]">
-                            {emp.employeeId || 'EMP'} • {emp.department || 'General'} • {emp.jobPosition || 'Staff'} {contract ? `• ₹${Number(contract.wage).toLocaleString('en-IN')}/mo` : ''}
-                          </span>
+                {eligibleEmployees
+                  .filter((item) => {
+                    const emp = item.employee || item;
+                    const searchStr = `${emp.firstName || ''} ${emp.lastName || ''} ${emp.employeeId || ''} ${emp.jobPosition || ''}`.toLowerCase();
+                    const matchesSearch = !searchEmployee || searchStr.includes(searchEmployee.toLowerCase());
+                    const matchesDept = !deptFilter || emp.department === deptFilter;
+                    return matchesSearch && matchesDept;
+                  })
+                  .map((item) => {
+                    const emp = item.employee || item;
+                    const contract = item.applicableContract;
+                    const empId = emp._id;
+                    const isChecked = selectedEmpIds.includes(empId);
+                    return (
+                      <div
+                        key={empId || item._id}
+                        onClick={() => handleToggleEmployee(empId)}
+                        className={`p-2.5 flex items-center justify-between cursor-pointer transition-colors ${
+                          isChecked ? 'bg-[#E8F4F1]/50' : 'hover:bg-[#FAF9F6]'
+                        }`}
+                      >
+                        <div className="flex items-center gap-2.5">
+                          <input
+                            type="checkbox"
+                            checked={isChecked}
+                            onChange={() => {}}
+                            className="rounded text-[#0F5C4A] focus:ring-0 h-4 w-4 bg-white border-[#E7E2D9]"
+                          />
+                          <div>
+                            <span className="text-xs font-semibold text-[#1C1B19] block">
+                              {emp.firstName} {emp.lastName}
+                            </span>
+                            <span className="text-[11px] font-mono text-[#6B665C]">
+                              {emp.employeeId || 'EMP'} • {emp.department || 'General'} • {emp.jobPosition || 'Staff'} {contract ? `• ₹${Number(contract.wage).toLocaleString('en-IN')}/mo` : ''}
+                            </span>
+                          </div>
+                        </div>
+
+                        <div className="flex items-center gap-2">
+                          <button
+                            type="button"
+                            onClick={(e) => handleSelectOnlyThis(e, empId)}
+                            className="text-[11px] font-medium text-[#0F5C4A] bg-white hover:bg-[#FAF9F6] border border-[#E7E2D9] px-2 py-0.5 rounded shadow-2xs transition-colors"
+                            title="Uncheck all others and select ONLY this employee"
+                          >
+                            Only Select This
+                          </button>
+                          {item.matchesSelectedStructure ? (
+                            <span className="text-[10px] font-mono font-bold text-[#0F5C4A] bg-[#E8F4F1] border border-[#0F5C4A]/20 px-1.5 py-0.5 rounded">
+                              Matches
+                            </span>
+                          ) : (
+                            <span className="text-[10px] font-mono text-[#6B665C] bg-[#FAF9F6] border border-[#E7E2D9] px-1.5 py-0.5 rounded">
+                              Linked
+                            </span>
+                          )}
                         </div>
                       </div>
-                      {item.matchesSelectedStructure ? (
-                        <span className="text-[10px] font-mono font-bold text-[#0F5C4A] bg-[#E8F4F1] border border-[#0F5C4A]/20 px-2 py-0.5 rounded">
-                          Matches Structure
-                        </span>
-                      ) : (
-                        <span className="text-[10px] font-mono text-[#6B665C] bg-[#FAF9F6] border border-[#E7E2D9] px-2 py-0.5 rounded">
-                          Linked
-                        </span>
-                      )}
-                    </div>
-                  );
-                })}
+                    );
+                  })}
               </div>
             )}
 

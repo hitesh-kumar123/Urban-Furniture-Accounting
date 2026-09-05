@@ -55,8 +55,9 @@ export const AttendancePage = () => {
       if (attRes.success) {
         setAttendances(attRes.data);
         if (user?.employee) {
+          const userEmpId = (user.employee?._id || user.employee || '').toString();
           const userRec = attRes.data.find(
-            (a) => (a.employee?._id || a.employee) === user.employee
+            (a) => (a.employee?._id || a.employee || '').toString() === userEmpId
           );
           setTodayRecord(userRec || null);
         }
@@ -76,21 +77,11 @@ export const AttendancePage = () => {
   }, [selectedDate, statusFilter, employeeFilter]);
 
   const handleClockIn = async () => {
-    if (!user?.employee) {
-      showToast('No employee profile linked to current user account', 'warning');
-      return;
-    }
     setClockActionLoading(true);
     try {
-      const now = new Date();
-      const res = await attendanceApi.create({
-        employee: user.employee,
-        date: selectedDate || now.toISOString().split('T')[0],
-        checkIn: now.toISOString(),
-        status: 'Present'
-      });
+      const res = await attendanceApi.togglePunch();
       if (res.success) {
-        showToast('Successfully clocked in at ' + now.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }), 'success');
+        showToast(res.message || 'Shift punch recorded successfully', 'success');
         fetchAttendance();
       }
     } catch (err) {
@@ -101,16 +92,11 @@ export const AttendancePage = () => {
   };
 
   const handleClockOut = async () => {
-    if (!todayRecord) return;
     setClockActionLoading(true);
     try {
-      const now = new Date();
-      const res = await attendanceApi.update(todayRecord._id, {
-        checkOut: now.toISOString(),
-        status: 'Present'
-      });
+      const res = await attendanceApi.togglePunch();
       if (res.success) {
-        showToast('Successfully clocked out at ' + now.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }), 'success');
+        showToast(res.message || 'Break / Clock-out logged successfully', 'success');
         fetchAttendance();
       }
     } catch (err) {

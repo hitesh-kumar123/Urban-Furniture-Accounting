@@ -8,6 +8,7 @@ const { schemas } = require('../validators/schemas');
 
 router.use(authenticateUser);
 
+router.post('/punch', attendanceController.togglePunch);
 router.get('/', attendanceController.getAttendance);
 router.get('/:id', attendanceController.getAttendanceById);
 

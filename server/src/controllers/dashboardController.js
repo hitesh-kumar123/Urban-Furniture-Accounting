@@ -7,13 +7,14 @@ const { successResponse } = require('../utils/apiResponse');
  */
 const getDashboardMetrics = async (req, res, next) => {
   try {
-    const { periodStart, periodEnd, department, employeeType } = req.query;
+    const { periodStart, periodEnd, department, employeeType, attendancePeriod } = req.query;
 
     const metrics = await getPayrollDashboardMetrics({
       periodStart,
       periodEnd,
       department,
-      employeeType
+      employeeType,
+      attendancePeriod
     });
 
     return successResponse(res, {
@@ -31,13 +32,14 @@ const getDashboardMetrics = async (req, res, next) => {
  */
 const getAttendanceOverview = async (req, res, next) => {
   try {
-    const { periodStart, periodEnd, department, employeeType } = req.query;
+    const { periodStart, periodEnd, department, employeeType, attendancePeriod } = req.query;
 
     const metrics = await getPayrollDashboardMetrics({
       periodStart,
       periodEnd,
       department,
-      employeeType
+      employeeType,
+      attendancePeriod
     });
 
     return successResponse(res, {

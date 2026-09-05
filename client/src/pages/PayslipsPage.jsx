@@ -13,6 +13,7 @@ export const PayslipsPage = () => {
   const [employees, setEmployees] = useState([]);
   const [loading, setLoading] = useState(true);
   const [employeeFilter, setEmployeeFilter] = useState('');
+  const [searchQuery, setSearchQuery] = useState('');
 
   // Clean Trace / Payslip View Modal
   const [selectedPayslip, setSelectedPayslip] = useState(null);
@@ -85,6 +86,13 @@ export const PayslipsPage = () => {
 
   const canManageAll = hasRole('Admin', 'HR Manager', 'HR Payroll Manager', 'HR Payroll User');
 
+  const filteredPayslips = payslips.filter((ps) => {
+    if (!searchQuery) return true;
+    const emp = typeof ps.employee === 'object' ? ps.employee : {};
+    const searchTarget = `${emp.firstName || ''} ${emp.lastName || ''} ${emp.employeeId || ''} ${ps.payslipNumber || ''} ${ps._id || ''}`.toLowerCase();
+    return searchTarget.includes(searchQuery.toLowerCase());
+  });
+
   return (
     <div className="p-5 max-w-[1600px] w-full mx-auto flex flex-col gap-5 font-body">
       {/* Top Header */}
@@ -96,15 +104,29 @@ export const PayslipsPage = () => {
             </span>
           </div>
           <h1 className="text-2xl md:text-3xl font-heading font-medium text-[#1C1B19]">
-            Digital Payslip Vault ({payslips.length})
+            Digital Payslip Vault ({filteredPayslips.length})
           </h1>
           <p className="text-xs text-[#6B665C] mt-0.5">
             Certified digital payslips, itemized calculation traces, and vector PDF downloads.
           </p>
         </div>
 
-        {canManageAll && (
-          <div className="flex items-center gap-2.5">
+        <div className="flex items-center gap-2.5 flex-wrap">
+          {/* Quick Search */}
+          <div className="relative">
+            <span className="material-symbols-outlined absolute left-2.5 top-1/2 -translate-y-1/2 text-sm text-[#918C82]">
+              search
+            </span>
+            <input
+              type="text"
+              placeholder="Search by name, ID, or payslip #..."
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              className="staffora-input pl-8 py-1.5 text-xs font-body w-56"
+            />
+          </div>
+
+          {canManageAll && (
             <select
               value={employeeFilter}
               onChange={(e) => setEmployeeFilter(e.target.value)}
@@ -117,17 +139,17 @@ export const PayslipsPage = () => {
                 </option>
               ))}
             </select>
-          </div>
-        )}
+          )}
+        </div>
       </div>
 
       {/* Payslips Table */}
       <div className="staffora-table-container">
         {loading ? (
           <LoadingSpinner message="Scanning payslip vault..." />
-        ) : payslips.length === 0 ? (
+        ) : filteredPayslips.length === 0 ? (
           <div className="p-10 text-center text-[#6B665C] text-xs">
-            No payslips found.
+            No payslips found matching your filters.
           </div>
         ) : (
           <table className="staffora-table">
@@ -143,7 +165,7 @@ export const PayslipsPage = () => {
               </tr>
             </thead>
             <tbody>
-              {payslips.map((ps) => {
+              {filteredPayslips.map((ps) => {
                 const empName = ps.employee
                   ? typeof ps.employee === 'object'
                     ? `${ps.employee.firstName || ''} ${ps.employee.lastName || ''}`.trim()

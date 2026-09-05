@@ -9,10 +9,14 @@ export const payrunApi = {
     const res = await api.get(`/payruns/${id}`);
     return res.data;
   },
-  getEligibleEmployees: async (salaryStructureId, periodStart, periodEnd) => {
-    const res = await api.get('/payruns/eligible-employees', {
-      params: { salaryStructureId, periodStart, periodEnd }
-    });
+  getEligibleEmployees: async (salaryStructureIdOrObj, periodStart, periodEnd) => {
+    let params = {};
+    if (typeof salaryStructureIdOrObj === 'object' && salaryStructureIdOrObj !== null) {
+      params = salaryStructureIdOrObj;
+    } else {
+      params = { salaryStructureId: salaryStructureIdOrObj, periodStart, periodEnd };
+    }
+    const res = await api.get('/payruns/eligible-employees', { params });
     return res.data;
   },
   create: async (data) => {

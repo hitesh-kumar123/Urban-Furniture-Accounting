@@ -13,20 +13,26 @@ export const attendanceApi = {
     const res = await api.post('/attendance', data);
     return res.data;
   },
+  togglePunch: async (data = {}) => {
+    const res = await api.post('/attendance/punch', data);
+    return res.data;
+  },
   clockIn: async (data = {}) => {
-    const res = await api.post('/attendance', {
+    const res = await api.post('/attendance/punch', {
       ...data,
-      checkIn: new Date().toISOString(),
-      date: new Date().toISOString().split('T')[0],
-      status: 'Present'
+      type: 'Regular'
     });
     return res.data;
   },
-  clockOut: async (id) => {
-    const res = await api.put(`/attendance/${id}`, {
-      checkOut: new Date().toISOString(),
-      status: 'Present'
-    });
+  clockOut: async (id, data = {}) => {
+    if (id) {
+      const res = await api.put(`/attendance/${id}`, {
+        ...data,
+        checkOut: new Date().toISOString()
+      });
+      return res.data;
+    }
+    const res = await api.post('/attendance/punch', data);
     return res.data;
   },
   update: async (id, data) => {

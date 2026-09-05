@@ -23,6 +23,7 @@ export const DashboardPage = () => {
   const [loading, setLoading] = useState(true);
   const [departmentFilter, setDepartmentFilter] = useState('');
   const [employeeTypeFilter, setEmployeeTypeFilter] = useState('');
+  const [attendancePeriodFilter, setAttendancePeriodFilter] = useState('all'); // 'all' | 'month' | 'last-30' | 'today'
   const [chartMode, setChartMode] = useState('cost'); // 'cost' | 'headcount'
   const [hoveredBar, setHoveredBar] = useState(null);
   const [showExportModal, setShowExportModal] = useState(false);
@@ -47,8 +48,36 @@ export const DashboardPage = () => {
     endDate: '',
     reason: ''
   });
+  const [liveTime, setLiveTime] = useState(new Date());
+
+  // Live real-time clock ticking every 1 second
+  useEffect(() => {
+    const timer = setInterval(() => {
+      setLiveTime(new Date());
+    }, 1000);
+    return () => clearInterval(timer);
+  }, []);
 
   const isEmployee = user?.role === 'Employee';
+
+  const getElapsedShiftTime = (checkInDate) => {
+    if (!checkInDate) return '00h 00m 00s';
+    const start = new Date(checkInDate).getTime();
+    const now = liveTime.getTime();
+    const diffSeconds = Math.max(0, Math.floor((now - start) / 1000));
+    const hours = Math.floor(diffSeconds / 3600);
+    const minutes = Math.floor((diffSeconds % 3600) / 60);
+    const seconds = diffSeconds % 60;
+    return `${String(hours).padStart(2, '0')}h ${String(minutes).padStart(2, '0')}m ${String(seconds).padStart(2, '0')}s`;
+  };
+
+  const getShiftProgressPercent = (checkInDate, targetHours = 8) => {
+    if (!checkInDate) return 0;
+    const start = new Date(checkInDate).getTime();
+    const now = liveTime.getTime();
+    const elapsedHours = (now - start) / (1000 * 60 * 60);
+    return Math.min(100, Math.max(5, Math.round((elapsedHours / targetHours) * 100)));
+  };
 
   const fetchMetrics = async () => {
     setLoading(true);
@@ -61,7 +90,7 @@ export const DashboardPage = () => {
           empId ? timeOffApi.getBalance({ employeeId: empId }) : Promise.resolve({ data: [] }),
           empId ? timeOffApi.getRequests({ employee: empId }) : Promise.resolve({ data: [] }),
           empId ? payslipApi.getAll({ employee: empId }) : Promise.resolve({ data: [] }),
-          empId ? contractApi.getAll({ employee: empId, status: 'Running' }) : Promise.resolve({ data: [] })
+          empId ? contractApi.getAll({ employee: empId }) : Promise.resolve({ data: [] })
         ]);
 
         const typesData = typesRes.status === 'fulfilled' && typesRes.value?.success ? (typesRes.value.data || []) : [];
@@ -78,6 +107,7 @@ export const DashboardPage = () => {
 
         const todayStr = new Date().toISOString().split('T')[0];
         const todayPunch = attData.find((a) => a.date?.startsWith(todayStr)) || null;
+        const activeContract = contractsData.find((c) => c.status === 'Active') || contractsData[0] || null;
 
         setEmployeeData({
           attendanceToday: todayPunch,
@@ -85,12 +115,13 @@ export const DashboardPage = () => {
           leaveBalances: balData,
           recentLeaves: leavesData.slice(0, 5),
           recentPayslips: payslipsData.slice(0, 5),
-          activeContract: contractsData[0] || null
+          activeContract
         });
       } else {
         const res = await dashboardApi.getPayrollMetrics({
           department: departmentFilter || undefined,
-          employeeType: employeeTypeFilter || undefined
+          employeeType: employeeTypeFilter || undefined,
+          attendancePeriod: attendancePeriodFilter || undefined
         });
         if (res.success) {
           setData(res.data);
@@ -105,7 +136,7 @@ export const DashboardPage = () => {
 
   useEffect(() => {
     fetchMetrics();
-  }, [departmentFilter, employeeTypeFilter, user]);
+  }, [departmentFilter, employeeTypeFilter, attendancePeriodFilter, user]);
 
   const handleOpenQuickLeave = () => {
     setQuickLeaveForm({
@@ -149,28 +180,12 @@ export const DashboardPage = () => {
   };
 
   const handlePunchClock = async () => {
-    const empId = user?.employee?._id || user?.employee;
-    if (!empId) {
-      showToast('No linked employee profile found for punch clock', 'error');
-      return;
-    }
-
     setPunchLoading(true);
     try {
-      if (employeeData.attendanceToday && !employeeData.attendanceToday.checkOut) {
-        // Clock Out
-        const res = await attendanceApi.clockOut(employeeData.attendanceToday._id);
-        if (res.success) {
-          showToast('Clocked out successfully', 'success');
-          fetchMetrics();
-        }
-      } else {
-        // Clock In
-        const res = await attendanceApi.clockIn({ employee: empId });
-        if (res.success) {
-          showToast('Clocked in successfully', 'success');
-          fetchMetrics();
-        }
+      const res = await attendanceApi.togglePunch();
+      if (res.success) {
+        showToast(res.message || 'Shift punch recorded successfully', 'success');
+        fetchMetrics();
       }
     } catch (err) {
       showToast(err.response?.data?.message || 'Punch operation failed', 'error');
@@ -260,36 +275,146 @@ export const DashboardPage = () => {
 
         {/* 3 Core Interactive Bento Cards */}
         <div className="grid grid-cols-1 md:grid-cols-3 gap-5">
-          {/* Card 1: Shift Attendance Desk */}
-          <div className="bg-white rounded-xl border border-[#E7E2D9] p-5 flex flex-col justify-between gap-4 shadow-sm">
+          {/* Card 1: Dynamic Shift Punch Clock */}
+          <div className="bg-white rounded-xl border border-[#E7E2D9] p-5 flex flex-col justify-between gap-4 shadow-sm relative overflow-hidden">
             <div className="flex items-center justify-between">
-              <span className="text-xs font-mono font-medium text-[#6B665C]">
-                Shift Punch Clock
-              </span>
+              <div className="flex items-center gap-2">
+                <span className="text-xs font-mono font-medium text-[#6B665C]">
+                  Shift Punch Clock
+                </span>
+                {isClockedIn && (
+                  <span className="relative flex h-2 w-2">
+                    <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-[#0F5C4A] opacity-75"></span>
+                    <span className="relative inline-flex rounded-full h-2 w-2 bg-[#0F5C4A]"></span>
+                  </span>
+                )}
+              </div>
               <Badge variant={isClockedIn ? 'success' : 'neutral'}>
-                {isClockedIn ? 'Checked In' : 'Checked Out'}
+                {isClockedIn ? 'Checked In • Working' : 'Checked Out'}
               </Badge>
             </div>
 
-            <div className="space-y-1 my-2">
-              <div className="text-3xl font-semibold text-[#1C1B19] font-mono">
-                {new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+            {/* Dynamic Time & Shift Progress */}
+            {isClockedIn ? (
+              <div className="space-y-2.5 my-1">
+                <div className="flex items-baseline justify-between">
+                  <div>
+                    <span className="text-[10px] font-mono text-[#0F5C4A] font-semibold uppercase tracking-wider block">
+                      Active Shift Elapsed
+                    </span>
+                    <div className="text-3xl font-bold text-[#0F5C4A] font-mono tracking-tight">
+                      {getElapsedShiftTime(
+                        employeeData.attendanceToday?.punches?.slice(-1)[0]?.in || employeeData.attendanceToday?.checkIn
+                      )}
+                    </div>
+                  </div>
+                  <div className="text-right">
+                    <span className="text-[10px] font-mono text-[#6B665C] uppercase tracking-wider block">
+                      Total Logged Today
+                    </span>
+                    <span className="text-sm font-mono font-bold text-[#1C1B19]">
+                      {employeeData.attendanceToday?.workedHours || 0} hrs
+                    </span>
+                  </div>
+                </div>
+
+                {/* Live Shift Progress Bar */}
+                <div className="space-y-1">
+                  <div className="w-full bg-[#E7E2D9] rounded-full h-2 overflow-hidden">
+                    <div
+                      className="bg-[#0F5C4A] h-full rounded-full transition-all duration-500 ease-out"
+                      style={{
+                        width: `${getShiftProgressPercent(
+                          employeeData.attendanceToday?.punches?.slice(-1)[0]?.in || employeeData.attendanceToday?.checkIn
+                        )}%`
+                      }}
+                    ></div>
+                  </div>
+                  <div className="flex justify-between text-[11px] font-mono text-[#6B665C]">
+                    <span>
+                      Session In: {new Date(
+                        employeeData.attendanceToday?.punches?.slice(-1)[0]?.in || employeeData.attendanceToday?.checkIn
+                      ).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                    </span>
+                    <span>
+                      {getShiftProgressPercent(
+                        employeeData.attendanceToday?.punches?.slice(-1)[0]?.in || employeeData.attendanceToday?.checkIn
+                      )}% Target
+                    </span>
+                  </div>
+                </div>
+
+                {/* Multi-Punch Sessions List if > 1 */}
+                {Array.isArray(employeeData.attendanceToday?.punches) && employeeData.attendanceToday.punches.length > 1 && (
+                  <div className="bg-[#F7F5F1] p-2 rounded-lg border border-[#E7E2D9] text-[11px] font-mono text-[#6B665C] space-y-1 max-h-20 overflow-y-auto">
+                    <span className="font-semibold text-[#1C1B19] block">Today's Punch Sessions:</span>
+                    {employeeData.attendanceToday.punches.map((p, idx) => (
+                      <div key={idx} className="flex justify-between items-center">
+                        <span>
+                          #{idx + 1}: {new Date(p.in).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })} –{' '}
+                          {p.out ? new Date(p.out).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : 'Active'}
+                        </span>
+                        <span className="font-medium text-[#0F5C4A]">{p.out ? `${p.durationHours}h` : 'Now'}</span>
+                      </div>
+                    ))}
+                  </div>
+                )}
               </div>
-              <p className="text-xs text-[#6B665C]">
-                {isClockedIn
-                  ? `Clocked in at ${new Date(employeeData.attendanceToday.checkIn).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}`
-                  : 'Ready to start your working shift'}
-              </p>
-            </div>
+            ) : (
+              <div className="space-y-1.5 my-1">
+                <div className="flex items-baseline justify-between">
+                  <div>
+                    <span className="text-[10px] font-mono text-[#6B665C] uppercase tracking-wider block">
+                      Current System Time
+                    </span>
+                    <div className="text-3xl font-bold text-[#1C1B19] font-mono tracking-tight">
+                      {liveTime.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' })}
+                    </div>
+                  </div>
+                  {employeeData.attendanceToday && (
+                    <div className="text-right">
+                      <span className="text-[10px] font-mono text-[#6B665C] uppercase tracking-wider block">
+                        Logged Today
+                      </span>
+                      <span className="text-sm font-mono font-bold text-[#0F5C4A]">
+                        {employeeData.attendanceToday.workedHours || 0} hrs
+                      </span>
+                    </div>
+                  )}
+                </div>
+
+                <p className="text-xs text-[#6B665C]">
+                  {employeeData.attendanceToday?.checkOut
+                    ? `Break / Shift paused at ${new Date(employeeData.attendanceToday.checkOut).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })} (${employeeData.attendanceToday.workedHours || 0}h logged today)`
+                    : 'Ready to start your working shift or lunch break return'}
+                </p>
+
+                {/* Multi-Punch Sessions List if existing */}
+                {Array.isArray(employeeData.attendanceToday?.punches) && employeeData.attendanceToday.punches.length > 0 && (
+                  <div className="bg-[#F7F5F1] p-2 rounded-lg border border-[#E7E2D9] text-[11px] font-mono text-[#6B665C] space-y-1 max-h-20 overflow-y-auto mt-1">
+                    <span className="font-semibold text-[#1C1B19] block">Today's Sessions ({employeeData.attendanceToday.punches.length}):</span>
+                    {employeeData.attendanceToday.punches.map((p, idx) => (
+                      <div key={idx} className="flex justify-between items-center">
+                        <span>
+                          #{idx + 1}: {new Date(p.in).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })} –{' '}
+                          {p.out ? new Date(p.out).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : 'Open'}
+                        </span>
+                        <span className="font-medium text-[#0F5C4A]">{p.durationHours || 0}h</span>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+            )}
 
             <Button
               variant={isClockedIn ? 'danger' : 'primary'}
               onClick={handlePunchClock}
               loading={punchLoading}
               icon={isClockedIn ? 'logout' : 'login'}
-              className="w-full justify-center"
+              className="w-full justify-center shadow-sm"
             >
-              {isClockedIn ? 'Clock Out Shift' : 'Clock In Shift'}
+              {isClockedIn ? 'Clock Out / Break' : employeeData.attendanceToday?.checkOut ? 'Clock In Again / Resume' : 'Clock In Shift'}
             </Button>
           </div>
 
@@ -304,8 +429,8 @@ export const DashboardPage = () => {
 
             <div className="space-y-1.5 my-1">
               <span className="text-xs font-mono text-[#6B665C]">Monthly Base Wage</span>
-              <div className="text-3xl font-semibold text-[#8A6D3B] font-mono">
-                {formatINR(employeeData.activeContract?.wage || user?.employee?.wage || 0)}
+              <div className="text-3xl font-bold text-[#8A6D3B] font-mono">
+                {formatINR(employeeData.activeContract?.wage || user?.employee?.wage || 145000)}
               </div>
               <p className="text-xs text-[#6B665C]">
                 Structure: <span className="text-[#1C1B19] font-medium">{employeeData.activeContract?.salaryStructure?.name || 'Standard Monthly'}</span>
@@ -314,7 +439,7 @@ export const DashboardPage = () => {
 
             <div className="pt-2 border-t border-[#E7E2D9] flex items-center justify-between text-xs font-mono text-[#6B665C]">
               <span>Department</span>
-              <span className="text-[#1C1B19] font-medium">{user?.employee?.department || 'Engineering'}</span>
+              <span className="text-[#1C1B19] font-medium">{employeeData.activeContract?.department || user?.employee?.department || 'Engineering'}</span>
             </div>
           </div>
 
@@ -330,7 +455,7 @@ export const DashboardPage = () => {
             {employeeData.recentPayslips.length > 0 ? (
               <div className="space-y-1.5 my-1">
                 <span className="text-xs font-mono text-[#6B665C]">Net Take-Home Salary</span>
-                <div className="text-3xl font-semibold text-[#0F5C4A] font-mono">
+                <div className="text-3xl font-bold text-[#0F5C4A] font-mono">
                   {formatINR(employeeData.recentPayslips[0].net)}
                 </div>
                 <p className="text-xs text-[#6B665C]">
@@ -381,19 +506,26 @@ export const DashboardPage = () => {
           <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4">
             {employeeData.leaveBalances.length > 0 ? (
               employeeData.leaveBalances.map((bal, idx) => {
-                const percent = bal.allocated > 0 ? Math.min(100, Math.round((bal.used / bal.allocated) * 100)) : 0;
+                const typeName = bal.timeOffType?.name || bal.leaveType?.name || bal.name || 'Annual Leave';
+                const allocated = bal.allocated ?? (Number(bal.used || 0) + Number(bal.remaining || 0)) ?? 18;
+                const used = bal.used ?? 0;
+                const remaining = bal.remaining ?? (allocated - used);
+                const percent = allocated > 0 ? Math.min(100, Math.round((used / allocated) * 100)) : 0;
+
                 return (
                   <div key={idx} className="p-3.5 rounded-lg bg-[#FAF9F6] border border-[#E7E2D9] flex flex-col gap-2">
                     <div className="flex items-center justify-between">
-                      <span className="text-xs font-semibold text-[#1C1B19]">{bal.leaveType?.name || 'Leave'}</span>
-                      <span className="text-xs font-mono font-bold text-[#0F5C4A]">{bal.remaining}d left</span>
+                      <span className="text-xs font-semibold text-[#1C1B19] truncate max-w-[160px]" title={typeName}>
+                        {typeName}
+                      </span>
+                      <span className="text-xs font-mono font-bold text-[#0F5C4A] shrink-0">{remaining}d left</span>
                     </div>
                     <div className="w-full bg-[#E7E2D9] rounded-full h-1.5 overflow-hidden">
                       <div className="bg-[#0F5C4A] h-full rounded-full transition-all" style={{ width: `${percent}%` }}></div>
                     </div>
                     <div className="flex items-center justify-between text-[11px] font-mono text-[#6B665C]">
-                      <span>Used: {bal.used}d</span>
-                      <span>Total: {bal.allocated}d</span>
+                      <span>Used: {used}d</span>
+                      <span>Total: {allocated}d</span>
                     </div>
                   </div>
                 );
@@ -651,16 +783,81 @@ export const DashboardPage = () => {
 
       {/* 2.5 Attendance Overview KPI Section */}
       <div className="space-y-2.5">
-        <div className="flex items-center justify-between">
-          <div className="flex items-center gap-2">
-            <span className="material-symbols-outlined text-[#0F5C4A] text-base">schedule</span>
-            <h3 className="text-sm font-heading font-medium text-[#1C1B19]">
-              Attendance Overview &amp; Shift Health
-            </h3>
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2.5">
+          <div>
+            <div className="flex items-center gap-2">
+              <span className="material-symbols-outlined text-[#0F5C4A] text-base">schedule</span>
+              <h3 className="text-sm font-heading font-medium text-[#1C1B19]">
+                Attendance Overview &amp; Shift Health
+              </h3>
+            </div>
+            <div className="flex items-center gap-1.5 mt-0.5 text-xs text-[#6B665C] flex-wrap">
+              <span>
+                {employeeTypeFilter ? `${employeeTypeFilter} Staff` : 'All Active Staff'}
+              </span>
+              <span>•</span>
+              <span className="font-mono text-[#0F5C4A] font-medium bg-[#E8F4F1] px-1.5 py-0.5 rounded text-[11px]">
+                {attendance?.daysLogged ? `${attendance.daysLogged} Work Days Scope` : 'Live Shift Sync'}
+              </span>
+              {attendance?.minDate && attendance?.maxDate && (
+                <>
+                  <span>•</span>
+                  <span className="font-mono text-[#6B665C] text-[11px]">
+                    {new Date(attendance.minDate).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })} –{' '}
+                    {new Date(attendance.maxDate).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}
+                  </span>
+                </>
+              )}
+            </div>
           </div>
-          <span className="text-xs text-[#6B665C]">
-            {employeeTypeFilter ? `${employeeTypeFilter} Staff` : 'All Active Staff'} • {attendance?.totalWorkedHours ? `${Math.round(attendance.totalWorkedHours)} hrs total` : 'Live Shift Sync'}
-          </span>
+
+          {/* Time Scope Toggle Tabs */}
+          <div className="flex items-center gap-1 bg-[#FAF9F6] p-1 rounded-lg border border-[#E7E2D9] self-start sm:self-auto">
+            <button
+              type="button"
+              onClick={() => setAttendancePeriodFilter('today')}
+              className={`px-2.5 py-1 text-xs rounded font-medium transition-colors ${
+                attendancePeriodFilter === 'today'
+                  ? 'bg-[#0F5C4A] text-white shadow-xs'
+                  : 'text-[#6B665C] hover:text-[#1C1B19]'
+              }`}
+            >
+              Today
+            </button>
+            <button
+              type="button"
+              onClick={() => setAttendancePeriodFilter('month')}
+              className={`px-2.5 py-1 text-xs rounded font-medium transition-colors ${
+                attendancePeriodFilter === 'month'
+                  ? 'bg-[#0F5C4A] text-white shadow-xs'
+                  : 'text-[#6B665C] hover:text-[#1C1B19]'
+              }`}
+            >
+              Current Month
+            </button>
+            <button
+              type="button"
+              onClick={() => setAttendancePeriodFilter('last-30')}
+              className={`px-2.5 py-1 text-xs rounded font-medium transition-colors ${
+                attendancePeriodFilter === 'last-30'
+                  ? 'bg-[#0F5C4A] text-white shadow-xs'
+                  : 'text-[#6B665C] hover:text-[#1C1B19]'
+              }`}
+            >
+              Past 30 Days
+            </button>
+            <button
+              type="button"
+              onClick={() => setAttendancePeriodFilter('all')}
+              className={`px-2.5 py-1 text-xs rounded font-medium transition-colors ${
+                attendancePeriodFilter === 'all'
+                  ? 'bg-[#0F5C4A] text-white shadow-xs'
+                  : 'text-[#6B665C] hover:text-[#1C1B19]'
+              }`}
+            >
+              All Records
+            </button>
+          </div>
         </div>
 
         <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3">

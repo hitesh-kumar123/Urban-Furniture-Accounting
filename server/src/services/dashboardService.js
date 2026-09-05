@@ -138,22 +138,55 @@ const getPayrollDashboardMetrics = async (filters = {}) => {
   ]);
 
   // 3. Attendance Health
+  const { attendancePeriod } = filters;
   const attendanceMatch = { employee: { $in: employeeIds } };
-  if (periodStart && periodEnd) {
+
+  const now = new Date();
+  if (attendancePeriod === 'today') {
+    const todayStart = new Date(now);
+    todayStart.setUTCHours(0, 0, 0, 0);
+    const todayEnd = new Date(now);
+    todayEnd.setUTCHours(23, 59, 59, 999);
+    attendanceMatch.date = { $gte: todayStart, $lte: todayEnd };
+  } else if (attendancePeriod === 'current-cycle' || attendancePeriod === 'month') {
+    const monthStart = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), 1));
+    const monthEnd = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth() + 1, 0, 23, 59, 59, 999));
+    attendanceMatch.date = { $gte: monthStart, $lte: monthEnd };
+  } else if (attendancePeriod === 'last-30') {
+    const past30 = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000);
+    past30.setUTCHours(0, 0, 0, 0);
+    attendanceMatch.date = { $gte: past30 };
+  } else if (periodStart && periodEnd) {
     attendanceMatch.date = { $gte: new Date(periodStart), $lte: new Date(periodEnd) };
   }
 
-  const attendanceStats = await Attendance.aggregate([
-    { $match: attendanceMatch },
-    {
-      $group: {
-        _id: '$status',
-        count: { $sum: 1 },
-        totalWorkedHours: { $sum: '$workedHours' },
-        manualEdits: { $sum: { $cond: ['$isManualCorrection', 1, 0] } }
+  const [attendanceStats, dateRangeStats] = await Promise.all([
+    Attendance.aggregate([
+      { $match: attendanceMatch },
+      {
+        $group: {
+          _id: '$status',
+          count: { $sum: 1 },
+          totalWorkedHours: { $sum: '$workedHours' },
+          manualEdits: { $sum: { $cond: ['$isManualCorrection', 1, 0] } }
+        }
       }
-    }
+    ]),
+    Attendance.aggregate([
+      { $match: attendanceMatch },
+      {
+        $group: {
+          _id: null,
+          minDate: { $min: '$date' },
+          maxDate: { $max: '$date' },
+          distinctDates: { $addToSet: '$date' }
+        }
+      }
+    ])
   ]);
+
+  const rangeData = dateRangeStats[0] || {};
+  const daysLogged = rangeData.distinctDates?.length || 0;
 
   const attendanceSummary = {
     present: 0,
@@ -163,7 +196,11 @@ const getPayrollDashboardMetrics = async (filters = {}) => {
     missingCheckout: 0,
     halfDay: 0,
     totalWorkedHours: 0,
-    manualCorrections: 0
+    manualCorrections: 0,
+    daysLogged,
+    minDate: rangeData.minDate || null,
+    maxDate: rangeData.maxDate || null,
+    period: attendancePeriod || (periodStart && periodEnd ? 'custom' : 'all')
   };
 
   attendanceStats.forEach((stat) => {
