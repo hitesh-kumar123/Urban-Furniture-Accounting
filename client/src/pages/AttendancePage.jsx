@@ -14,7 +14,11 @@ export const AttendancePage = () => {
   const [loading, setLoading] = useState(true);
   
   // Filters
-  const [selectedDate, setSelectedDate] = useState(new Date().toISOString().split('T')[0]);
+  const getTodayLocalDate = () => {
+    const now = new Date();
+    return `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
+  };
+  const [selectedDate, setSelectedDate] = useState(getTodayLocalDate());
   const [statusFilter, setStatusFilter] = useState('');
   const [employeeFilter, setEmployeeFilter] = useState('');
 
@@ -250,7 +254,7 @@ export const AttendancePage = () => {
                 loading={clockActionLoading}
                 icon="login"
               >
-                Clock In
+                Clock In Shift
               </Button>
             ) : !todayRecord?.checkOut ? (
               <Button
@@ -260,12 +264,18 @@ export const AttendancePage = () => {
                 loading={clockActionLoading}
                 icon="logout"
               >
-                Clock Out
+                Clock Out / Break
               </Button>
             ) : (
-              <span className="font-mono text-xs text-[#0F5C4A] font-semibold bg-[#E8F4F1] px-3 py-1.5 rounded-md border border-[#0F5C4A]/20">
-                ✓ Shift Completed ({todayRecord.workedHours || 8}h logged)
-              </span>
+              <Button
+                variant="primary"
+                size="sm"
+                onClick={handleClockIn}
+                loading={clockActionLoading}
+                icon="login"
+              >
+                Clock In Again / Resume
+              </Button>
             )}
           </div>
         </div>
@@ -315,7 +325,9 @@ export const AttendancePage = () => {
                       </div>
                     </td>
 
-                    <td className="font-mono text-xs text-[#6B665C]">{att.date}</td>
+                    <td className="font-mono text-xs text-[#6B665C]">
+                      {att.date ? new Date(att.date).toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' }) : '—'}
+                    </td>
                     <td className="font-mono text-xs text-[#1C1B19]">{checkInTime}</td>
                     <td className="font-mono text-xs text-[#1C1B19]">{checkOutTime}</td>
 

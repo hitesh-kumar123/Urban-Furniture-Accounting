@@ -14,7 +14,12 @@ export const attendanceApi = {
     return res.data;
   },
   togglePunch: async (data = {}) => {
-    const res = await api.post('/attendance/punch', data);
+    const now = new Date();
+    const localDate = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
+    const res = await api.post('/attendance/punch', {
+      date: localDate,
+      ...data
+    });
     return res.data;
   },
   clockIn: async (data = {}) => {

@@ -1,8 +1,8 @@
 <div align="center">
 
-# PeoplePay360 (Staffora) — Enterprise HR & Payroll Operations Platform
+# 🌟 Staffora (PeoplePay360) — Enterprise HR, Attendance & Payroll Platform
 
-**An enterprise-grade Human Resource, Workforce Management, and Deterministic Payroll Operations Platform built on the modern MERN stack with native Indian Statutory Compliance (EPFO, PT, TDS) and INR (₹) Financial Ledgers.**
+**An enterprise-grade Workforce Operations, Real-Time Multi-Punch Attendance, and Deterministic Payroll Operations Suite built on the modern MERN stack with native Indian Statutory Compliance (EPFO, PT, TDS) and INR (₹) Financial Ledgers.**
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 [![Node.js Version](https://img.shields.io/badge/node-%3E%3D18.0.0-brightgreen.svg)](https://nodejs.org/)
@@ -10,9 +10,9 @@
 [![Vite](https://img.shields.io/badge/vite-5.x-646CFF.svg)](https://vitejs.dev/)
 [![Tailwind CSS](https://img.shields.io/badge/tailwind-3.4-38B2AC.svg)](https://tailwindcss.com/)
 [![MongoDB](https://img.shields.io/badge/MongoDB-Mongoose%208-47A248.svg)](https://www.mongodb.com/)
-[![Test Suite](https://img.shields.io/badge/Tests-16%20Passed%20(100%25)-39D98A.svg)](#automated-testing)
+[![Test Suite](https://img.shields.io/badge/Tests-16%20Passed%20(100%25)-39D98A.svg)](#-automated-testing)
 
-[Features](#key-features) • [System Architecture](#system-architecture) • [Tech Stack](#technology-stack) • [Quick Start](#quick-start) • [RBAC Matrix](#demo-personas--rbac-matrix) • [API Endpoints](#api-endpoints) • [Security](#security-architecture) • [Testing](#automated-testing)
+[Key Features](#-key-features) • [System Architecture](#-system-architecture) • [Tech Stack](#-technology-stack) • [Quick Start](#-quick-start) • [RBAC Matrix](#-demo-personas--rbac-matrix) • [API Endpoints](#-api-endpoints) • [Security](#-security-architecture) • [Testing](#-automated-testing)
 
 </div>
 
@@ -20,33 +20,32 @@
 
 ## 🌟 Overview
 
-**PeoplePay360 (Staffora)** is a full-stack, modular HR and Payroll management suite designed for organizations that demand precision, speed, and strict regulatory auditability. It unifies workforce operations (attendance punch clock, 7-day shift patterns, leave entitlement accounting) with an enterprise 7-stage payroll computation engine and a safe mathematical AST formula parser.
+**Staffora (PeoplePay360)** is a full-stack, modular HR and Payroll management suite designed for modern organizations that demand mathematical precision, operational speed, and strict regulatory compliance. It unifies complete workforce operations (employee lifecycle, multi-punch attendance desk, 7-day shift patterns, leave entitlement accounting) with an enterprise 7-stage payroll computation engine, a sandboxed mathematical AST formula parser, and certified PDF payslip generation.
 
-Built with native support for **Indian Statutory Compliance** (EPFO, Professional Tax, TDS with standard slab withholding) and **INR (`₹`) currency accounting**, PeoplePay360 guarantees zero mathematical drift and provides full traceability from contractual wages down to downloadable certified PDF payslips and Excel-compatible CSV ledgers.
+Built with native support for **Indian Statutory Compliance** (EPFO, Professional Tax, TDS withholding slabs) and **INR (`₹`) currency accounting**, Staffora guarantees zero mathematical drift and provides complete transparency from contractual CTC down to downloadable print-ready PDF payslips and Excel-compatible CSV ledgers.
 
 ---
 
 ## 🚀 Key Features
 
 ### 1. 👥 Workforce Directory & Interactive Kanban Board
-- **Dual View Modes**: Switch instantly between structured tabular grids and visual **Kanban boards** grouped by department or status.
-- **HTML5 Drag-and-Drop**: Reassign employee statuses or departments with real-time optimistic UI updates and MongoDB persistence.
-- **360° Employee Command Hub**: 5-tab slide-over inspection drawer for Employee Profiles, Active Contracts, Shift Logs, Leave Quotas, and Historical Payslips.
+- **Dual View Modes**: Switch instantly between structured tabular grids and visual **Kanban boards** grouped by Department or Employment Status (`Active`, `Probation`, `Suspended`, `Terminated`).
+- **HTML5 Drag-and-Drop**: Reassign employee statuses or departments with real-time optimistic UI updates and backend RBAC authorization.
+- **360° Employee Drawer**: Multi-tab inspection modal covering Personal Details, Active Contracts, Shift Logs, Leave Quotas, and Historical Payslips.
 
-### 2. 📝 Contract Versioning & Period Resolution Engine
+### 2. ⏱️ Real-Time Multi-Punch Attendance & Break Tracking
+- **Multi-Punch Session Array**: Supports multiple punches in a single day (`punches: [{ in, out, durationHours, type }]`) — employees can clock in, pause for breaks, and resume without overwriting earlier punch history.
+- **Timezone-Normalized Local Indexing**: Normalizes attendance dates to local calendar boundaries, ensuring early morning (e.g. 05:00 AM IST) punches correctly align with the current date.
+- **HR Manual Log & Adjustments**: Authorized HR/Admin personnel can log missing attendance records with mandatory audit remarks or adjust punch hours.
+
+### 3. 📝 Contract Versioning & Salary CTC Structures
 - **Compensation Audit Trail**: Retains complete contract history across promotions, salary revisions, and structure shifts.
 - **Deterministic Period Resolution**: Accurately resolves the single active contract applicable to any given payroll period, avoiding overlapping compensation conflicts.
-- **Interactive Simulator**: Built-in simulator to test contract applicability against arbitrary date ranges.
-
-### 3. ⏰ 7-Day Shift Patterns & Attendance Governance
-- **Granular Shift Configurator**: Define day-by-day active work days (Monday–Sunday), shift start/end times, and unpaid break deductions.
-- **Auto Weekly Hours Calculation**: Dynamically computes weekly expected working hours (e.g., standard 40h/week, 35h part-time, weekend shifts).
-- **1-Click Biometric Punch Clock**: Employee self-service clock-in and clock-out with real-time shift duration counters and exception flagging (Late, Missing Out, Overtime).
+- **Interactive Period Tester**: Test contract applicability against custom arbitrary date ranges.
 
 ### 4. 🏖️ Statutory Leave Entitlements & Time Off Accounting
-- **Visual Balance Trackers**: Real-time progress visualizers showing Allocated vs Used vs Remaining balances across leave types (Casual, Sick, Paid, Maternity).
-- **Multi-Level Approval Workflows**: 1-click Approve and Refuse actions with mandatory audit feedback remarks.
-- **Statutory Annual Allocations**: Automatic initialization of annual leave packages for all employees upon registration.
+- **Visual Balance Trackers**: Real-time progress visualizers showing Allocated vs Used vs Remaining balances across leave types (Casual, Sick, Paid/Earned, Maternity).
+- **Multi-Level Approval Workflows**: 1-click Approve and Refuse actions with automated balance deductions and audit trails.
 
 ### 5. 🧮 Salary Structures & Safe MathJS AST Rule Engine
 - **3 Calculation Types**:
@@ -55,24 +54,23 @@ Built with native support for **Indian Statutory Compliance** (EPFO, Professiona
   - **Arithmetic Formula**: Custom algebraic expressions evaluated using a sandboxed `mathjs` AST parser (e.g., `(CONTRACT_WAGE / 30) * WORKED_DAYS`).
 - **Sequential Execution Hierarchy**: Rules execute strictly in configured sequence (`Basic` $\to$ `Allowances` $\to$ `Gross` $\to$ `Deductions` $\to$ `Net`).
 
-### 6. ⚡ 2-Step Payrun Wizard & 7-Stage Computation Engine
-- **Wizard Workflow**:
+### 6. ⚡ Batch & Single-Employee (Off-Cycle) Payrun Engine
+- **2-Step Payrun Wizard**:
   - *Step 1*: Define pay period dates and target Salary Structure.
-  - *Step 2*: Live scan of all eligible employees with active matching contracts $\to$ Select all/individual $\to$ Initialize batch.
+  - *Step 2*: Live scan of eligible staff $\to$ Bulk select OR use **Single-Employee (Off-Cycle) mode** with live search and 1-click *"Only Select This"* filter.
 - **7-Stage Deterministic Pipeline**:
   $$\text{Eligible Staff} \longrightarrow \text{Active Contracts} \longrightarrow \text{Working Hours} \longrightarrow \text{Time Off Deductions} \longrightarrow \text{Salary Rules AST} \longrightarrow \text{Net \& Taxes} \longrightarrow \text{Payslips Ready}$$
 - **Controlled Lifecycle**: `Draft` $\to$ `Computed` $\to$ `Validated` $\to$ `Paid` $\to$ `Payslips Distributed`.
 
 ### 7. 📄 Digital Payslip Vault & Certified PDF Generator
 - **Itemized Breakdown**: Full disclosure of Basic Pay, Allowances, Statutory Deductions (EPFO, PT, TDS), and Net Take-Home in INR (`₹`).
-- **Vector PDF Generator**: Generates certified, high-resolution PDF payslips using `pdfkit` with clear headers, organizational stamps, and verification blocks.
-- **Bulk & Single Email Distribution**: Integrates with SMTP via `nodemailer` to dispatch payslips directly to employees.
+- **High-Resolution Vector PDF Generator**: Generates certified, print-ready PDF payslips with clear typography, organizational stamps, and verification blocks.
+- **Bulk & Single Email Distribution**: Integrates with SMTP to dispatch payslips directly to employees.
 
-### 8. 📊 Executive Analytics & Workforce Intelligence
-- **High-Impact Bento KPIs**: Annual Net Payroll Disbursal, Total Headcount, Settled Payrun Batches, and Average Compensation.
-- **Interactive Trajectory Visualizer**: Monthly Net Payroll trends with interactive tooltips and department cost breakdowns.
-- **Excel-Compatible CSV Ledger Export**: Export audited payrun ledgers with **UTF-8 BOM (`\uFEFF`)** formatting to ensure seamless rendering in Microsoft Excel without character corruption.
-- **Executive Financial Audit Memo**: Printable, confidential ledger snapshot modal for auditors and C-suite leadership.
+### 8. 🛡️ System & Security Settings (Admin-Only Role Governance)
+- **Corporate Parameters**: Organization legal identity, GSTIN, PAN, Pay Cycle, and base currency.
+- **Live User Directory & Role Assignment**: Admin can seamlessly modify user access roles (`Employee` $\leftrightarrow$ `HR Manager` $\leftrightarrow$ `Admin`) with dual-layer backend protection (`403 Forbidden` for non-admins).
+- **Granular RBAC Permissions Matrix**: Transparent 5-tier access control matrix across all platform modules.
 
 ---
 
@@ -80,7 +78,7 @@ Built with native support for **Indian Statutory Compliance** (EPFO, Professiona
 
 ```
                                  ┌─────────────────────────────────┐
-                                 │      PeoplePay360 Client        │
+                                 │       Staffora Client UI        │
                                  │   (React 18 + Vite + Tailwind)  │
                                  └────────────────┬────────────────┘
                                                   │ REST API (Bearer JWT)
@@ -111,13 +109,13 @@ Built with native support for **Indian Statutory Compliance** (EPFO, Professiona
 
 | Layer | Technologies |
 | :--- | :--- |
-| **Frontend Framework** | React 18, Vite 5, Tailwind CSS, React Router v6, Axios, Lucide React, Google Fonts (*Outfit*, *Plus Jakarta Sans*, *JetBrains Mono*) |
+| **Frontend Framework** | React 18, Vite 5, Tailwind CSS, Custom Design System, React Router v6, Axios, Lucide Icons, Google Fonts (*Outfit*, *Plus Jakarta Sans*, *JetBrains Mono*) |
 | **Backend Framework** | Node.js (v18+), Express.js 4.x |
 | **Database & ODM** | MongoDB Atlas / Local, Mongoose 8.x |
 | **Authentication & RBAC** | JSON Web Tokens (`jsonwebtoken`), `bcryptjs` (10 Salt Rounds), Role-Based Access Control Middleware |
-| **Formula & Math Engine** | `mathjs` AST Expression Compiler (Isolated Variable Scopes) |
+| **Formula & Math Engine** | `mathjs` AST Expression Compiler (Isolated Variable Scopes, zero `eval()`) |
 | **Validation & Security** | `joi` Schema Validation, Parameter Sanitization, Centralized Error Handling |
-| **Document Generation** | `pdfkit` Vector PDF Generator |
+| **Document Generation** | Client & Server Vector PDF Engine (`pdfkit` / `jspdf`) |
 | **Email Transport** | `nodemailer` SMTP Client |
 | **Testing Suite** | Jest 29, Supertest, `mongodb-memory-server` |
 
@@ -169,7 +167,7 @@ VITE_API_URL=http://localhost:5000/api
 ```
 
 ### 4. Seed Database
-Populate realistic Indian corporate data (6 full-profile employees across Engineering, Product, Design, HR, 8 wage contracts, shift schedules, leave types, approved allocations, attendance logs, and completed July/August payruns):
+Populate realistic Indian corporate data (6 full-profile employees across Engineering, Product, Design, HR, 8 wage contracts, shift schedules, leave types, approved allocations, attendance logs, and completed payruns):
 ```bash
 cd server
 npm run seed
@@ -199,11 +197,11 @@ The system includes pre-configured personas for testing all 5 role permission ti
 
 | Role | Demo Email | Password | Permissions & Capabilities |
 | :--- | :--- | :--- | :--- |
-| **🛡️ Admin** | `admin@peoplepay360.com` | `Password@123` | **Superuser**: Full unrestricted access across all workforce, payroll, and system configuration modules. |
+| **🛡️ Admin** | `admin@peoplepay360.com` | `Password@123` | **Superuser**: Full unrestricted access across all workforce, payroll, user management, and corporate settings. |
 | **📋 HR Manager** | `hrmanager@peoplepay360.com` | `Password@123` | **Workforce Operations**: Manage Employee profiles, Contracts, Shift Schedules, Leave Approvals, Attendance Audits, Executive Reports. |
 | **💼 HR Payroll Manager** | `payrollmgr@peoplepay360.com` | `Password@123` | **Payroll Authority**: Payrun Wizard, Salary Rules, Structure Configuration, Batch Validation & Payment Disbursal, Bulk Payslips Release. |
 | **⚙️ HR Payroll User** | `payrolluser@peoplepay360.com` | `Password@123` | **Payroll Operator**: Payrun Drafts, Salary Computation, Attendance review. |
-| **👤 Employee** | `alex.turner@peoplepay360.com` | `Password@123` | **Self-Service**: Punch Clock In/Out, View Active Contract & Wage, Leave Applications, View & Download Personal PDF Payslips. |
+| **👤 Employee** | `alex.turner@peoplepay360.com` | `Password@123` | **Self-Service**: Multi-Punch In/Out Clock, View Active Contract & Wage, Apply Leaves, View & Download Personal PDF Payslips. |
 
 ---
 
@@ -215,20 +213,20 @@ All endpoints are prefixed with `/api` and require a valid Bearer JWT token (exc
 | :--- | :---: | :--- | :--- | :--- |
 | **Auth** | `POST` | `/api/auth/login` | Authenticate user & issue JWT | Public |
 | **Auth** | `GET` | `/api/auth/me` | Fetch active user profile | Authenticated |
+| **Auth** | `GET` | `/api/auth/users` | List registered user directory | Admin |
+| **Auth** | `PATCH` | `/api/auth/users/:id/role` | Update user access role | Admin |
 | **Employees** | `GET` | `/api/employees` | List all employees (filterable) | Authenticated |
 | **Employees** | `POST` | `/api/employees` | Create a new employee record | HR / Admin |
 | **Contracts** | `GET` | `/api/contracts` | List contracts (filtered for employee) | Authenticated |
 | **Contracts** | `GET` | `/api/contracts/applicable` | Resolve active contract for period | Authenticated |
-| **Schedules** | `GET` | `/api/schedules` | List 7-day working schedules | HR / Payroll / Admin |
+| **Attendance** | `POST` | `/api/attendance/punch` | Live clock in / break out / resume punch | Authenticated (Self) |
 | **Attendance** | `GET` | `/api/attendance` | List attendance records | Authenticated |
-| **Attendance** | `POST` | `/api/attendance` | Clock In / Record attendance | Authenticated |
-| **Attendance** | `PUT` | `/api/attendance/:id` | Clock Out / Manual correction | Authenticated |
+| **Attendance** | `POST` | `/api/attendance` | Manual attendance log | HR / Admin |
+| **Attendance** | `PUT` | `/api/attendance/:id` | Adjust attendance hours & status | HR / Admin |
 | **Time Off** | `GET` | `/api/time-off/balance` | Get employee leave entitlement balances | Authenticated |
 | **Time Off** | `POST` | `/api/time-off/requests` | Submit a leave request | Authenticated |
 | **Time Off** | `POST` | `/api/time-off/requests/:id/approve` | Approve a leave request | HR / Payroll / Admin |
-| **Salary Structures** | `GET` | `/api/salary-structures` | List salary structures | HR / Payroll / Admin |
 | **Salary Rules** | `GET` | `/api/salary-rules` | List all sequential salary rules | HR / Payroll / Admin |
-| **Payruns** | `GET` | `/api/payruns` | List payrun batches | HR / Payroll / Admin |
 | **Payruns** | `POST` | `/api/payruns` | Create a payrun batch (Step 1 & 2) | Payroll / Admin |
 | **Payruns** | `POST` | `/api/payruns/:id/compute` | Execute 7-stage computation engine | Payroll / Admin |
 | **Payruns** | `POST` | `/api/payruns/:id/validate` | Validate and lock payroll batch | Payroll Manager / Admin |
@@ -241,20 +239,21 @@ All endpoints are prefixed with `/api` and require a valid Bearer JWT token (exc
 
 ## 🔒 Security Architecture
 
-PeoplePay360 implements defense-in-depth security principles across the entire application:
+Staffora implements defense-in-depth security principles across the entire application:
 
 - **Password Security**: Passwords hashed using `bcryptjs` with 10 salt rounds. Password hashes have `select: false` on Mongoose schemas to prevent accidental database leakage.
 - **Granular RBAC Enforcement**: Role-based access control enforced via `roleMiddleware.js` at every route, ensuring least privilege access across all 5 user tiers.
-- **IDOR Prevention**: Payslip, contract, and attendance lookups enforce employee identity ownership, preventing unauthorized horizontal access to other staff records.
+- **Horizontal Access Control (IDOR Prevention)**: Payslip, contract, and attendance lookups enforce employee identity ownership, preventing unauthorized access to other staff records.
 - **Sandboxed AST Formula Evaluation**: Dynamic mathematical expressions run through `mathjs` AST evaluator with strict variable scoping, completely eliminating `eval()` remote code execution (RCE) vectors.
-- **Input Validation & Sanitization**: Joi schemas strictly validate and sanitize all `POST` and `PUT` request bodies, preventing NoSQL injection and parameter pollution.
+- **Strict User Role Governance**: User role updates (`PATCH /api/auth/users/:id/role`) are strictly restricted to `Admin` users with controller-level and route-level authorization barriers.
+- **Input Validation & Sanitization**: Joi schemas strictly validate and sanitize all request bodies, preventing NoSQL injection and parameter pollution.
 - **Error Masking**: Centralized global error handling suppresses internal server traces and database connection details from client responses.
 
 ---
 
 ## 🧪 Automated Testing
 
-PeoplePay360 includes a comprehensive test suite covering RBAC authorization, contract resolution, shift calculations, leave balance accounting, the salary AST engine, and end-to-end payrun lifecycles:
+Staffora includes a comprehensive test suite covering RBAC authorization, contract resolution, shift calculations, leave balance accounting, the salary AST engine, and end-to-end payrun lifecycles:
 
 ```bash
 cd server
@@ -265,15 +264,15 @@ npm test
 PASS tests/e2e_demo_flow.test.js
 PASS tests/auth_rbac.test.js
 PASS tests/payrun_workflow.test.js
-PASS tests/salary_engine.test.js
 PASS tests/leave_balance.test.js
-PASS tests/dashboard.test.js
+PASS tests/salary_engine.test.js
 PASS tests/contract_schedule.test.js
+PASS tests/dashboard.test.js
 
 Test Suites: 7 passed, 7 total
 Tests:       16 passed, 16 total
 Snapshots:   0 total
-Time:        9.359 s
+Time:        9.959 s
 Ran all test suites.
 ```
 

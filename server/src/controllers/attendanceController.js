@@ -5,12 +5,30 @@ const { AppError } = require('../middleware/errorMiddleware');
 const { ensureEmployeeForUser } = require('../services/employeeHelper');
 
 /**
+ * Normalizes date to UTC midnight matching calendar day (YYYY-MM-DD)
+ */
+const normalizeAttendanceDate = (dateInput) => {
+  if (!dateInput) {
+    const now = new Date();
+    return new Date(Date.UTC(now.getFullYear(), now.getMonth(), now.getDate(), 0, 0, 0, 0));
+  }
+  const dateStr = String(dateInput).split('T')[0];
+  const parts = dateStr.split('-');
+  if (parts.length === 3) {
+    return new Date(Date.UTC(parseInt(parts[0], 10), parseInt(parts[1], 10) - 1, parseInt(parts[2], 10), 0, 0, 0, 0));
+  }
+  const d = new Date(dateInput);
+  d.setUTCHours(0, 0, 0, 0);
+  return d;
+};
+
+/**
  * Get attendance records with filtering
  * GET /api/attendance
  */
 const getAttendance = async (req, res, next) => {
   try {
-    const { employee, department, startDate, endDate, status, page = 1, limit = 50 } = req.query;
+    const { employee, department, startDate, endDate, date, status, page = 1, limit = 50 } = req.query;
 
     const query = {};
 
@@ -22,12 +40,24 @@ const getAttendance = async (req, res, next) => {
       query.employee = employee;
     }
 
-    if (startDate && endDate) {
-      query.date = { $gte: new Date(startDate), $lte: new Date(endDate) };
+    if (date) {
+      const targetDate = normalizeAttendanceDate(date);
+      const startOfDay = new Date(targetDate);
+      startOfDay.setUTCHours(0, 0, 0, 0);
+      const endOfDay = new Date(targetDate);
+      endOfDay.setUTCHours(23, 59, 59, 999);
+      query.date = { $gte: startOfDay, $lte: endOfDay };
+    } else if (startDate && endDate) {
+      const s = normalizeAttendanceDate(startDate);
+      const e = normalizeAttendanceDate(endDate);
+      e.setUTCHours(23, 59, 59, 999);
+      query.date = { $gte: s, $lte: e };
     } else if (startDate) {
-      query.date = { $gte: new Date(startDate) };
+      query.date = { $gte: normalizeAttendanceDate(startDate) };
     } else if (endDate) {
-      query.date = { $lte: new Date(endDate) };
+      const e = normalizeAttendanceDate(endDate);
+      e.setUTCHours(23, 59, 59, 999);
+      query.date = { $lte: e };
     }
 
     if (status) {
@@ -119,9 +149,7 @@ const createAttendance = async (req, res, next) => {
       return next(new AppError('Employee ID is required', 400));
     }
 
-    const date = req.body.date ? new Date(req.body.date) : new Date();
-    date.setUTCHours(0, 0, 0, 0);
-
+    const date = normalizeAttendanceDate(req.body.date);
     const now = req.body.checkIn ? new Date(req.body.checkIn) : new Date();
 
     const existing = await Attendance.findOne({ employee: targetEmployee, date });
@@ -284,9 +312,8 @@ const togglePunch = async (req, res, next) => {
       return next(new AppError('No employee profile linked to current user account', 400));
     }
 
-    const now = new Date();
-    const date = new Date(now);
-    date.setUTCHours(0, 0, 0, 0);
+    const now = req.body.checkIn ? new Date(req.body.checkIn) : new Date();
+    const date = normalizeAttendanceDate(req.body.date);
 
     let record = await Attendance.findOne({ employee: targetEmployee, date });
 

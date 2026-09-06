@@ -37,8 +37,8 @@ export const ContractsPage = () => {
 
   const [lookupForm, setLookupForm] = useState({
     employeeId: '',
-    startDate: new Date().toISOString().split('T')[0],
-    endDate: new Date().toISOString().split('T')[0]
+    startDate: '',
+    endDate: ''
   });
 
   const { hasRole } = useAuth();
@@ -191,8 +191,8 @@ export const ContractsPage = () => {
               setLookupResult(null);
               setLookupForm({
                 employeeId: employees[0]?._id || '',
-                startDate: new Date().toISOString().split('T')[0],
-                endDate: new Date().toISOString().split('T')[0]
+                startDate: '',
+                endDate: ''
               });
               setShowLookupModal(true);
             }}
@@ -442,13 +442,20 @@ export const ContractsPage = () => {
         title="Period Contract Resolution Tester"
         maxWidth="max-w-md"
       >
-        <form onSubmit={handleLookup} className="space-y-3 text-xs">
+        <form onSubmit={handleLookup} className="space-y-3.5 text-xs">
+          <p className="text-[#6B665C] text-[11px] leading-relaxed">
+            Select an employee and enter any evaluation date range (pay cycle) to verify which contract, wage, and structure applies.
+          </p>
+
           <div>
-            <label className="staffora-label">Employee</label>
+            <label className="staffora-label">Employee to Test</label>
             <select
               value={lookupForm.employeeId}
-              onChange={(e) => setLookupForm({ ...lookupForm, employeeId: e.target.value })}
-              className="staffora-input"
+              onChange={(e) => {
+                setLookupForm({ ...lookupForm, employeeId: e.target.value });
+                setLookupResult(null);
+              }}
+              className="staffora-input text-xs"
               required
             >
               {employees.map((e) => (
@@ -461,7 +468,7 @@ export const ContractsPage = () => {
 
           <div className="grid grid-cols-2 gap-3">
             <div>
-              <label className="staffora-label">Period Start</label>
+              <label className="staffora-label">Test Period Start</label>
               <input
                 type="date"
                 required
@@ -471,7 +478,7 @@ export const ContractsPage = () => {
               />
             </div>
             <div>
-              <label className="staffora-label">Period End</label>
+              <label className="staffora-label">Test Period End</label>
               <input
                 type="date"
                 required
@@ -482,16 +489,22 @@ export const ContractsPage = () => {
             </div>
           </div>
 
-          <Button variant="primary" type="submit" className="w-full">
+          <Button variant="primary" type="submit" className="w-full justify-center">
             Test Contract Resolution
           </Button>
 
           {lookupResult && (
-            <div className="p-3 bg-[#FAF9F6] rounded-lg border border-[#E7E2D9] space-y-1">
-              <span className="text-xs text-[#0F5C4A] font-semibold block">✓ Applicable Contract Resolved</span>
+            <div className="p-3 bg-[#FAF9F6] rounded-lg border border-[#0F5C4A]/30 space-y-1 mt-2">
+              <span className="text-xs text-[#0F5C4A] font-semibold flex items-center gap-1">
+                <span className="material-symbols-outlined text-sm">check_circle</span>
+                Applicable Contract Resolved
+              </span>
               <div className="font-semibold text-[#1C1B19]">{lookupResult.name}</div>
-              <div className="text-[#8A6D3B] font-mono">Wage: ₹{Number(lookupResult.wage).toLocaleString('en-IN')}/mo</div>
-              <div className="text-[#6B665C]">Structure: {lookupResult.salaryStructure?.name || 'Standard'}</div>
+              <div className="text-[#8A6D3B] font-mono font-medium">Wage: ₹{Number(lookupResult.wage).toLocaleString('en-IN')}/mo</div>
+              <div className="text-[#6B665C]">Structure: {lookupResult.salaryStructure?.name || 'Standard Monthly'}</div>
+              <div className="text-[11px] font-mono text-[#6B665C]">
+                Validity: {lookupResult.startDate ? new Date(lookupResult.startDate).toLocaleDateString() : '—'} to {lookupResult.endDate ? new Date(lookupResult.endDate).toLocaleDateString() : 'Indefinite (Active)'}
+              </div>
             </div>
           )}
         </form>

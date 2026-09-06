@@ -127,16 +127,18 @@ export const SettingsPage = () => {
           >
             Corporate
           </button>
-          <button
-            onClick={() => setActiveTab('users')}
-            className={`px-3.5 py-1.5 rounded-md font-medium transition-colors ${
-              activeTab === 'users'
-                ? 'bg-[#0F5C4A] text-white shadow-sm'
-                : 'text-[#6B665C] hover:text-[#1C1B19] hover:bg-[#FAF9F6]'
-            }`}
-          >
-            Users ({usersList.length || 'Directory'})
-          </button>
+          {hasRole('Admin') && (
+            <button
+              onClick={() => setActiveTab('users')}
+              className={`px-3.5 py-1.5 rounded-md font-medium transition-colors ${
+                activeTab === 'users'
+                  ? 'bg-[#0F5C4A] text-white shadow-sm'
+                  : 'text-[#6B665C] hover:text-[#1C1B19] hover:bg-[#FAF9F6]'
+              }`}
+            >
+              Users ({usersList.length || 'Directory'})
+            </button>
+          )}
           <button
             onClick={() => setActiveTab('rbac')}
             className={`px-3.5 py-1.5 rounded-md font-medium transition-colors ${
@@ -164,11 +166,18 @@ export const SettingsPage = () => {
       {activeTab === 'corporate' && (
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
           <div className="lg:col-span-8 bg-white border border-[#E7E2D9] rounded-xl p-6 shadow-sm space-y-5">
-            <div>
-              <h3 className="text-base font-heading font-medium text-[#1C1B19]">Corporate Payroll &amp; Statutory Parameters</h3>
-              <p className="text-xs text-[#6B665C] mt-0.5">
-                Indian enterprise identification, compliance currency, and standard working shift baselines.
-              </p>
+            <div className="flex items-center justify-between">
+              <div>
+                <h3 className="text-base font-heading font-medium text-[#1C1B19]">Corporate Payroll &amp; Statutory Parameters</h3>
+                <p className="text-xs text-[#6B665C] mt-0.5">
+                  Indian enterprise identification, compliance currency, and standard working shift baselines.
+                </p>
+              </div>
+              {!hasRole('Admin') && (
+                <span className="text-[11px] font-medium px-2 py-1 bg-[#FAF9F6] border border-[#E7E2D9] text-[#6B665C] rounded-md">
+                  🔒 Read Only
+                </span>
+              )}
             </div>
 
             <form onSubmit={handleSaveCompany} className="space-y-4 text-xs">
@@ -178,8 +187,9 @@ export const SettingsPage = () => {
                   <input
                     type="text"
                     value={companyForm.companyName}
+                    disabled={!hasRole('Admin')}
                     onChange={(e) => setCompanyForm({ ...companyForm, companyName: e.target.value })}
-                    className="staffora-input"
+                    className="staffora-input disabled:bg-[#FAF9F6] disabled:cursor-not-allowed"
                     required
                   />
                 </div>
@@ -189,8 +199,9 @@ export const SettingsPage = () => {
                   <input
                     type="text"
                     value={companyForm.taxId}
+                    disabled={!hasRole('Admin')}
                     onChange={(e) => setCompanyForm({ ...companyForm, taxId: e.target.value })}
-                    className="staffora-input"
+                    className="staffora-input disabled:bg-[#FAF9F6] disabled:cursor-not-allowed"
                     required
                   />
                 </div>
@@ -200,8 +211,9 @@ export const SettingsPage = () => {
                   <input
                     type="text"
                     value={companyForm.panNumber}
+                    disabled={!hasRole('Admin')}
                     onChange={(e) => setCompanyForm({ ...companyForm, panNumber: e.target.value })}
-                    className="staffora-input font-mono"
+                    className="staffora-input font-mono disabled:bg-[#FAF9F6] disabled:cursor-not-allowed"
                     required
                   />
                 </div>
@@ -221,8 +233,9 @@ export const SettingsPage = () => {
                   <input
                     type="text"
                     value={companyForm.payCycle}
+                    disabled={!hasRole('Admin')}
                     onChange={(e) => setCompanyForm({ ...companyForm, payCycle: e.target.value })}
-                    className="staffora-input"
+                    className="staffora-input disabled:bg-[#FAF9F6] disabled:cursor-not-allowed"
                   />
                 </div>
 
@@ -231,8 +244,9 @@ export const SettingsPage = () => {
                   <input
                     type="text"
                     value={companyForm.standardWorkWeek}
+                    disabled={!hasRole('Admin')}
                     onChange={(e) => setCompanyForm({ ...companyForm, standardWorkWeek: e.target.value })}
-                    className="staffora-input"
+                    className="staffora-input disabled:bg-[#FAF9F6] disabled:cursor-not-allowed"
                   />
                 </div>
 
@@ -241,17 +255,24 @@ export const SettingsPage = () => {
                   <input
                     type="text"
                     value={companyForm.registeredAddress}
+                    disabled={!hasRole('Admin')}
                     onChange={(e) => setCompanyForm({ ...companyForm, registeredAddress: e.target.value })}
-                    className="staffora-input"
+                    className="staffora-input disabled:bg-[#FAF9F6] disabled:cursor-not-allowed"
                   />
                 </div>
               </div>
 
-              <div className="pt-4 border-t border-[#E7E2D9] flex justify-end">
-                <Button variant="primary" size="sm" type="submit" icon="save">
-                  Save Corporate Parameters
-                </Button>
-              </div>
+              {hasRole('Admin') ? (
+                <div className="pt-4 border-t border-[#E7E2D9] flex justify-end">
+                  <Button variant="primary" size="sm" type="submit" icon="save">
+                    Save Corporate Parameters
+                  </Button>
+                </div>
+              ) : (
+                <div className="p-3 bg-[#FAF9F6] border border-[#E7E2D9] rounded-lg text-xs text-[#6B665C]">
+                  ℹ️ Corporate and tax settings are managed exclusively by System Administrators.
+                </div>
+              )}
             </form>
           </div>
 
@@ -286,8 +307,8 @@ export const SettingsPage = () => {
         </div>
       )}
 
-      {/* TAB 2: LIVE USER DIRECTORY & ROLE ASSIGNMENT */}
-      {activeTab === 'users' && (
+      {/* TAB 2: LIVE USER DIRECTORY & ROLE ASSIGNMENT (ADMIN ONLY) */}
+      {activeTab === 'users' && hasRole('Admin') && (
         <div className="bg-white border border-[#E7E2D9] rounded-xl p-5 shadow-sm space-y-4">
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 pb-3 border-b border-[#E7E2D9]">
             <div>

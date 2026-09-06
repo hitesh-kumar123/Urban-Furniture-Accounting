@@ -155,6 +155,10 @@ const getUsers = async (req, res, next) => {
  */
 const updateUserRole = async (req, res, next) => {
   try {
+    if (req.user.role !== 'Admin') {
+      return next(new AppError('Forbidden: Only System Administrators can modify user roles', 403));
+    }
+
     const { id } = req.params;
     const { role } = req.body;
 

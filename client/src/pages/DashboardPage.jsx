@@ -105,7 +105,8 @@ export const DashboardPage = () => {
           setQuickLeaveForm((prev) => ({ ...prev, timeOffType: typesData[0]._id }));
         }
 
-        const todayStr = new Date().toISOString().split('T')[0];
+        const now = new Date();
+        const todayStr = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
         const todayPunch = attData.find((a) => a.date?.startsWith(todayStr)) || null;
         const activeContract = contractsData.find((c) => c.status === 'Active') || contractsData[0] || null;
 
