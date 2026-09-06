@@ -27,12 +27,23 @@ const getEmployees = async (req, res, next) => {
     if (employeeStatus) query.employeeStatus = employeeStatus;
     if (employeeType) query.employeeType = employeeType;
     if (search) {
-      query.$or = [
-        { firstName: { $regex: search, $options: 'i' } },
-        { lastName: { $regex: search, $options: 'i' } },
-        { email: { $regex: search, $options: 'i' } },
-        { employeeId: { $regex: search, $options: 'i' } }
-      ];
+      const cleanSearch = String(search).trim();
+      const terms = cleanSearch.split(/\s+/).filter(Boolean);
+      if (terms.length > 0) {
+        query.$and = terms.map((term) => {
+          const safeTerm = term.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+          return {
+            $or: [
+              { firstName: { $regex: safeTerm, $options: 'i' } },
+              { lastName: { $regex: safeTerm, $options: 'i' } },
+              { email: { $regex: safeTerm, $options: 'i' } },
+              { employeeId: { $regex: safeTerm, $options: 'i' } },
+              { jobPosition: { $regex: safeTerm, $options: 'i' } },
+              { department: { $regex: safeTerm, $options: 'i' } }
+            ]
+          };
+        });
+      }
     }
 
     const skip = (parseInt(page, 10) - 1) * parseInt(limit, 10);

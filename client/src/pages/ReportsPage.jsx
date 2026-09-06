@@ -121,7 +121,8 @@ export const ReportsPage = () => {
     month: formatMonthName(m.month),
     totalNet: m.totalNet || m.netSalary || 0
   }));
-  const maxNet = Math.max(...monthlyTrends.map((m) => m.totalNet || 0), 10000);
+  const rawMaxNet = Math.max(...monthlyTrends.map((m) => m.totalNet || 0), 10000);
+  const maxNet = rawMaxNet > 0 ? rawMaxNet * 1.25 : 10000;
   const maxDeptCost = Math.max(...deptCosts.map((d) => d.totalCost || 0), 10000);
 
   const totalNetPaid = data?.payroll?.totalNetPaid || 0;

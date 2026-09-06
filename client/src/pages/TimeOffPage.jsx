@@ -74,24 +74,48 @@ export const TimeOffPage = () => {
   }, [statusFilter]);
 
   const calculateDuration = (start, end) => {
-    if (!start || !end) return 1;
-    const s = new Date(start);
-    const e = new Date(end);
-    const diff = Math.round((e.getTime() - s.getTime()) / (1000 * 60 * 60 * 24)) + 1;
-    return diff > 0 ? diff : 1;
+    if (!start || !end) return 0;
+    const startStr = String(start).split('T')[0];
+    const endStr = String(end).split('T')[0];
+    const [sY, sM, sD] = startStr.split('-').map(Number);
+    const [eY, eM, eD] = endStr.split('-').map(Number);
+
+    if (!sY || !sM || !sD || !eY || !eM || !eD) return 0;
+
+    const cur = new Date(Date.UTC(sY, sM - 1, sD));
+    const last = new Date(Date.UTC(eY, eM - 1, eD));
+    if (cur > last) return 0;
+
+    let workingDays = 0;
+    while (cur <= last) {
+      const day = cur.getUTCDay(); // 0 = Sunday, 6 = Saturday
+      if (day !== 0 && day !== 6) {
+        workingDays += 1;
+      }
+      cur.setUTCDate(cur.getUTCDate() + 1);
+    }
+    return workingDays;
   };
 
   const handleCreateRequest = async (e) => {
     e.preventDefault();
     try {
       const duration = calculateDuration(requestForm.startDate, requestForm.endDate);
+      if (duration === 0) {
+        showToast(
+          'Selected date range falls on weekends (Saturday/Sunday). Leave is not required for non-working days.',
+          'warning'
+        );
+        return;
+      }
+
       const res = await timeOffApi.createRequest({
         ...requestForm,
         employee: user?.role === 'Employee' ? user.employee : requestForm.employee,
         duration
       });
       if (res.success) {
-        showToast('Time off request submitted', 'success');
+        showToast('Time off request submitted successfully', 'success');
         setShowRequestModal(false);
         fetchData();
       }
@@ -425,8 +449,11 @@ export const TimeOffPage = () => {
           </div>
 
           <div className="flex items-center justify-between text-xs text-[#6B665C] bg-[#FAF9F6] p-2.5 rounded-lg border border-[#E7E2D9]">
-            <span>Requested Duration:</span>
-            <span className="font-bold text-[#0F5C4A] font-mono">
+            <div className="flex flex-col">
+              <span className="font-medium text-[#1C1B19]">Requested Working Days:</span>
+              <span className="text-[10px] text-[#0F5C4A]">Excludes Saturdays &amp; Sundays</span>
+            </div>
+            <span className="font-bold text-[#0F5C4A] font-mono text-sm">
               {calculateDuration(requestForm.startDate, requestForm.endDate)} day(s)
             </span>
           </div>

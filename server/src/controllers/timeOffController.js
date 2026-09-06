@@ -210,6 +210,28 @@ const getTimeOffRequestById = async (req, res, next) => {
   }
 };
 
+const calculateWorkingDays = (startDate, endDate) => {
+  if (!startDate || !endDate) return 1;
+  const s = new Date(startDate);
+  const e = new Date(endDate);
+  if (isNaN(s.getTime()) || isNaN(e.getTime())) return 1;
+
+  // Use UTC year, month, date to be 100% timezone agnostic
+  const cur = new Date(Date.UTC(s.getUTCFullYear(), s.getUTCMonth(), s.getUTCDate()));
+  const last = new Date(Date.UTC(e.getUTCFullYear(), e.getUTCMonth(), e.getUTCDate()));
+  if (cur > last) return 0;
+
+  let workingDays = 0;
+  while (cur <= last) {
+    const day = cur.getUTCDay(); // 0 = Sunday, 6 = Saturday
+    if (day !== 0 && day !== 6) {
+      workingDays += 1;
+    }
+    cur.setUTCDate(cur.getUTCDate() + 1);
+  }
+  return workingDays;
+};
+
 const createTimeOffRequest = async (req, res, next) => {
   try {
     let targetEmployee = req.body.employee;
@@ -222,14 +244,20 @@ const createTimeOffRequest = async (req, res, next) => {
       }
     }
 
-    // Auto-compute duration if missing
-    let duration = Number(req.body.duration);
-    if (!duration || duration <= 0) {
-      const s = new Date(req.body.startDate);
-      const e = new Date(req.body.endDate);
-      const diffDays = Math.round((e.getTime() - s.getTime()) / (1000 * 60 * 60 * 24)) + 1;
-      duration = diffDays > 0 ? diffDays : 1;
+    // Auto-compute duration excluding weekends (Saturday & Sunday)
+    const workingDays = calculateWorkingDays(req.body.startDate, req.body.endDate);
+    if (workingDays === 0 && req.body.startDate && req.body.endDate) {
+      return next(
+        new AppError(
+          'Selected date range falls entirely on weekends (Saturday/Sunday). Leave is not required for non-working days.',
+          400
+        )
+      );
     }
+
+    let duration = req.body.duration !== undefined && Number(req.body.duration) > 0 && Number(req.body.duration) <= workingDays
+      ? Number(req.body.duration)
+      : workingDays;
 
     // Check time off type
     const timeOffType = await TimeOffType.findById(req.body.timeOffType);

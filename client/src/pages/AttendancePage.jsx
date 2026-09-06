@@ -29,6 +29,7 @@ export const AttendancePage = () => {
   // Manual Correction Modal
   const [showCorrectionModal, setShowCorrectionModal] = useState(false);
   const [editingRecord, setEditingRecord] = useState(null);
+  const [viewingPunchRecord, setViewingPunchRecord] = useState(null);
   const [correctionForm, setCorrectionForm] = useState({
     employeeId: '',
     date: '',
@@ -110,15 +111,32 @@ export const AttendancePage = () => {
     }
   };
 
+  const formatTimeToLocalInput = (dateInput, fallback = '09:00') => {
+    if (!dateInput) return fallback;
+    const d = new Date(dateInput);
+    if (isNaN(d.getTime())) return fallback;
+    const hours = String(d.getHours()).padStart(2, '0');
+    const minutes = String(d.getMinutes()).padStart(2, '0');
+    return `${hours}:${minutes}`;
+  };
+
+  const buildLocalDateTime = (dateStr, timeStr) => {
+    if (!dateStr || !timeStr) return null;
+    const cleanDate = dateStr.split('T')[0];
+    const d = new Date(`${cleanDate}T${timeStr}:00`);
+    return !isNaN(d.getTime()) ? d.toISOString() : null;
+  };
+
   const handleOpenCorrection = (rec) => {
     setEditingRecord(rec);
+    const recDate = rec?.date ? new Date(rec.date).toISOString().split('T')[0] : selectedDate;
     setCorrectionForm({
       employeeId: rec?.employee?._id || rec?.employee || (employees[0]?._id || ''),
-      date: rec?.date || selectedDate,
-      checkIn: rec?.checkIn ? new Date(rec.checkIn).toISOString().slice(11, 16) : '09:00',
-      checkOut: rec?.checkOut ? new Date(rec.checkOut).toISOString().slice(11, 16) : '18:00',
+      date: recDate,
+      checkIn: formatTimeToLocalInput(rec?.checkIn, '09:00'),
+      checkOut: formatTimeToLocalInput(rec?.checkOut, '18:00'),
       status: rec?.status || 'Present',
-      workedHours: rec?.workedHours || 8,
+      workedHours: rec?.workedHours !== undefined ? rec.workedHours : 8,
       isManualCorrection: true,
       remarks: rec?.remarks || ''
     });
@@ -128,11 +146,14 @@ export const AttendancePage = () => {
   const handleSaveCorrection = async (e) => {
     e.preventDefault();
     try {
+      const checkInISO = buildLocalDateTime(correctionForm.date, correctionForm.checkIn);
+      const checkOutISO = buildLocalDateTime(correctionForm.date, correctionForm.checkOut);
+
       if (editingRecord) {
         const res = await attendanceApi.update(editingRecord._id, {
           ...correctionForm,
-          checkIn: `${correctionForm.date}T${correctionForm.checkIn}:00.000Z`,
-          checkOut: `${correctionForm.date}T${correctionForm.checkOut}:00.000Z`
+          checkIn: checkInISO,
+          checkOut: checkOutISO
         });
         if (res.success) {
           showToast('Attendance correction saved', 'success');
@@ -143,9 +164,10 @@ export const AttendancePage = () => {
         const res = await attendanceApi.create({
           employee: correctionForm.employeeId,
           date: correctionForm.date,
-          checkIn: `${correctionForm.date}T${correctionForm.checkIn}:00.000Z`,
-          checkOut: `${correctionForm.date}T${correctionForm.checkOut}:00.000Z`,
+          checkIn: checkInISO,
+          checkOut: checkOutISO,
           status: correctionForm.status,
+          workedHours: Number(correctionForm.workedHours) || 8,
           isManualCorrection: true,
           remarks: correctionForm.remarks
         });
@@ -338,14 +360,24 @@ export const AttendancePage = () => {
                     <td>{getStatusBadge(att.status)}</td>
 
                     <td className="text-right">
-                      {canCorrect && (
+                      <div className="flex items-center justify-end gap-1.5">
                         <button
-                          onClick={() => handleOpenCorrection(att)}
-                          className="px-2.5 py-1 bg-white hover:bg-[#FAF9F6] text-[#0F5C4A] border border-[#E7E2D9] rounded-md text-xs font-medium transition-colors"
+                          onClick={() => setViewingPunchRecord(att)}
+                          className="px-2 py-1 bg-[#FAF9F6] hover:bg-[#E8F4F1] text-[#0F5C4A] border border-[#E7E2D9] hover:border-[#0F5C4A]/30 rounded-md text-[11px] font-medium transition-colors flex items-center gap-1"
+                          title="View detailed punch intervals and break logs"
                         >
-                          Adjust
+                          <span className="material-symbols-outlined text-[14px]">timeline</span>
+                          {Array.isArray(att.punches) && att.punches.length > 1 ? `${att.punches.length} Punches` : 'Timeline'}
                         </button>
-                      )}
+                        {canCorrect && (
+                          <button
+                            onClick={() => handleOpenCorrection(att)}
+                            className="px-2 py-1 bg-white hover:bg-[#FAF9F6] text-[#1C1B19] border border-[#E7E2D9] rounded-md text-[11px] font-medium transition-colors"
+                          >
+                            Adjust
+                          </button>
+                        )}
+                      </div>
                     </td>
                   </tr>
                 );
@@ -447,6 +479,129 @@ export const AttendancePage = () => {
             </Button>
           </div>
         </form>
+      </Modal>
+
+      {/* Punch Sessions Timeline Modal for Admin & HR */}
+      <Modal
+        isOpen={!!viewingPunchRecord}
+        onClose={() => setViewingPunchRecord(null)}
+        title="Shift Punch Log & Break Breakdown"
+        maxWidth="max-w-lg"
+      >
+        {viewingPunchRecord && (
+          <div className="space-y-4 text-xs font-body">
+            {/* Summary Header Card */}
+            <div className="p-3 bg-[#FAF9F6] rounded-lg border border-[#E7E2D9] flex items-center justify-between">
+              <div>
+                <span className="font-semibold text-sm text-[#1C1B19] block">
+                  {typeof viewingPunchRecord.employee === 'object'
+                    ? `${viewingPunchRecord.employee.firstName || ''} ${viewingPunchRecord.employee.lastName || ''}`.trim()
+                    : 'Employee'}
+                </span>
+                <span className="text-[11px] font-mono text-[#6B665C]">
+                  {viewingPunchRecord.employee?.employeeId || 'EMP'} • {viewingPunchRecord.employee?.department || 'General'}
+                </span>
+              </div>
+              <div className="text-right">
+                <span className="text-xs font-mono font-bold text-[#0F5C4A] block">
+                  {viewingPunchRecord.workedHours || 0} hrs Logged
+                </span>
+                {getStatusBadge(viewingPunchRecord.status)}
+              </div>
+            </div>
+
+            {/* Punch Interval Sessions List */}
+            <div className="space-y-2">
+              <div className="flex items-center justify-between text-[11px] text-[#6B665C] font-mono">
+                <span>Chronological Shift Intervals:</span>
+                <span>{Array.isArray(viewingPunchRecord.punches) ? viewingPunchRecord.punches.length : 1} session(s)</span>
+              </div>
+
+              {Array.isArray(viewingPunchRecord.punches) && viewingPunchRecord.punches.length > 0 ? (
+                <div className="space-y-2 max-h-60 overflow-y-auto">
+                  {viewingPunchRecord.punches.map((p, idx) => {
+                    const inTime = p.in ? new Date(p.in).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : '—';
+                    const outTime = p.out ? new Date(p.out).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : 'Active on Shift';
+                    const isCurrent = !p.out;
+
+                    return (
+                      <div
+                        key={idx}
+                        className={`p-3 rounded-lg border transition-all ${
+                          isCurrent
+                            ? 'bg-[#E8F4F1]/50 border-[#0F5C4A]/30'
+                            : 'bg-white border-[#E7E2D9]'
+                        }`}
+                      >
+                        <div className="flex items-center justify-between">
+                          <div className="flex items-center gap-2">
+                            <span className="w-5 h-5 rounded-full bg-[#0F5C4A] text-white text-[10px] font-bold flex items-center justify-center font-mono">
+                              {idx + 1}
+                            </span>
+                            <span className="font-semibold text-xs text-[#1C1B19]">
+                              Session #{idx + 1} ({p.type || 'Regular'})
+                            </span>
+                            {isCurrent && (
+                              <span className="inline-flex items-center gap-1 text-[10px] font-semibold text-[#0F5C4A] bg-[#E8F4F1] px-1.5 py-0.5 rounded border border-[#0F5C4A]/20">
+                                <span className="w-1.5 h-1.5 rounded-full bg-[#0F5C4A] animate-pulse"></span>
+                                Live On Shift
+                              </span>
+                            )}
+                          </div>
+                          <span className="font-mono font-bold text-[#0F5C4A] text-xs">
+                            {p.out ? `${p.durationHours || 0} hrs` : 'Counting'}
+                          </span>
+                        </div>
+
+                        <div className="grid grid-cols-2 gap-2 mt-2 pt-2 border-t border-[#E7E2D9]/60 text-[11px] font-mono text-[#6B665C]">
+                          <div>
+                            <span className="text-[#918C82] block text-[10px]">PUNCH IN:</span>
+                            <span className="text-[#1C1B19] font-medium">{inTime}</span>
+                          </div>
+                          <div>
+                            <span className="text-[#918C82] block text-[10px]">PUNCH OUT / BREAK:</span>
+                            <span className="text-[#1C1B19] font-medium">{outTime}</span>
+                          </div>
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              ) : (
+                <div className="p-4 bg-[#FAF9F6] rounded-lg border border-[#E7E2D9] text-center text-xs text-[#6B665C]">
+                  Single punch recorded: In at {viewingPunchRecord.checkIn ? new Date(viewingPunchRecord.checkIn).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : '—'}
+                  {viewingPunchRecord.checkOut ? ` • Out at ${new Date(viewingPunchRecord.checkOut).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}` : ' (Currently Clocked In)'}
+                </div>
+              )}
+            </div>
+
+            {/* Footer Actions */}
+            <div className="flex justify-between items-center pt-3 border-t border-[#E7E2D9]">
+              <span className="text-[11px] text-[#918C82] font-mono">
+                {viewingPunchRecord.isManualCorrection ? '⚠️ Manual HR Adjustment' : 'Biometric / Web Clock Sync'}
+              </span>
+              <div className="flex gap-2">
+                {canCorrect && (
+                  <Button
+                    variant="secondary"
+                    size="sm"
+                    onClick={() => {
+                      const rec = viewingPunchRecord;
+                      setViewingPunchRecord(null);
+                      handleOpenCorrection(rec);
+                    }}
+                    icon="edit"
+                  >
+                    Adjust Hours
+                  </Button>
+                )}
+                <Button variant="primary" size="sm" onClick={() => setViewingPunchRecord(null)}>
+                  Done
+                </Button>
+              </div>
+            </div>
+          </div>
+        )}
       </Modal>
     </div>
   );

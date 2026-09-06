@@ -76,10 +76,24 @@ const calculateSalary = async ({
     workedHours = scheduleInfo.expectedHours > 0 ? scheduleInfo.expectedHours : workedDays * 8;
   }
 
-  let approvedLeaveDays = 0;
+  let approvedPaidLeaveDays = 0;
+  let approvedUnpaidLeaveDays = 0;
+
   if (timeOffRecords && timeOffRecords.length > 0) {
-    approvedLeaveDays = timeOffRecords.reduce((acc, req) => acc + (req.duration || 0), 0);
+    timeOffRecords.forEach((req) => {
+      const isPaid = req.timeOffType ? req.timeOffType.isPaid !== false : true;
+      const days = req.duration || 0;
+      if (isPaid) {
+        approvedPaidLeaveDays += days;
+      } else {
+        approvedUnpaidLeaveDays += days;
+      }
+    });
   }
+
+  const totalExpectedDays = scheduleInfo.expectedDays > 0 ? scheduleInfo.expectedDays : 30;
+  const payableDays = Math.min(totalExpectedDays, workedDays + approvedPaidLeaveDays);
+  const lopDays = Math.max(0, totalExpectedDays - payableDays);
 
   // 4. Initialize Evaluation Context
   const context = {
@@ -88,7 +102,12 @@ const calculateSalary = async ({
     WORKED_DAYS: workedDays,
     WORKED_HOURS: workedHours,
     TOTAL_SCHEDULE_HOURS: scheduleInfo.expectedHours || 160,
-    APPROVED_LEAVE_DAYS: approvedLeaveDays,
+    TOTAL_WORKING_DAYS: totalExpectedDays,
+    APPROVED_LEAVE_DAYS: approvedPaidLeaveDays + approvedUnpaidLeaveDays,
+    PAID_LEAVE_DAYS: approvedPaidLeaveDays,
+    UNPAID_LEAVE_DAYS: approvedUnpaidLeaveDays,
+    PAYABLE_DAYS: payableDays,
+    LOP_DAYS: lopDays,
     BASIC: 0,
     ALLOWANCES: 0,
     GROSS: 0,
@@ -160,12 +179,18 @@ const calculateSalary = async ({
   const totalDeductions = Math.round((categoryDeductions + Number.EPSILON) * 100) / 100;
   const totalNet = Math.round((Math.max(0, totalGross - totalDeductions) + Number.EPSILON) * 100) / 100;
 
+  const totalApprovedLeaveDays = approvedPaidLeaveDays + approvedUnpaidLeaveDays;
+
   return {
     metrics: {
       workedDays,
       workedHours,
       totalScheduleHours: scheduleInfo.expectedHours,
-      approvedLeaveDays
+      approvedLeaveDays: totalApprovedLeaveDays,
+      paidLeaveDays: approvedPaidLeaveDays,
+      unpaidLeaveDays: approvedUnpaidLeaveDays,
+      payableDays,
+      lopDays
     },
     basic: totalBasic,
     allowances: totalAllowances,

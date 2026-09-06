@@ -29,10 +29,12 @@ export const GlobalSearchModal = ({ isOpen, onClose }) => {
   const inputRef = useRef(null);
   const navigate = useNavigate();
 
-  const filtered = SEARCH_ITEMS.filter((item) =>
-    item.title.toLowerCase().includes(query.toLowerCase()) ||
-    item.category.toLowerCase().includes(query.toLowerCase())
-  );
+  const filtered = SEARCH_ITEMS.filter((item) => {
+    if (!query) return true;
+    const target = `${item.title} ${item.category}`.toLowerCase();
+    const terms = query.trim().toLowerCase().split(/\s+/).filter(Boolean);
+    return terms.every((term) => target.includes(term));
+  });
 
   useEffect(() => {
     if (isOpen) {

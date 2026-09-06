@@ -531,10 +531,12 @@ export const PayrunsPage = () => {
                 {eligibleEmployees
                   .filter((item) => {
                     const emp = item.employee || item;
-                    const searchStr = `${emp.firstName || ''} ${emp.lastName || ''} ${emp.employeeId || ''} ${emp.jobPosition || ''}`.toLowerCase();
-                    const matchesSearch = !searchEmployee || searchStr.includes(searchEmployee.toLowerCase());
+                    const searchTarget = `${emp.firstName || ''} ${emp.lastName || ''} ${emp.employeeId || ''} ${emp.jobPosition || ''} ${emp.department || ''}`.toLowerCase();
                     const matchesDept = !deptFilter || emp.department === deptFilter;
-                    return matchesSearch && matchesDept;
+                    if (!matchesDept) return false;
+                    if (!searchEmployee) return true;
+                    const terms = searchEmployee.trim().toLowerCase().split(/\s+/).filter(Boolean);
+                    return terms.every((term) => searchTarget.includes(term));
                   })
                   .map((item) => {
                     const emp = item.employee || item;

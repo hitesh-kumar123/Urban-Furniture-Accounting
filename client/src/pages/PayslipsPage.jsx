@@ -90,7 +90,8 @@ export const PayslipsPage = () => {
     if (!searchQuery) return true;
     const emp = typeof ps.employee === 'object' ? ps.employee : {};
     const searchTarget = `${emp.firstName || ''} ${emp.lastName || ''} ${emp.employeeId || ''} ${ps.payslipNumber || ''} ${ps._id || ''}`.toLowerCase();
-    return searchTarget.includes(searchQuery.toLowerCase());
+    const terms = searchQuery.trim().toLowerCase().split(/\s+/).filter(Boolean);
+    return terms.every((term) => searchTarget.includes(term));
   });
 
   return (

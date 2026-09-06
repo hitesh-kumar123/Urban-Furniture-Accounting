@@ -168,6 +168,8 @@ const updateContract = async (req, res, next) => {
   }
 };
 
+const Payslip = require('../models/Payslip');
+
 /**
  * Delete contract
  * DELETE /api/contracts/:id
@@ -176,10 +178,22 @@ const deleteContract = async (req, res, next) => {
   try {
     const { id } = req.params;
 
-    const contract = await Contract.findByIdAndDelete(id);
+    const contract = await Contract.findById(id);
     if (!contract) {
       return next(new AppError('Contract not found', 404));
     }
+
+    const linkedPayslip = await Payslip.findOne({ contract: id });
+    if (linkedPayslip) {
+      return next(
+        new AppError(
+          'Cannot delete this contract because payslips have already been generated under it. To deactivate, please set status to Expired or Cancelled instead.',
+          400
+        )
+      );
+    }
+
+    await Contract.findByIdAndDelete(id);
 
     return successResponse(res, {
       message: 'Contract deleted successfully',

@@ -665,9 +665,10 @@ export const DashboardPage = () => {
     headcount: Number(m.headcount ?? m.payslipCount ?? 0)
   }));
 
-  const maxVal = monthlyTrends.length > 0
-    ? Math.max(...monthlyTrends.map((m) => (chartMode === 'cost' ? m.netSalary : m.headcount * 60000)), 10000)
+  const rawMax = monthlyTrends.length > 0
+    ? Math.max(...monthlyTrends.map((m) => (chartMode === 'cost' ? m.netSalary : m.headcount)), 1)
     : 10000;
+  const maxVal = chartMode === 'cost' ? (rawMax > 0 ? rawMax * 1.25 : 10000) : Math.max(rawMax + 2, 5);
   const currentMonthName = new Date().toLocaleString('default', { month: 'long', year: 'numeric' });
   const pendingAttentionCount = (leave?.pending || 0) + (alerts?.missingBankInfoEmployees || 0);
 
@@ -981,17 +982,17 @@ export const DashboardPage = () => {
                 <div className="absolute inset-0 flex flex-col justify-between pointer-events-none pb-7 pt-2">
                   <div className="w-full border-b border-dashed border-[#E7E2D9] flex justify-start">
                     <span className="text-[10px] font-mono text-[#918C82] -mt-2 bg-white pr-1.5">
-                      {chartMode === 'cost' ? formatINR(maxVal, { compact: true }) : `${Math.round(maxVal / 60000)} Staff`}
+                      {chartMode === 'cost' ? formatINR(maxVal, { compact: true }) : `${Math.round(maxVal)} Staff`}
                     </span>
                   </div>
                   <div className="w-full border-b border-dashed border-[#E7E2D9] flex justify-start">
                     <span className="text-[10px] font-mono text-[#918C82] -mt-2 bg-white pr-1.5">
-                      {chartMode === 'cost' ? formatINR(maxVal * 0.66, { compact: true }) : `${Math.round((maxVal * 0.66) / 60000)} Staff`}
+                      {chartMode === 'cost' ? formatINR(maxVal * 0.66, { compact: true }) : `${Math.round(maxVal * 0.66)} Staff`}
                     </span>
                   </div>
                   <div className="w-full border-b border-dashed border-[#E7E2D9] flex justify-start">
                     <span className="text-[10px] font-mono text-[#918C82] -mt-2 bg-white pr-1.5">
-                      {chartMode === 'cost' ? formatINR(maxVal * 0.33, { compact: true }) : `${Math.round((maxVal * 0.33) / 60000)} Staff`}
+                      {chartMode === 'cost' ? formatINR(maxVal * 0.33, { compact: true }) : `${Math.round(maxVal * 0.33)} Staff`}
                     </span>
                   </div>
                   <div className="w-full border-b border-[#E7E2D9]"></div>
@@ -1000,8 +1001,8 @@ export const DashboardPage = () => {
                 {/* Bars Visualization Container */}
                 <div className="relative z-10 h-full flex items-end justify-around gap-6 px-10 pb-7">
                   {monthlyTrends.map((item, idx) => {
-                    const currentVal = chartMode === 'cost' ? item.netSalary : item.headcount * 60000;
-                    const heightPercent = Math.min(100, Math.max(12, Math.round((currentVal / maxVal) * 100)));
+                    const currentVal = chartMode === 'cost' ? item.netSalary : item.headcount;
+                    const heightPercent = Math.min(100, Math.max(8, Math.round((currentVal / maxVal) * 100)));
                     const isHovered = hoveredBar === idx;
 
                     return (
